@@ -1,0 +1,7 @@
+root = true
+
+[*.{h,cpp,c,lua,cs}]
+charset = utf-8
+indent_style = tab
+tab_width = 4
+end_of_line = crlf
