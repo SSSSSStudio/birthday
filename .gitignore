@@ -122,6 +122,11 @@ enc_temp_folder/
 # Plugins
 /Plugins/*/Binaries/*
 /Plugins/*/Intermediate/*
+!/Plugins/LuaExtension/Source/ThirdParty/**/*.lib
+!/Plugins/LuaExtension/Source/ThirdParty/**/*.dll
+!/Plugins/LuaExtension/Source/ThirdParty/**/*.a
+!/Plugins/LuaExtension/Source/ThirdParty/**/*.so
+!/Plugins/LuaExtension/Source/ThirdParty/**/*.dylib
 
 # Project Content
 /Content

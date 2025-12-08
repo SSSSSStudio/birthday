@@ -16,8 +16,6 @@ public class G01 : ModuleRules
 			"InputCore", 
 			"EnhancedInput",
 			"GameplayTags",
-			
-			
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -25,11 +23,13 @@ public class G01 : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
+			"LuaExtension",
+			"UnLua",
 		});
 
 		PrivateIncludePaths.AddRange(new string[]
 		{
-			"Public"
+			"G01/Public"
 		});		
 		
 	}
