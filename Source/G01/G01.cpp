@@ -3,12 +3,26 @@
 #include "G01.h"
 #include "Modules/ModuleManager.h"
 
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
+
+#include "UnLuaDelegates.h"
+#include "LuaCore.h"
+#include "UnLua.h"
+
+#include "ThirdParty/ProjectLibrary/ProjectLibraryModule.h"
 
 class FG01GameModule : public FDefaultGameModuleImpl
 {
 public:
 	virtual void StartupModule() override
 	{
+		UnLua::FLuaEnv::OnCreated.AddStatic(&FG01GameModule::OnLuaEnvCreated);
+		UnLua::FLuaEnv::OnDestroyed.AddStatic(&FG01GameModule::OnLuaEnvDestroyed);
+		
 		TickDelegate = FTickerDelegate::CreateRaw(this,&FG01GameModule::Tick);
 		TickDelegateHandle = FTSTicker::GetCoreTicker().AddTicker(TickDelegate);
 
@@ -21,10 +35,21 @@ public:
 		FTSTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 	}
 
-	bool Tick(float DeltaTime)
+	static void OnLuaEnvCreated(UnLua::FLuaEnv& Env)
+	{
+		Env.AddBuiltInLoader(TEXT("lproject"),FProjectLibraryModule::Setup);
+	}
+
+	static void OnLuaEnvDestroyed(UnLua::FLuaEnv& Env) 
+	{
+		FProjectLibraryModule::EndPlay(Env.GetMainState());
+	}
+	
+	bool Tick(float DeltaTime) const
 	{
 		if (bIsTicking)
 		{
+            FProjectLibraryModule::Tick(UnLua::GetState(),DeltaTime);
 		}
 		return true;
 	}

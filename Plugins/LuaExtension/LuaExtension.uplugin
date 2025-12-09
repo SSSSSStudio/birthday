@@ -5,7 +5,7 @@
 	"FriendlyName": "LuaExtension",
 	"Description": "Lua extension library",
 	"Category": "Other",
-	"CreatedBy": "hebo",
+	"CreatedBy": "pengbo",
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "",
@@ -18,7 +18,14 @@
 		{
 			"Name": "LuaExtension",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
+		},
+		{
+			"Name": "ProjectLibrary",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
 		}
 	]
 }

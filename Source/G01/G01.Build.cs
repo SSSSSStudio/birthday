@@ -23,6 +23,8 @@ public class G01 : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
+			"LuaLibrary",
+			"ProjectLibrary",
 			"LuaExtension",
 			"UnLua",
 		});

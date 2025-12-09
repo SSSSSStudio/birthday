@@ -78,8 +78,8 @@ public class UnLuaEditor : ModuleRules
                 "DirectoryWatcher",
                 "Networking",
                 "Sockets",
-                "UnLua",
                 "LuaLibrary",
+                "UnLua",
                 "ToolMenus"
             }
         );
