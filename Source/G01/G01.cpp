@@ -14,6 +14,7 @@ extern "C" {
 #include "UnLua.h"
 
 #include "ThirdParty/ProjectLibrary/ProjectLibraryModule.h"
+#include "ThirdParty/TlsLibrary/TlsLibraryModule.h"
 
 class FG01GameModule : public FDefaultGameModuleImpl
 {
@@ -38,6 +39,7 @@ public:
 	static void OnLuaEnvCreated(UnLua::FLuaEnv& Env)
 	{
 		Env.AddBuiltInLoader(TEXT("lproject"),FProjectLibraryModule::Setup);
+		Env.AddBuiltInLoader(TEXT("ltls"),FTlsLibraryModule::Setup);
 	}
 
 	static void OnLuaEnvDestroyed(UnLua::FLuaEnv& Env) 

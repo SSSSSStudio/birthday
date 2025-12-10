@@ -26,6 +26,12 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
+		},
+		{
+			"Name": "TlsLibrary",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
 		}
 	]
 }

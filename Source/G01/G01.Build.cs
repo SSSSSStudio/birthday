@@ -25,6 +25,7 @@ public class G01 : ModuleRules
 			"SlateCore",
 			"LuaLibrary",
 			"ProjectLibrary",
+			"TlsLibrary",
 			"LuaExtension",
 			"UnLua",
 		});

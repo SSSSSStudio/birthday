@@ -13,6 +13,6 @@ public class ProjectLibrary : ModuleRules
 
 		PublicDefinitions.Add("WITH_ProjectLibrary=1");
 
-        PublicSystemIncludePaths.Add(Path.Combine(ModuleDirectory, "Source"));
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Source"));		
     }
 }
