@@ -22,19 +22,19 @@
 			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
 		},
 		{
-			"Name": "ProjectLibrary",
+			"Name": "LuaProjectLibrary",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
 		},
 		{
-			"Name": "TlsLibrary",
+			"Name": "LuaTlsLibrary",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
 		},
 		{
-			"Name": "CryptLibrary",
+			"Name": "LuaCryptLibrary",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]

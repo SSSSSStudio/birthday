@@ -1,9 +1,9 @@
 using System.IO;
 using UnrealBuildTool;
 
-public class ProjectLibrary : ModuleRules
+public class LuaProjectLibrary : ModuleRules
 {
-    public ProjectLibrary(ReadOnlyTargetRules Target) : base(Target)
+    public LuaProjectLibrary(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -11,7 +11,7 @@ public class ProjectLibrary : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "LuaLibrary"});
 
-		PublicDefinitions.Add("WITH_ProjectLibrary=1");
+		PublicDefinitions.Add("WITH_LuaProjectLibrary=1");
 
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Source"));		
     }

@@ -5,7 +5,7 @@
 
 struct lua_State;
 
-class TLSLIBRARY_API FTlsLibraryModule : public IModuleInterface
+class LUATLSLIBRARY_API FLuaTlsLibraryModule : public IModuleInterface
 {
 public:
 	static int32 Setup(lua_State* L);

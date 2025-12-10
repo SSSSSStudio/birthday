@@ -24,9 +24,10 @@ public class G01 : ModuleRules
 			"Slate",
 			"SlateCore",
 			"LuaLibrary",
-			"ProjectLibrary",
-			"TlsLibrary",
-			"CryptLibrary",
+			"LuaProjectLibrary",
+			"LuaTlsLibrary",
+			"LuaCryptLibrary",
+			"LuaJsonLibrary",
 			"LuaExtension",
 			"UnLua",
 		});

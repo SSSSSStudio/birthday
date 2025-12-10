@@ -3,9 +3,9 @@
 using System.IO;
 using UnrealBuildTool;
 
-public class CryptLibrary : ModuleRules
+public class LuaCryptLibrary : ModuleRules
 {
-	public CryptLibrary(ReadOnlyTargetRules Target) : base(Target)
+	public LuaCryptLibrary(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -13,7 +13,7 @@ public class CryptLibrary : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "LuaLibrary", "OpenSSL" });
 
-		PublicDefinitions.Add("WITH_CryptLibrary=1");
+		PublicDefinitions.Add("WITH_LuaCryptLibrary=1");
 		
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Source"));		
 	}

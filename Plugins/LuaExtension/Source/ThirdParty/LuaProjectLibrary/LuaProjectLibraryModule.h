@@ -5,7 +5,7 @@
 
 struct lua_State;
 
-class PROJECTLIBRARY_API FProjectLibraryModule : public IModuleInterface
+class LUAPROJECTLIBRARY_API FLuaProjectLibraryModule : public IModuleInterface
 {
 public:
 	static int32 Setup(lua_State* L);

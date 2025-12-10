@@ -51,14 +51,17 @@ public class LuaExtension : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLibrary", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaJsonLibrary", "bin/Win64"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLibrary", "bin/Linux"));
+	        DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLibrary", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaJsonLibrary", "bin/Linux"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
-			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLibrary", "bin/Mac"));
+	        DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLibrary", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaJsonLibrary", "bin/Mac"));
 		}
 	}
 	

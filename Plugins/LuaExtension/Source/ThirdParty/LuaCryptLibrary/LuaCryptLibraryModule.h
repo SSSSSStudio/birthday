@@ -5,7 +5,7 @@
 
 struct lua_State;
 
-class CRYPTLIBRARY_API FCryptLibraryModule : public IModuleInterface
+class LUACRYPTLIBRARY_API FLuaCryptLibraryModule : public IModuleInterface
 {
 public:
 	static int32 Setup(lua_State* L);

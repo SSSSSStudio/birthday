@@ -13,9 +13,11 @@ extern "C" {
 #include "LuaCore.h"
 #include "UnLua.h"
 
-#include "ThirdParty/ProjectLibrary/ProjectLibraryModule.h"
-#include "ThirdParty/TlsLibrary/TlsLibraryModule.h"
-#include "ThirdParty/CryptLibrary/CryptLibraryModule.h"
+#include "ljson.h"
+
+#include "ThirdParty/LuaProjectLibrary/LuaProjectLibraryModule.h"
+#include "ThirdParty/LuaTlsLibrary/LuaTlsLibraryModule.h"
+#include "ThirdParty/LuaCryptLibrary/LuaCryptLibraryModule.h"
 
 class FG01GameModule : public FDefaultGameModuleImpl
 {
@@ -39,21 +41,23 @@ public:
 
 	static void OnLuaEnvCreated(UnLua::FLuaEnv& Env)
 	{
-		Env.AddBuiltInLoader(TEXT("lproject"),FProjectLibraryModule::Setup);
-		Env.AddBuiltInLoader(TEXT("ltls"),FTlsLibraryModule::Setup);
-		Env.AddBuiltInLoader(TEXT("Lcrypt"),FCryptLibraryModule::Setup);
+		Env.AddBuiltInLoader(TEXT("lproject"),FLuaProjectLibraryModule::Setup);
+		Env.AddBuiltInLoader(TEXT("ltls"),FLuaTlsLibraryModule::Setup);
+		Env.AddBuiltInLoader(TEXT("Lcrypt"),FLuaCryptLibraryModule::Setup);
+		Env.AddBuiltInLoader(TEXT("ljson"),luaopen_ljson);
+		
 	}
 
 	static void OnLuaEnvDestroyed(UnLua::FLuaEnv& Env) 
 	{
-		FProjectLibraryModule::EndPlay(Env.GetMainState());
+		FLuaProjectLibraryModule::EndPlay(Env.GetMainState());
 	}
 	
 	bool Tick(float DeltaTime) const
 	{
 		if (bIsTicking)
 		{
-            FProjectLibraryModule::Tick(UnLua::GetState(),DeltaTime);
+            FLuaProjectLibraryModule::Tick(UnLua::GetState(),DeltaTime);
 		}
 		return true;
 	}

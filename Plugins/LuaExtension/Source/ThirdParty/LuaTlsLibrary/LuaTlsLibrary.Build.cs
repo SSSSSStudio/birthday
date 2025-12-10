@@ -3,9 +3,9 @@
 using System.IO;
 using UnrealBuildTool;
 
-public class TlsLibrary : ModuleRules
+public class LuaTlsLibrary : ModuleRules
 {
-	public TlsLibrary(ReadOnlyTargetRules Target) : base(Target)
+	public LuaTlsLibrary(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -13,7 +13,7 @@ public class TlsLibrary : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "LuaLibrary", "OpenSSL" });
 
-		PublicDefinitions.Add("WITH_TlsLibrary=1");
+		PublicDefinitions.Add("WITH_LuaTlsLibrary=1");
 		
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Source"));		
 	}
