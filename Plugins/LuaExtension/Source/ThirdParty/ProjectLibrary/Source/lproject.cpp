@@ -97,7 +97,7 @@ bool lproject_endplay(struct lua_State *L)
 	return lua_pcall(L, 0, 0, 0) == LUA_OK;
 }
 
-int32 luaopen_lproject(struct lua_State *L)
+int32_t luaopen_lproject(struct lua_State *L)
 {    
 	luaL_Reg lualib_project[] =
     {

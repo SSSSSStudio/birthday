@@ -5,7 +5,7 @@
 	"FriendlyName": "LuaExtension",
 	"Description": "Lua extension library",
 	"Category": "Other",
-	"CreatedBy": "pengbo",
+	"CreatedBy": "hebo.pb",
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "",
@@ -29,6 +29,12 @@
 		},
 		{
 			"Name": "TlsLibrary",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]
+		},
+		{
+			"Name": "CryptLibrary",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"WhitelistPlatforms": [ "Win64", "Mac", "IOS", "Android", "Linux" ]

@@ -15,6 +15,7 @@ extern "C" {
 
 #include "ThirdParty/ProjectLibrary/ProjectLibraryModule.h"
 #include "ThirdParty/TlsLibrary/TlsLibraryModule.h"
+#include "ThirdParty/CryptLibrary/CryptLibraryModule.h"
 
 class FG01GameModule : public FDefaultGameModuleImpl
 {
@@ -40,6 +41,7 @@ public:
 	{
 		Env.AddBuiltInLoader(TEXT("lproject"),FProjectLibraryModule::Setup);
 		Env.AddBuiltInLoader(TEXT("ltls"),FTlsLibraryModule::Setup);
+		Env.AddBuiltInLoader(TEXT("Lcrypt"),FCryptLibraryModule::Setup);
 	}
 
 	static void OnLuaEnvDestroyed(UnLua::FLuaEnv& Env) 
