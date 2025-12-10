@@ -28,6 +28,7 @@ public class G01 : ModuleRules
 			"LuaTlsLibrary",
 			"LuaCryptLibrary",
 			"LuaJsonLibrary",
+			"LuaXmlLibrary",
 			"LuaExtension",
 			"UnLua",
 		});

@@ -14,6 +14,7 @@ extern "C" {
 #include "UnLua.h"
 
 #include "ljson.h"
+#include "lxml.h"
 
 #include "ThirdParty/LuaProjectLibrary/LuaProjectLibraryModule.h"
 #include "ThirdParty/LuaTlsLibrary/LuaTlsLibraryModule.h"
@@ -45,6 +46,7 @@ public:
 		Env.AddBuiltInLoader(TEXT("ltls"),FLuaTlsLibraryModule::Setup);
 		Env.AddBuiltInLoader(TEXT("Lcrypt"),FLuaCryptLibraryModule::Setup);
 		Env.AddBuiltInLoader(TEXT("ljson"),luaopen_ljson);
+		Env.AddBuiltInLoader(TEXT("lxml"),luaopen_lxml);
 		
 	}
 
