@@ -12,11 +12,12 @@
 #include "openssl/conf.h"
 #include "openssl/engine.h"
 
+static bool s_bTlsInit = false;
+
 static int32_t tls_init(lua_State *L)
 {
 #ifndef OPENSSL_EXTERNAL_INITIALIZATION
-	bool bTlsInit = lua_isboolean(L, lua_upvalueindex(1));
-    if (!bTlsInit)
+    if (!s_bTlsInit)
     {
     	SSL_library_init();
     	SSL_load_error_strings();
@@ -34,8 +35,7 @@ static int32_t tls_init(lua_State *L)
 static int32_t tls_cleanup(lua_State *L)
 {
 #ifndef OPENSSL_EXTERNAL_INITIALIZATION
-	bool bTlsInit = lua_isboolean(L, lua_upvalueindex(1));
-    if (bTlsInit)
+    if (s_bTlsInit)
     {
     	ENGINE_cleanup();
     	CONF_modules_unload(1);
@@ -43,8 +43,7 @@ static int32_t tls_cleanup(lua_State *L)
     	EVP_cleanup();
     	sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
     	CRYPTO_cleanup_all_ex_data();
-    	lua_pushboolean(L, 0);
-    	lua_replace(L, lua_upvalueindex(1));
+    	s_bTlsInit = false;
     }
 #endif
     return 0;
@@ -357,6 +356,12 @@ static int32_t _lctx_ciphers(lua_State* L)
 
 static int32_t tls_ctx_new(lua_State *L)
 {
+#ifndef OPENSSL_EXTERNAL_INITIALIZATION
+	if (!s_bTlsInit)
+	{
+		return 0;
+	}
+#endif
 	struct ssl_ctx* ctx_p = (struct ssl_ctx*)lua_newuserdatauv(L, sizeof(struct ssl_ctx), 0);
 	ctx_p->ctx = SSL_CTX_new(SSLv23_method());
 	if(!ctx_p->ctx) {
@@ -384,6 +389,12 @@ static int32_t tls_ctx_new(lua_State *L)
 
 static int32_t tls_tls_new(lua_State *L)
 {
+#ifndef OPENSSL_EXTERNAL_INITIALIZATION
+	if (!s_bTlsInit)
+	{
+		return 0;
+	}
+#endif
 	struct tls_context* tls_p = (struct tls_context*)lua_newuserdatauv(L, sizeof(struct tls_context), 1);
 	tls_p->is_close = false;
 	const char* method = luaL_optstring(L, 1, "nil");
@@ -433,9 +444,6 @@ int32_t luaopen_ltls(struct lua_State *L)
 		{NULL, NULL}
 	};
 
-	luaL_checkversion(L);
-	luaL_newlibtable(L,lualib_tls);
-	lua_pushboolean(L, 0);
-	luaL_setfuncs(L,lualib_tls,1);
+	luaL_newlib(L,lualib_tls);
 	return 1;
 }

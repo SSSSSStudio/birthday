@@ -1,22 +1,25 @@
 #include "lproject.h"
 #include "Core.h"
+static bool s_bRunning = false;
 
 static bool receive_beginplay(struct lua_State *L)
 {
-	bool bRunning = lua_isboolean(L, lua_upvalueindex(1));
-	if (bRunning)
+	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	if (lua_isboolean(L, -1))
+    {
+        return false;
+    }
+	
+	int32_t type = lua_rawgetp(L, LUA_REGISTRYINDEX, receive_beginplay);
+	check(type == LUA_TFUNCTION);
+    int32_t rc = lua_pcall(L, 0, 0, 0);
+	if (rc != LUA_OK)
 	{
 		return false;
 	}
-	lua_rawgetp(L, LUA_REGISTRYINDEX, (const void *)receive_beginplay);
-    int32_t rc = lua_pcall(L, 0, 0, 0);
-	bRunning = rc == LUA_OK; 
-	if(bRunning)
-	{
-		lua_pushboolean(L, 1);
-		lua_replace(L, lua_upvalueindex(1));
-	}
-	return bRunning;
+	lua_pushboolean(L, 1);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	return true;
 }
 
 static int32_t lproject_set_beginplay_callback(lua_State *L) 
@@ -69,31 +72,31 @@ static int32_t lproject_get_app_sandboxes_dir(lua_State *L)
 
 bool lproject_tick(struct lua_State *L, float DeltaTime)
 {
-	bool bRunning = lua_isboolean(L, lua_upvalueindex(1));
-	if (!bRunning)
+	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	if (!lua_isboolean(L, -1))
 	{
 		return false;
 	}
 	
-	int32_t type = lua_rawgetp(L, LUA_REGISTRYINDEX, (const void *)lproject_tick);
-	check(type == LUA_TFUNCTION)
+	int32_t type = lua_rawgetp(L, LUA_REGISTRYINDEX, lproject_tick);
+	check(type == LUA_TFUNCTION);
 	lua_pushnumber(L,(lua_Number)DeltaTime);
 	return lua_pcall(L, 1, 0, 0) == LUA_OK;
 }
 
 bool lproject_endplay(struct lua_State *L)
 {
-	bool bRunning = lua_isboolean(L, lua_upvalueindex(1));
-	if (!bRunning)
+	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	if (!lua_isboolean(L, -1))
 	{
 		return false;
 	}
 	
 	lua_pushboolean(L, 0);
-	lua_replace(L, lua_upvalueindex(1));
+	lua_rawsetp(L, LUA_REGISTRYINDEX, &s_bRunning);
 	
-	int32_t type = lua_rawgetp(L, LUA_REGISTRYINDEX, (const void *)lproject_endplay);
-	check(type == LUA_TFUNCTION)
+	int32_t type = lua_rawgetp(L, LUA_REGISTRYINDEX, lproject_endplay);
+	check(type == LUA_TFUNCTION);
 	return lua_pcall(L, 0, 0, 0) == LUA_OK;
 }
 
@@ -111,9 +114,6 @@ int32_t luaopen_lproject(struct lua_State *L)
         {NULL, NULL}
     };
 
-	luaL_checkversion(L);
-	luaL_newlibtable(L,lualib_project);
-	lua_pushboolean(L, 0);
- 	luaL_setfuncs(L,lualib_project,1);
+	luaL_newlib(L,lualib_project);
 	return 1;
 }
