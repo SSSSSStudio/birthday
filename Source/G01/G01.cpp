@@ -16,6 +16,7 @@ extern "C" {
 #include "ljson.h"
 #include "lxml.h"
 #include "lpeg.h"
+#include "lpbc.h"
 
 #include "ThirdParty/LuaProjectLibrary/LuaProjectLibraryModule.h"
 #include "ThirdParty/LuaTlsLibrary/LuaTlsLibraryModule.h"
@@ -49,7 +50,7 @@ public:
 		Env.AddBuiltInLoader(TEXT("ljson"),luaopen_ljson);
 		Env.AddBuiltInLoader(TEXT("lxml"),luaopen_lxml);
 		Env.AddBuiltInLoader(TEXT("lpeg"),luaopen_lpeg);
-		
+		Env.AddBuiltInLoader(TEXT("lpbc"),luaopen_lpbc);
 	}
 
 	static void OnLuaEnvDestroyed(UnLua::FLuaEnv& Env) 

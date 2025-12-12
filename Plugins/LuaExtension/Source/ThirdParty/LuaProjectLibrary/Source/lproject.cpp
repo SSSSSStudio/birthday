@@ -1,10 +1,10 @@
 #include "lproject.h"
 #include "Core.h"
-static bool s_bRunning = false;
+static const int32_t s_iRunningKey = 0;
 
 static bool receive_beginplay(struct lua_State *L)
 {
-	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
 	if (lua_isboolean(L, -1))
     {
         return false;
@@ -18,7 +18,7 @@ static bool receive_beginplay(struct lua_State *L)
 		return false;
 	}
 	lua_pushboolean(L, 1);
-	lua_rawsetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
 	return true;
 }
 
@@ -72,7 +72,7 @@ static int32_t lproject_get_app_sandboxes_dir(lua_State *L)
 
 bool lproject_tick(struct lua_State *L, float DeltaTime)
 {
-	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
 	if (!lua_isboolean(L, -1))
 	{
 		return false;
@@ -86,14 +86,14 @@ bool lproject_tick(struct lua_State *L, float DeltaTime)
 
 bool lproject_endplay(struct lua_State *L)
 {
-	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
 	if (!lua_isboolean(L, -1))
 	{
 		return false;
 	}
 	
 	lua_pushboolean(L, 0);
-	lua_rawsetp(L, LUA_REGISTRYINDEX, &s_bRunning);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
 	
 	int32_t type = lua_rawgetp(L, LUA_REGISTRYINDEX, lproject_endplay);
 	check(type == LUA_TFUNCTION);

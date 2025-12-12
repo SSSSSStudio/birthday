@@ -23,6 +23,7 @@ public class G01 : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
+			"Tw2Library",
 			"LuaLibrary",
 			"LuaProjectLibrary",
 			"LuaTlsLibrary",
@@ -30,6 +31,7 @@ public class G01 : ModuleRules
 			"LuaJsonLibrary",
 			"LuaXmlLibrary",
 			"LuaLPegLibrary",
+			"LuaPbcLibrary",
 			"LuaExtension",
 			"UnLua",
 		});
