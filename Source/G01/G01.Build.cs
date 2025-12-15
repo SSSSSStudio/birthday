@@ -32,6 +32,10 @@ public class G01 : ModuleRules
 			"LuaXmlLibrary",
 			"LuaLPegLibrary",
 			"LuaPbcLibrary",
+			"LuaMsgpackLibrary",
+			"LuaWSProtoLibrary",
+			"LuaHParserLibrary",
+			"LuaTw2Library",
 			"LuaExtension",
 			"UnLua",
 		});

@@ -17,6 +17,11 @@ extern "C" {
 #include "lxml.h"
 #include "lpeg.h"
 #include "lpbc.h"
+#include "lmsgpack.h"
+#include "lwsproto.h"
+#include "lhparser.h"
+#include "lcore.h"
+#include "levent.h"
 
 #include "ThirdParty/LuaProjectLibrary/LuaProjectLibraryModule.h"
 #include "ThirdParty/LuaTlsLibrary/LuaTlsLibraryModule.h"
@@ -51,6 +56,11 @@ public:
 		Env.AddBuiltInLoader(TEXT("lxml"),luaopen_lxml);
 		Env.AddBuiltInLoader(TEXT("lpeg"),luaopen_lpeg);
 		Env.AddBuiltInLoader(TEXT("lpbc"),luaopen_lpbc);
+		Env.AddBuiltInLoader(TEXT("lmsgpack"),luaopen_lmsgpack);
+		Env.AddBuiltInLoader(TEXT("lwsproto"),luaopen_lwsproto);
+		Env.AddBuiltInLoader(TEXT("lhparser"),luaopen_lhparser);
+		Env.AddBuiltInLoader(TEXT("ltw2.core"),luaopen_ltw2_core);
+		Env.AddBuiltInLoader(TEXT("ltw2.event"),luaopen_ltw2_event);
 	}
 
 	static void OnLuaEnvDestroyed(UnLua::FLuaEnv& Env) 
