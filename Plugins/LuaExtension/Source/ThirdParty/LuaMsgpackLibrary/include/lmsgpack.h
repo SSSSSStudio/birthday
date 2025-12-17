@@ -16,6 +16,9 @@
 	#endif
 #endif
 
-struct lua_State;
+extern "C" 
+{
+	struct lua_State;
 
-LMSGPACK_API int32_t luaopen_lmsgpack(struct lua_State* L);
+	LMSGPACK_API int32_t luaopen_lmsgpack(struct lua_State* L);
+}

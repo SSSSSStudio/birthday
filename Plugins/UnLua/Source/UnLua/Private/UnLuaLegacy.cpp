@@ -70,4 +70,4 @@ namespace UnLua
 } // namespace UnLua
 
 FString GLuaSrcRelativePath = TEXT("Script/");
-FString GLuaSrcFullPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() + GLuaSrcRelativePath);
+FString GLuaSrcFullPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() + GLuaSrcRelativePath);//hebo.pb fix

@@ -34,17 +34,10 @@ public:
 	{
 		UnLua::FLuaEnv::OnCreated.AddStatic(&FG01GameModule::OnLuaEnvCreated);
 		UnLua::FLuaEnv::OnDestroyed.AddStatic(&FG01GameModule::OnLuaEnvDestroyed);
-		
-		TickDelegate = FTickerDelegate::CreateRaw(this,&FG01GameModule::Tick);
-		TickDelegateHandle = FTSTicker::GetCoreTicker().AddTicker(TickDelegate);
-
-		bIsTicking = true;
 	}
 
 	virtual void ShutdownModule() override
 	{
-		bIsTicking = false;
-		FTSTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 	}
 
 	static void OnLuaEnvCreated(UnLua::FLuaEnv& Env)
@@ -67,21 +60,7 @@ public:
 	{
 		FLuaProjectLibraryModule::EndPlay(Env.GetMainState());
 	}
-	
-	bool Tick(float DeltaTime) const
-	{
-		if (bIsTicking)
-		{
-            FLuaProjectLibraryModule::Tick(UnLua::GetState(),DeltaTime);
-		}
-		return true;
-	}
-	
-private:
-	FTickerDelegate TickDelegate;
-	FTSTicker::FDelegateHandle TickDelegateHandle;
-	bool bIsTicking = false;
 };
 
 
-IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, G01, "G01" );
+IMPLEMENT_PRIMARY_GAME_MODULE( FG01GameModule, G01, "G01" );
