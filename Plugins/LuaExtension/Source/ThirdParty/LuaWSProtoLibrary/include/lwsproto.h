@@ -16,6 +16,9 @@
 	#endif
 #endif
 
-struct lua_State;
+extern "C" 
+{
+	struct lua_State;
 
-LWSPROTO_API int32_t luaopen_lwsproto(struct lua_State* L);
+	LWSPROTO_API int32_t luaopen_lwsproto(struct lua_State* L);
+}

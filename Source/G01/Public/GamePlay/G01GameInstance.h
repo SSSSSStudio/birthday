@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UnLuaInterface.h"
 #include "Engine/GameInstance.h"
 #include "G01GameInstance.generated.h"
 
@@ -13,5 +14,13 @@ UCLASS()
 class G01_API UG01GameInstance : public UGameInstance
 {
 	GENERATED_BODY()
-	
+
+public:
+	virtual void Init() override;
+	virtual void Shutdown() override;
+
+	static bool Tick(float DeltaTime);
+
+private:
+	FTSTicker::FDelegateHandle TickDelegateHandle;
 };

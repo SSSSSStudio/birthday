@@ -27,7 +27,8 @@ public class LuaExtension : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
-				"Projects"
+				"Projects",
+				"Tw2Library",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -52,16 +53,43 @@ public class LuaExtension : ModuleRules
 		{
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLibrary", "bin/Win64"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaJsonLibrary", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLPegLibrary", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaXmlLibrary", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "Tw2Library", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaTw2Library", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaWSProtoLibrary", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaMsgpackLibrary", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaHParserLibrary", "bin/Win64"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaPbcLibrary", "bin/Win64"));
+			
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
 	        DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLibrary", "bin/Linux"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaJsonLibrary", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLPegLibrary", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaXmlLibrary", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "Tw2Library", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaTw2Library", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaWSProtoLibrary", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaMsgpackLibrary", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaHParserLibrary", "bin/Linux"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaPbcLibrary", "bin/Linux"));
+			
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
 	        DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLibrary", "bin/Mac"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaJsonLibrary", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaLPegLibrary", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaXmlLibrary", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "Tw2Library", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaTw2Library", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaWSProtoLibrary", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaMsgpackLibrary", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaHParserLibrary", "bin/Mac"));
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaPbcLibrary", "bin/Mac"));
+			
 		}
 	}
 	

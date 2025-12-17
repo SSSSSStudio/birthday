@@ -30,5 +30,7 @@ public class Tw2Library : ModuleRules
             PublicAdditionalLibraries.Add(Path.Combine(ModuleDirectory, "lib/Android/ARMv7/libtw2.a"));
             PublicAdditionalLibraries.Add(Path.Combine(ModuleDirectory, "lib/Android/ARM64/libtw2.a"));
         }
+        
+		PublicSystemIncludePaths.Add(Path.Combine(ModuleDirectory, "include"));
     }
 }
