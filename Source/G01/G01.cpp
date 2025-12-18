@@ -58,7 +58,6 @@ public:
 
 	static void OnLuaEnvDestroyed(UnLua::FLuaEnv& Env) 
 	{
-		FLuaProjectLibraryModule::EndPlay(Env.GetMainState());
 	}
 };
 

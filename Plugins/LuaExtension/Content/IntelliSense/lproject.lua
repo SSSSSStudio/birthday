@@ -12,6 +12,10 @@ local lproject = {}
 function lproject.startup()
 end
 
+---@return boolean
+function lproject.shutdown()
+end
+
 ---@param callback function
 function lproject.set_beginplay_callback(callback)
 end

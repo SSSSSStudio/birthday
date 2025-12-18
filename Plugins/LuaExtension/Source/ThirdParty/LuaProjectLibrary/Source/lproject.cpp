@@ -22,6 +22,23 @@ static bool receive_beginplay(struct lua_State *L)
 	return true;
 }
 
+
+bool lproject_endplay(struct lua_State *L)
+{
+	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
+	if (!lua_isboolean(L, -1))
+	{
+		return false;
+	}
+	
+	lua_pushboolean(L, 0);
+	lua_rawsetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
+	
+	int32_t type = lua_rawgetp(L, LUA_REGISTRYINDEX, lproject_endplay);
+	check(type == LUA_TFUNCTION);
+	return lua_pcall(L, 0, 0, 0) == LUA_OK;
+}
+
 static int32_t lproject_set_beginplay_callback(lua_State *L) 
 {
  	luaL_argcheck(L, lua_isfunction(L, 1), 1, "expected function");
@@ -51,6 +68,13 @@ static int32_t lproject_startup(lua_State *L)
 	lua_pushboolean(L, receive_beginplay(L));
 	return 1;
 }
+
+static int32_t lproject_shutdown(lua_State *L)
+{
+	lua_pushboolean(L, lproject_endplay(L));
+	return 1;
+}
+
 
 static int32_t lproject_get_content_dir(lua_State *L) 
 {
@@ -84,27 +108,12 @@ bool lproject_tick(struct lua_State *L, float DeltaTime)
 	return lua_pcall(L, 1, 0, 0) == LUA_OK;
 }
 
-bool lproject_endplay(struct lua_State *L)
-{
-	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
-	if (!lua_isboolean(L, -1))
-	{
-		return false;
-	}
-	
-	lua_pushboolean(L, 0);
-	lua_rawsetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
-	
-	int32_t type = lua_rawgetp(L, LUA_REGISTRYINDEX, lproject_endplay);
-	check(type == LUA_TFUNCTION);
-	return lua_pcall(L, 0, 0, 0) == LUA_OK;
-}
-
 int32_t luaopen_lproject(struct lua_State *L)
 {    
 	luaL_Reg lualib_project[] =
     {
         {"startup", lproject_startup},
+        {"shutdown", lproject_shutdown},
 		{"set_beginplay_callback", lproject_set_beginplay_callback},
         {"set_endplay_callback", lproject_set_endplay_callback},
         {"set_tick_callback", lproject_set_tick_callback},

@@ -12,9 +12,4 @@ bool FLuaProjectLibraryModule::Tick(lua_State *L,float DeltaTime)
 	return lproject_tick(L,DeltaTime);
 }
 
-bool FLuaProjectLibraryModule::EndPlay(lua_State *L)
-{
-	return lproject_endplay(L);
-}
-
 IMPLEMENT_MODULE(FLuaProjectLibraryModule, LuaProjectLibrary);

@@ -11,6 +11,4 @@ public:
 	static int32 Setup(lua_State* L);
 
 	static bool Tick(lua_State *L,float DeltaTime);
-
-	static bool EndPlay(lua_State *L);
 };
