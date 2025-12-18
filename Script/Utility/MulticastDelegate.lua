@@ -15,6 +15,8 @@ function M:__init()
 	self.listenerList = {}
 end
 
+---@param func fun(...:any)
+---@return boolean
 function M:Add(func)
 	assert(func and type(func) == "function", "func is not a function")
 	if  self.listenerSet[func] then
@@ -26,6 +28,9 @@ function M:Add(func)
 	return true
 end
 
+---@param obj table
+---@param method fun(...:any)
+---@return boolean
 function M:AddObject(obj,method)
 	assert(obj and type(obj) == "table", "obj is not a table")
 	assert(method and type(method) == "function", "method is not a function")
@@ -39,6 +44,8 @@ function M:AddObject(obj,method)
 	return true
 end
 
+---@param func fun(...:any)
+---@return boolean
 function M:Remove(func)
     assert(func and type(func) == "function", "func is not a function")
 	if not self.listenerSet[func] then
@@ -61,6 +68,8 @@ function M:RemoveAll()
     self.listenerList = {}
 end
 
+---@vararg any
+---@return boolean
 function M:Broadcast(...)
 	if #self.listenerList == 0 then
         return false

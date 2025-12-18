@@ -15,6 +15,8 @@ function M:__init()
 	self.func = nil
 end
 
+---@param func fun(...:any)
+---@return boolean
 function M:Bind(func)
 	assert(func and type(func) == "function", "func is not a function")
 	if func then
@@ -24,6 +26,9 @@ function M:Bind(func)
 	return true
 end
 
+---@param obj table
+---@param method fun(...:any)
+---@return boolean
 function M:BindObject(obj,method)
 	assert(obj and type(obj) == "table", "obj is not a table")
 	assert(method and type(method) == "function", "method is not a function")
@@ -41,6 +46,8 @@ function M:Unbind()
 	self.func = nil
 end
 
+---@vararg any
+---@return boolean
 function M:Execute(...)
 	if not self.func then
 		return false
@@ -50,8 +57,10 @@ function M:Execute(...)
     else
         self.func(...)
     end
+	return true
 end
 
+---@return boolean
 function M:IsValid()
     return self.func ~= nil
 end
