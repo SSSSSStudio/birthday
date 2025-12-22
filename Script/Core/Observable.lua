@@ -19,7 +19,7 @@ end
 
 ---@param signal string
 ---@param observer any
----@param func fun(observer:any, ...:any)
+---@param func function(observer:any, ...:any)
 function M:Register(signal, observer, func)
 	local list = self.container[signal] or {}
 	local obj = observer or weak

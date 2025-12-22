@@ -4,7 +4,6 @@
 --- DateTime: 2025/12/18 14:38
 ---
 
-local LuaHelper = require("Utility.LuaHelper")
 local Interface = require("Utility.Interface")
 
 ---@class Delegate
@@ -15,7 +14,7 @@ function M:__init()
 	self.func = nil
 end
 
----@param func fun(...:any)
+---@param func function(...:any)
 ---@return boolean
 function M:Bind(func)
 	assert(func and type(func) == "function", "func is not a function")
@@ -27,7 +26,7 @@ function M:Bind(func)
 end
 
 ---@param obj table
----@param method fun(...:any)
+---@param method function(...:any)
 ---@return boolean
 function M:BindObject(obj,method)
 	assert(obj and type(obj) == "table", "obj is not a table")

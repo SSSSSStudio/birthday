@@ -19,7 +19,7 @@
 
 FString UUnLuaFunctionLibrary::GetScriptRootPath()
 {
-    return FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() + TEXT("Script/"));
+    return FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() + TEXT("Script/"));// hebo.pb fix
 }
 
 int64 UUnLuaFunctionLibrary::GetFileLastModifiedTimestamp(FString Path)

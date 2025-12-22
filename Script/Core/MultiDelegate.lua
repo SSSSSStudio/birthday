@@ -7,15 +7,15 @@
 local LuaHelper = require("Utility.LuaHelper")
 local Interface = require("Utility.Interface")
 
----@class MulticastDelegate
-local M = Interface("MulticastDelegate")
+---@class MultiDelegate
+local M = Interface("MultiDelegate")
 
 function M:__init()
     self.listenerSet = {}
 	self.listenerList = {}
 end
 
----@param func fun(...:any)
+---@param func function(...:any)
 ---@return boolean
 function M:Add(func)
 	assert(func and type(func) == "function", "func is not a function")
@@ -29,7 +29,7 @@ function M:Add(func)
 end
 
 ---@param obj table
----@param method fun(...:any)
+---@param method function(...:any)
 ---@return boolean
 function M:AddObject(obj,method)
 	assert(obj and type(obj) == "table", "obj is not a table")
@@ -44,7 +44,7 @@ function M:AddObject(obj,method)
 	return true
 end
 
----@param func fun(...:any)
+---@param func function(...:any)
 ---@return boolean
 function M:Remove(func)
     assert(func and type(func) == "function", "func is not a function")

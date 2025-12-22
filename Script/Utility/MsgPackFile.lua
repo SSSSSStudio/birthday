@@ -16,7 +16,7 @@ local M = {}
 ---@param filename string
 ---@return any
 function M.Read(filename)
-	local path = lproject.get_app_sandboxes_dir() .. filename
+	local path = lproject.get_content_dir() .. filename
 	local file = UE.File()
 	if not file:Open(path,"rb") then
 		return nil
@@ -31,7 +31,7 @@ end
 ---@return any
 function M.Write(filename,...)
 	local s = lmsgpack.encode(...)
-	local path = lproject.get_app_sandboxes_dir().. filename
+	local path = lproject.get_content_dir().. filename
 	local file = UE.File()
 	if not file:Open(path,"wb") then
 		return nil
@@ -41,4 +41,32 @@ function M.Write(filename,...)
 	return r
 end
 
+
+---@param filename string
+---@return any
+function M.ReadToSandbox(filename)
+	local path = lproject.get_app_sandboxes_dir() .. filename
+	local file = UE.File()
+	if not file:Open(path,"rb") then
+		return nil
+	end
+	local s = UE.File.Read(file,file:TotalSize())
+	file:Close()
+	return lmsgpack.decode(s)
+end
+
+---@param filename string
+---@vararg string | table | number | integer | boolean
+---@return any
+function M.WriteToSandbox(filename,...)
+	local s = lmsgpack.encode(...)
+	local path = lproject.get_app_sandboxes_dir().. filename
+	local file = UE.File()
+	if not file:Open(path,"wb") then
+		return nil
+	end
+	local r = file:Write(s)
+	file:Close()
+	return r
+end
 return M

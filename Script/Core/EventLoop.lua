@@ -46,6 +46,7 @@ function M.Startup()
 	return lproject.startup()
 end
 
+---@return boolean
 function M.Shutdown()
 	return lproject.shutdown()
 end

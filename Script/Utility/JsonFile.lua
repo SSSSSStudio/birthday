@@ -16,7 +16,7 @@ local M = {}
 ---@param filename string
 ---@return string | table | number | integer | boolean
 function M.Read(filename)
-	local path = lproject.get_app_sandboxes_dir() .. filename
+	local path = lproject.get_content_dir() .. filename
 	local file = UE.File()
 	if not file:Open(path,"rb") then
 		return nil
@@ -31,7 +31,7 @@ end
 ---@return string | table | number | integer | boolean
 function M.Write(filename,jsonData)
 	local s = ljson.encode(jsonData)
-	local path = lproject.get_app_sandboxes_dir() .. filename
+	local path = lproject.get_content_dir() .. filename
 	local file = UE.File()
 	if not file:Open(path,"wb") then
 		return nil
@@ -43,8 +43,8 @@ end
 
 ---@param filename string
 ---@return string | table | number | integer | boolean
-function M.ReadToContent(filename)
-	local path = lproject.get_content_dir() .. filename
+function M.ReadToSandbox(filename)
+	local path = lproject.get_app_sandboxes_dir() .. filename
 	local file = UE.File()
 	if not file:Open(path,"rb") then
 		return nil
@@ -57,9 +57,9 @@ end
 ---@param filename string
 ---@param jsonData table
 ---@return string | table | number | integer | boolean
-function M.WriteToContent(filename,jsonData)
+function M.WriteToSandbox(filename,jsonData)
 	local s = ljson.encode(jsonData)
-	local path = lproject.get_content_dir() .. filename
+	local path = lproject.get_app_sandboxes_dir() .. filename
 	local file = UE.File()
 	if not file:Open(path,"wb") then
 		return nil
@@ -68,5 +68,6 @@ function M.WriteToContent(filename,jsonData)
 	file:Close()
 	return r
 end
+
 
 return M

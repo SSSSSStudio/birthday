@@ -14,7 +14,7 @@ local eventMap = {}
 
 ---@param event string
 ---@param target any
----@param func fun(target:any, ...:any)
+---@param func function(target:any, ...:any)
 function M.AddEventListener(event, target, func)
 	local listener = eventMap[event] or {}
 	local obj = target or weak

@@ -30,7 +30,7 @@ end
 
 ---@param typename string
 ---@param target any
----@param func fun(target:any, ...:any)
+---@param func function(target:any, ...:any)
 function M.AddDispatch(typename, target, func)
 	local listener = protoList[typename]
 	if not listener then
