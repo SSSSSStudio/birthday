@@ -1,6 +1,6 @@
-require "Utility.Debugger"
-local LuaHelper = require "Utility.LuaHelper"
-local EventLoop = require "Utility.EventLoop"
+require("Config.Debugger")
+local LuaHelper = require("Utility.LuaHelper")
+local EventLoop = require("Core.EventLoop")
 
 ---@type GI_G01GameInstance_C
 local M = UnLua.Class()
@@ -8,6 +8,7 @@ local M = UnLua.Class()
 function M:ReceiveInit()
 	LuaHelper.DisableGlobalVariable()
 	EventLoop.Startup();
+	testGlobal = 1
 end
 
 function M:ReceiveShutdown()

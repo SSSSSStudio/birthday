@@ -6,11 +6,11 @@
 
 local interface = {}
 
-function interface.__index(self,k)
-	local mt = getmetatable(self)
-	local v = mt[k]
-	self[k] = v
-	return v
+function interface.__index(self, key)
+	local metatable = getmetatable(self)
+	local value = metatable[key]
+	self[key] = value
+	return value
 end
 
 function interface.__pairs()
@@ -27,18 +27,23 @@ function mt:__call(...)
 	local obj = setmetatable({}, self)
 	local init = obj.__init
 	if init then
-		obj = init(obj,...) or obj
+		local success, result = pcall(init, obj, ...)
+		if success then
+			obj = result or obj
+		else
+			error("Interface initialization failed: " .. tostring(result))
+		end
 	end
 	return obj
 end
 
-function mt:__newindex(k, v)
-	if v == nil then
+function mt:__newindex(key, value)
+	if value == nil then
 		return
 	end
 	local keys = self._keys
-	keys[#keys + 1] = k
-	return rawset(self, k, v)
+	keys[#keys + 1] = key
+	return rawset(self, key, value)
 end
 
 return function()

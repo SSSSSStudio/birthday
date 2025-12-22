@@ -26,15 +26,26 @@ local record = Ct(field * (',' * field)^0)
 local nonemptyrecord = #P(1 - eol) * record
 local records = Ct((record * eol)^0 * nonemptyrecord^-1) * -1
 
-local function csv_parse(s)
-	assert(type(s) == 'string', 'bad argument #1 (expected string)')
-	return lpeg.match(records, s)
+local function CsvMatch(s)
+	local success, result = pcall(lpeg.match, records, s)
+	if not success then
+		return nil
+	end
+	return result
+
 end
 
----@param s string
----@return table
+--- 解析CSV字符串为结构化数据
+--- @param s string 
+--- @return table 
 function M.Parse(s)
-	local data = csv_parse(s)
+	assert(s and type(s) == "string", "s must be a string")
+	
+	local data = CsvMatch(s)
+	if not data then
+		return nil
+	end
+	
 	if #(data[1]) ~= #(data[2]) then
 		return nil
 	end
@@ -44,79 +55,106 @@ function M.Parse(s)
 
 	local fieldCount = #(data[1])
 
-	t._proptery ={}
+	t._property = {}
 
-	for i = 1,fieldCount do
-		local name = assert(data[1][i])
-		t._proptery[name] = i
+	for columnIndex = 1, fieldCount do
+		local columnName = assert(data[1][columnIndex])
+		t._property[columnName] = columnIndex
 	end
 
-	local lineCount = #data -2
+	local lineCount = #data - 2
 
-	for i = 1, lineCount do
-		t[i] = {}
+	for rowIndex = 1, lineCount do
+		t[rowIndex] = {}
 	end
 
-	for j = 1,fieldCount do
-		local _type = data[2][j]
-		if _type == "uint" or _type == "int" or _type == "int32" or _type == "int64" or _type == "uint32" or _type == "uint64" then
-			for i = 1, lineCount do
-				t[i][j] = math.tointeger(data[i+2][j]) or 0
+	for columnIndex = 1, fieldCount do
+		local dataType = data[2][columnIndex]
+		
+		if dataType == "uint" or dataType == "int" or dataType == "int32" or 
+		   dataType == "int64" or dataType == "uint32" or dataType == "uint64" then
+			for rowIndex = 1, lineCount do
+				t[rowIndex][columnIndex] = math.tointeger(data[rowIndex + 2][columnIndex]) or 0
 			end
-		elseif _type == "string" then
-			for i = 1, lineCount do
-				t[i][j] = data[i+2][j] or ""
+		elseif dataType == "string" then
+			for rowIndex = 1, lineCount do
+				t[rowIndex][columnIndex] = data[rowIndex + 2][columnIndex] or ""
 			end
-		elseif _type == "float" then
-			for i = 1, lineCount do
-				t[i][j] = tonumber(data[i+2][j]) or 0
+		elseif dataType == "float" then
+			for rowIndex = 1, lineCount do
+				t[rowIndex][columnIndex] = tonumber(data[rowIndex + 2][columnIndex]) or 0
 			end
-		elseif _type == "bool" then
-			for i = 1, lineCount do
-				t[i][j] = math.tointeger(data[i+2][j]) or 0
+		elseif dataType == "bool" then
+			for rowIndex = 1, lineCount do
+				t[rowIndex][columnIndex] = math.tointeger(data[rowIndex + 2][columnIndex]) or 0
 			end
 		end
 	end
 
-	---@param lineNumber number
-	---@param proptery string
-	---@return string | table | number | integer
-	function t:GetValue(lineNumber, proptery)
-		local nIndex = assert(self._proptery[proptery])
+	--- @param lineNumber number
+	--- @param property string
+	--- @return string | table | number | integer
+	function t:GetValue(lineNumber, property)
+		if not lineNumber or not property then
+			error("GetValue: lineNumber and property are required")
+		end
+		
+		local columnIndex = self._property[property]
+		if not columnIndex then
+			error("GetValue: property '" .. property .. "' not found")
+		end
+		
 		local row = self[lineNumber]
-		assert(row)
-		return row[nIndex]
+		if not row then
+			error("GetValue: line number " .. lineNumber .. " out of range")
+		end
+		
+		return row[columnIndex]
 	end
 
-	---@param lineNumber number
-	---@return table
+	--- @param lineNumber number
+	--- @return table
 	function t:GetRow(lineNumber)
+		if not lineNumber then
+			error("GetRow: lineNumber is required")
+		end
 		return self[lineNumber]
 	end
 
-	---@return integer
+	---
+	--- @return integer
 	function t:Count()
 		return #self
 	end
 	return t
 end
 
----@param filename string
----@return table
+---
+--- 从文件读取CSV数据
+--- @param filename string
+--- @return table
 function M.Read(filename)
-	local path = lproject.get_content_dir() .. filename
+	assert(filename and type(filename) == "string", "filename must be a string")
+	local pathFile = lproject.get_content_dir() .. filename
+	
 	local file = UE.File()
-	if not file:Open(path,"rb") then
+	if not file:Open(pathFile, "rb") then
 		return nil
 	end
 
 	local s = UE.File.Read(file,file:TotalSize())
 	file:Close()
-	local testBom = string.sub(s, 1,3)
+	
+	if not s then
+		return nil
+	end
+	
+	local testBom = string.sub(s, 1, 3)
 	local bom = string.char(0xEF, 0xBB, 0xBF)
 	if testBom == bom then
-		s = string.sub(s,4)
+		s = string.sub(s, 4)
 	end
+	
 	return M.Parse(s)
 end
 

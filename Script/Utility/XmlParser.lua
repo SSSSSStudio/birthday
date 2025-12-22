@@ -10,27 +10,46 @@ local lxml = require("lxml")
 ---@type lproject
 local lproject = require("lproject")
 
----@class XmlParse
+---@class XmlParser
 local M = {}
 
----@param s string
----@return table
+---
+--- 解析XML字符串
+--- @param s string
+--- @return table
 function M.Parse(s)
-	assert(type(s) == "string")
-	return lxml.parse(s)
-end
-
----@param filename string
----@return table
-function M.Read(filename)
-	local path = lproject.get_content_dir() .. filename
-	local file = UE.File()
-	if not file:Open(path,"rb") then
+	assert(s and type(s) == "string", "xmlString must be a string")
+	local success, parsedData = pcall(lxml.parse, s)
+	if not success then
 		return nil
 	end
+	return parsedData
+end
+
+---
+--- 从文件读取并解析XML
+--- @param filename string
+--- @return table
+function M.Read(filename)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	local filePath = lproject.get_content_dir() .. filename
+
+	local file = UE.File()
+	if not file:Open(filePath, "rb") then
+		return nil
+	end
+
 	local s = UE.File.Read(file,file:TotalSize())
 	file:Close()
-	return lxml.parse(s)
+	if not s then
+		return nil
+	end
+
+	local success, parsedData = pcall(lxml.parse,s)
+	if not success then
+		return nil
+	end
+	return parsedData
 end
 
 return M

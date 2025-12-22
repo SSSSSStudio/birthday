@@ -7,6 +7,7 @@
 ---@class LuaHelper
 local M = {}
 
+-- 使用 xpcall 安全调用函数，并捕获错误信息
 ---@param func function
 ---@vararg any @[optional]
 ---@return any
@@ -22,37 +23,34 @@ function M.XpCall(func, ...)
 	end
 end
 
+-- 创建一个新的类，可以继承自另一个类
 ---@param super_name string @[optional]
 ---@vararg any @[optional]
 ---@return LuaClass
 function M.LuaClass(super_name)
-	local super_class = nil
-	if super_name ~= nil then
-		super_class = require(super_name)
-	end
-
-	local NotExist = {}
+	
+	local notExist = {}
 	local function Index(t, k)
 		local mt = getmetatable(t)
 		local super = mt
 		while super do
 			local v = rawget(super, k)
-			if v ~= nil and not rawequal(v, NotExist) then
+			if v ~= nil and not rawequal(v, notExist) then
 				rawset(t, k, v)
 				return v
 			end
-			super = rawget(super, "super")
+			super = rawget(super, "Super")
 		end
 
 		local p = mt[k]
 		if p ~= nil then
 			if type(p) == "function" then
 				rawset(t, k, p)
-			elseif rawequal(p, NotExist) then
+			elseif rawequal(p, notExist) then
 				return nil
 			end
 		else
-			rawset(mt, k, NotExist)
+			rawset(mt, k, notExist)
 		end
 
 		return p
@@ -71,10 +69,18 @@ function M.LuaClass(super_name)
 			if func then
 				M.XpCall(func, self)
 			end
-			mt = rawget(mt, "super")
+			mt = rawget(mt, "Super")
 		end
 	end
-	new_class.super = super_class
+	
+	if super_name ~= nil then
+		local success, result = pcall(require, super_name)
+		if success then
+			new_class.Super = result
+		else
+			print("Failed to load super class: " .. super_name)
+		end
+	end
 
 	---@generic T
 	---@param self T
@@ -90,34 +96,42 @@ function M.LuaClass(super_name)
 	return new_class
 end
 
+-- 创建一个代理函数，将目标对象和方法绑定在一起
 ---@generic T
----@param obj T
----@param method fun(obj:T, ...:any) T
----@return fun(...:any) T
-function M.Handler(obj, method)
+---@param target T
+---@param func function(target:T, ...:any) T
+---@return function(...:any) T
+function M.Handler(target, func)
+	if target == nil or func == nil then
+		error("Handler: target and func must not be nil")
+	end
+	
 	return function(...)
-		return method(obj, ...)
+		return func(target, ...)
 	end
 end
 
----@param target any
----@param func fun(target:any, ...:any)
+-- 创建一个处理函数，合并参数并传递给指定的目标函数
+---@generic T
+---@param target T
+---@param func function(target:T, ...:any)
 ---@vararg any @[optional]
+---@return function(...:any)
 function M.HandleFunc(target, func, ...)
 	local param = table.pack(...)
 	return function(...)
 		local finalParam = {}
 		for k, v in ipairs(param) do
-			table.insert(finalParam, v)
+			finalParam[k] = v		
 		end
-		for k, v in ipairs(table.pack(...)) do
-			table.insert(finalParam, v)
+		for _, v in ipairs(table.pack(...)) do
+			finalParam[#finalParam + 1] = v
 		end
 		func(target, table.unpack(finalParam))
 	end
 end
 
----分割
+-- 按分隔符分割字符串
 ---@param str string
 ---@param delimiter string
 ---@return table
@@ -125,14 +139,15 @@ function M.Split(str, delimiter)
 	if str == nil or str == '' or delimiter == nil then
 		return {}
 	end
+	
 	local result = {}
 	for match in (str .. delimiter):gmatch("(.-)" .. delimiter) do
-		table.insert(result, match)
+		result[#result + 1] = match
 	end
 	return result
 end
 
----通用日期格式化
+-- 格式化时间戳为指定格式的时间字符串
 ---@param format string yyyy.MM.dd hh:mm:ss
 ---@param time number 时间戳秒 
 function M.DateFormat(format, time)
@@ -152,7 +167,7 @@ function M.DateFormat(format, time)
 		format = string.gsub(format, str, string.sub(tostring(date.year), 5 - len), 1)
 	end
 	for k, v in pairs(o) do
-		local yS, yE, str = string.find(format, k)
+		yS, yE, str = string.find(format, k)
 		if (yS) then
 			local len = yE - yS + 1
 			local reply = len == 1 and v or string.sub("0" .. v, string.len(v))
@@ -162,7 +177,7 @@ function M.DateFormat(format, time)
 	return format
 end
 
----时间格式化
+-- 将秒数转换为指定格式的时间字符串
 ---@param format string hh:mm:ss
 ---@param seconds number 时间数秒 
 function M.SecondsFormat(format, seconds)
@@ -191,6 +206,7 @@ function M.SecondsFormat(format, seconds)
 	return sign .. format
 end
 
+-- 禁止直接设置全局变量，强制使用 LuaHelper.__exports 来管理全局变量
 function M.DisableGlobalVariable()
 	local __g = _G
 	M.__exports = {}
@@ -205,7 +221,7 @@ function M.DisableGlobalVariable()
 	})
 
 	setmetatable(__g, {
-		__newindex = function(_, name, value)
+		__newindex = function(_, name, _)
 			error(string.format("Please use LuaHelper.__exports.%s to set global variable ", name), 0)
         end
 	})

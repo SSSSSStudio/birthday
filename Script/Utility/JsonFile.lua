@@ -10,64 +10,83 @@ local ljson = require("ljson")
 ---@type lproject
 local lproject = require("lproject")
 
----@class Json
+local function Read(filePath)
+	local file = UE.File()
+	if not file:Open(filePath,"rb") then
+		return nil
+	end
+
+	local s = UE.File.Read(file,file:TotalSize())
+	file:Close()
+	
+	if not s then
+        return nil
+    end
+
+	local success, jsonData = pcall(ljson.decode, s)
+	if not success then
+		return nil
+	end
+	return jsonData
+end
+
+local function Write(filePath, jsonData)
+	local success, s = pcall(ljson.encode, jsonData)
+	if not success or not s then
+		return nil
+	end
+	local file = UE.File()
+	if not file:Open(filePath, "wb") then
+		return nil
+	end
+
+	local bytesWrite = file.Write(s);
+	file:Close()
+	return bytesWrite
+end
+
+---@class JsonFile
 local M = {}
 
----@param filename string
----@return string | table | number | integer | boolean
+--- 从内容目录读取JSON文件
+--- @param filename string
+--- @return string | table | number | integer | boolean
 function M.Read(filename)
-	local path = lproject.get_content_dir() .. filename
-	local file = UE.File()
-	if not file:Open(path,"rb") then
-		return nil
-	end
-	local s = UE.File.Read(file,file:TotalSize())
-	file:Close()
-	return ljson.decode(s)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	local filePath = lproject.get_content_dir() .. filename
+	return Read(filePath)
 end
 
----@param filename string
----@param jsonData table
----@return string | table | number | integer | boolean
-function M.Write(filename,jsonData)
-	local s = ljson.encode(jsonData)
-	local path = lproject.get_content_dir() .. filename
-	local file = UE.File()
-	if not file:Open(path,"wb") then
-		return nil
-	end
-	local r = file:Write(s)
-	file:Close()
-	return r
+--- 向内容目录写入JSON文件
+--- @param filename string
+--- @param jsonData table
+--- @return integer
+function M.Write(filename, jsonData)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	assert(jsonData and type(jsonData) == "table", "jsonData must be a table")
+	
+	local filePath = lproject.get_content_dir() .. filename
+	return Write(filePath, jsonData)
 end
 
----@param filename string
----@return string | table | number | integer | boolean
+--- 从沙盒目录读取JSON文件
+--- @param filename string
+--- @return string | table | number | integer | boolean
 function M.ReadToSandbox(filename)
-	local path = lproject.get_app_sandboxes_dir() .. filename
-	local file = UE.File()
-	if not file:Open(path,"rb") then
-		return nil
-	end
-	local s = UE.File.Read(file,file:TotalSize())
-	file:Close()
-	return ljson.decode(s)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	local filePath = lproject.get_app_sandboxes_dir() .. filename
+	return Read(filePath)
 end
 
----@param filename string
----@param jsonData table
----@return string | table | number | integer | boolean
-function M.WriteToSandbox(filename,jsonData)
-	local s = ljson.encode(jsonData)
-	local path = lproject.get_app_sandboxes_dir() .. filename
-	local file = UE.File()
-	if not file:Open(path,"wb") then
-		return nil
-	end
-	local r = file:Write(s)
-	file:Close()
-	return r
+--- 向沙盒目录写入JSON文件
+--- @param filename string
+--- @param jsonData table
+--- @return integer
+function M.WriteToSandbox(filename, jsonData)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	assert(jsonData and type(jsonData) == "table", "jsonData must be a table")
+	local filePath = lproject.get_app_sandboxes_dir() .. filename
+	return Write(filePath, jsonData)
 end
-
 
 return M

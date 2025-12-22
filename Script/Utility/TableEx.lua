@@ -7,33 +7,34 @@
 ---@class TableEx
 local M = {}
 
+-- 检查并确保输入为表，如果不是则返回空表
 ---@param t table
 ---@return table
 function M.CheckTable(t)
 	if type(t) ~= "table" then 
-		t = {} 
+		return {} 
 	end
 	return t
 end
 
----表深度拷贝
+-- 深拷贝一个表
 ---@param t table
 ---@return table
 function M.DeepCopy(t)
-	local t2 = {}
-	for k, v in pairs(t) do
-		if type(v) == "table" then
-			t2[k] = M.DeepCopy(v)
+	local copy = {}
+	for key, value in pairs(t) do
+		if type(value) == "table" then
+			copy[key] = M.DeepCopy(value)
 		else
-			t2[k] = v
+			copy[key] = value
 		end
 	end
-	return t2
+	return copy
 end
 
----表长度
+-- 获取表的长度（键的数量）
 ---@param t table
----@return inteter
+---@return number integer
 function M.Length(t)
 	local count = 0
 	for _ in pairs(t) do
@@ -42,92 +43,170 @@ function M.Length(t)
 	return count
 end
 
+-- 获取表的所有键
 ---@param t table
 ---@return table
 function M.GetKeys(t)
     local keys = {}
-    for k, _ in pairs(t) do
-		keys[#keys + 1] = k
+    for key, _ in pairs(t) do
+		keys[#keys + 1] = key
     end
     return keys
 end
 
----@param map table
+-- 获取表的所有值
+---@param t table
 ---@return table
-function M.GetMapValues(map)
+function M.GetValues(t)
 	local values = {} 
-	for _, v in pairs(map) do
-		values[#values + 1] = v
+	for _, value in pairs(t) do
+		values[#values + 1] = value
 	end
 	return values
 end
 
+-- 合并两个表
 ---@param dest table
 ---@param src table
 function M.Merge(dest, src)
-	for k, v in pairs(src) do
-		dest[k] = v
+	for key, value in pairs(src) do
+		dest[key] = value
 	end
 end
 
+-- 对表中的每个元素应用函数，并更新原表
 ---@param t table
----@param func fun(v:any,k:any)
+---@param func function(v:any,k:any)
 function M.Map(t, func)
-	for k, v in pairs(t) do
-		t[k] = func(v, k)
+	for key, value in pairs(t) do
+		t[key] = func(value, key)
 	end
 end
 
+-- 遍历表并对每个元素执行指定函数
 ---@param t table
----@param func fun(v:any,k:any)
+---@param func function(v:any,k:any)
 function M.Walk(t, func)
-	for k, v in pairs(t) do
-		func(v,k)
+	for key, value in pairs(t) do
+		func(value, key)
 	end
 end
 
+-- 根据条件过滤表中的元素
 ---@param t table
----@param func fun(v:any,k:any):boolean
+---@param func function(v:any,k:any):boolean
 function M.Filter(t, func)
-	for k, v in pairs(t) do
-		if func(v,k) then
-			t[k] = nil
+	for key, value in pairs(t) do
+		if func(value, key) then
+			t[key] = nil
 		end
 	end
 end
 
+-- 遍历表并对每个元素执行指定函数
+---@param t table
+---@param func function(v:any,k:any)
+function M.Foreach(t, func)
+	for key, value in pairs(t) do
+		func(value, key)
+	end
+end
+
+-- 查找表中特定值对应的键
+---@param t table
+---@param value any
+function M.KeyOf(t, value)
+	for key, val in pairs(t) do
+		if val == value then
+			return key
+		end
+	end
+	return nil
+end
+
+-- 根据条件筛选表中的元素
+---@param t table
+---@param func function(v:any,k:any):boolean
+function M.GetFilter(t, func, isAll)
+	if not isAll then
+        for key, value in pairs(t) do
+            if func(value, key) then
+                return value, key
+            end
+        end
+    end
+	local result = {}
+	local keys = {}
+	for key, value in pairs(t) do
+        if func(value, key) then
+			result[#result + 1] = value
+			keys[#keys + 1] = key
+        end
+    end
+	return result, keys
+end
+
+-- 根据条件筛选数组中的元素
 ---@generic T
 ---@param array T[]
----@param func fun(v:T):boolean
-function M.ArrayRemoveValue(array, func)
+---@param func function(v:T):boolean
+---@param isAll boolean
+function M.GetFilterArray(array, func, isAll)
+	if not isAll then
+		for index, value in ipairs(array) do
+			if func(value) then
+				return value, index
+			end
+		end
+	end
+
+	local result = {}
+	local indices = {}
+	for index, value in ipairs(array) do
+		if func(value) then
+			result[#result + 1] = value
+			indices[#indices + 1] = index
+		end
+	end
+	return result, indices
+end
+
+-- 移除数组中满足条件的元素
+---@generic T
+---@param array T[]
+---@param func function(v:T):boolean
+function M.ArrayRemove(array, func)
 	assert(array and func)
 
-	local l = #array
-	local i = 1
-	local j = 1
-	while i <= l do
-		local v = array[i]
-		array[i] = nil
-		if not func(v) then
-			array[j] = v
-			j = j + 1
+	local length = #array
+	local readIndex = 1
+	local writeIndex = 1
+	while readIndex <= length do
+		local value = array[readIndex]
+		array[readIndex] = nil
+		if not func(value) then
+			array[writeIndex] = value
+			writeIndex = writeIndex + 1
 		end
-		i = i + 1
+		readIndex = readIndex + 1
 	end
 end
 
+-- 遍历数组并对每个元素执行指定函数
 ---@generic T
 ---@param array T[]
----@param func fun(v:T,k:integer):boolean
+---@param func function(v:T,k:integer)
 function M.ArrayForeach(array, func)
-	for k, v in ipairs(array) do
-		func(v,k)
+	for index, value in ipairs(array) do
+		func(value, index)
 	end
 end
 
+-- 返回数组中的下一个元素，循环使用
 ---@generic T
 ---@param array T[]
----@retrun T 
+---@param index integer
+---@return T 
 function M.ArrayNext(array, index)
 	if index >= #array then
 		index = 1
@@ -136,6 +215,20 @@ function M.ArrayNext(array, index)
 	end
 
 	return array[index]
+end
+
+-- 在数组中查找特定值的位置
+---@generic T
+---@param array T[]
+---@param value T
+---@param begin integer
+function M.ArrayIndexOf(array, value, begin)
+	for index = begin or 1, #array do
+		if array[index] == value then
+			return index 
+		end
+	end
+	return nil
 end
 
 return M

@@ -5,111 +5,164 @@
 ---
 
 local print = print
+local tostring = tostring
+local debug_getinfo = debug.getinfo
+local string_format = string.format
 
 local dump = {}
 
 local maxDepth = 64
 
 local function pushString(s)
-	dump[#dump+1] = s
+	dump[#dump + 1] = s
 end
 
-local function subTable(t,d)
-	d = d + 1
-	local s = string.rep("\t",d)
-	if d <= maxDepth then
-		for k,v in pairs(t) do
-			if type(v) == "table" then
-				pushString(string.format("%s[%s]={",s,k))
-				subTable(v,l)
-				pushString(string.format("%s}",s))
-			elseif type(v) == "string" then
-				pushString(string.format('%s[%s]="%s"',s,k,v))
+local function subTable(t, depth)
+	depth = depth + 1
+	local indent = string.rep("\t", depth)
+	
+	if depth <= maxDepth then
+		for key, value in pairs(t) do
+			if type(value) == "table" then
+				pushString(string_format("%s[%s] = {", indent, tostring(key)))
+				subTable(value, depth)
+				pushString(string_format("%s}", indent))
+			elseif type(value) == "string" then
+				pushString(string_format('%s[%s] = "%s"', indent, tostring(key), value))
 			else
-				pushString(string.format("%s[%s]=%s",s,k,tostring(v)))
+				pushString(string_format("%s[%s] = %s", indent, tostring(key), tostring(value)))
 			end
 		end
 	else
-		pushString(string.format("%s__level_limit",s))
+		pushString(string_format("%s__level_limit", indent))
 	end
 end
 
 local function pushTable(t)
-	pushString(string.format("[%s]={",tostring(t)))
-	subTable(t,0)
+	pushString(string_format("[%s] = {", tostring(t)))
+	subTable(t, 0)
 	pushString("}")
 end
 
-local debug_getinfo = debug.getinfo
-local string_format = string.format
+local function ToString(...)
+	local args = { ... }
+
+	for _, value in ipairs(args) do
+		if type(value) == "table" then
+			pushTable(value)
+		else
+			pushString(tostring(value))
+		end
+	end
+
+	local result = table.concat(dump, "\n")
+	dump = {}
+	return result
+end
+
 
 ---@class Log
 local M = {}
 
----@param d integer depth
-function M.Config(d)
-	if d then
-		assert(math.type(l) == "integer")
-		maxDepth = d
-	end
-end
-
-local function ToString(...)
-	local t = { ... }
-	for _,v in ipairs(t) do
-		if type(v) == "table" then
-			pushTable(v)
-		else
-			pushString(tostring(v))
+--- 配置日志参数
+--- @param depth integer
+function M.Config(depth)
+	if depth then
+		-- 验证输入参数类型
+		if type(depth) ~= "number" or math.type(depth) ~= "integer" then
+			error("Depth must be an integer")
 		end
+		maxDepth = depth
 	end
-	local s = table.concat(dump,"\n")
-	dump = {}
-	return s
 end
 
+--- 输出错误级别日志
+--- @vararg any
 function M.Error(...)
-	local s = ToString(...)
-	local info = debug_getinfo(2,"Sl")
-	UnLua.LogError(string_format("%s file[%s] line[%d]",s,info.source, info.currentline))
+	local success, result = pcall(ToString, ...)
+	if not success then
+		UnLua.LogError("Log.Error: Failed to convert arguments to string")
+		return
+	end
+	
+	local info = debug_getinfo(2, "Sl")
+	if info then
+		UnLua.LogError(string_format("%s file[%s] line[%d]", result, info.source, info.currentline))
+	else
+		UnLua.LogError(result)
+	end
 end
 
+--- 输出警告级别日志
+--- @vararg any
 function M.Warning(...)
-	local s = ToString(...)
-	local info = debug_getinfo(2,"Sl")
-	UnLua.LogWarn(string_format("%s file[%s] line[%d]",s,info.source, info.currentline))
+	local success, result = pcall(ToString, ...)
+	if not success then
+		UnLua.LogWarn("Log.Warning: Failed to convert arguments to string")
+		return
+	end
+	
+	local info = debug_getinfo(2, "Sl")
+	if info then
+		UnLua.LogWarn(string_format("%s file[%s] line[%d]", result, info.source, info.currentline))
+	else
+		UnLua.LogWarn(result)
+	end
 end
 
+--- 输出信息级别日志
+--- @vararg any
 function M.Info(...)
-	local s = ToString(...)
-	local info = debug_getinfo(2,"Sl")
-	UnLua.Log(string_format("%s file[%s] line[%d]",s,info.source, info.currentline))
+	local success, result = pcall(ToString, ...)
+	if not success then
+		UnLua.Log("Log.Info: Failed to convert arguments to string")
+		return
+	end
+	
+	local info = debug_getinfo(2, "Sl")
+	if info then
+		UnLua.Log(string_format("%s file[%s] line[%d]", result, info.source, info.currentline))
+	else
+		UnLua.Log(result)
+	end
 end
 
+--- 打印表
+--- @param t table
 function M.PrintT(t)
+	-- 参数验证
+	if t == nil then
+		print("nil")
+		return
+	end
+	
 	local print_r_cache = {}
-	local function sub_print_r(t, indent)
-		if (print_r_cache[tostring(t)]) then
-			print(indent .. "*" .. tostring(t))
+	
+	--- @param tbl table
+	--- @param indent string
+	local function sub_print_r(tbl, indent)
+		if (print_r_cache[tostring(tbl)]) then
+			print(indent .. "*" .. tostring(tbl))
 		else
-			print_r_cache[tostring(t)] = true
-			if (type(t) == "table") then
-				for pos, val in pairs(t) do
+			print_r_cache[tostring(tbl)] = true
+			if (type(tbl) == "table") then
+				for pos, val in pairs(tbl) do
 					if (type(val) == "table") then
-						print(indent .. "[" .. pos .. "] => " .. tostring(t) .. " {")
-						sub_print_r(val, indent .. string.rep(" ", string.len(pos) + 8))
-						print(indent .. string.rep(" ", string.len(pos) + 6) .. "}")
+						print(indent .. "[" .. tostring(pos) .. "] => " .. tostring(tbl) .. " {")
+						sub_print_r(val, indent .. string.rep(" ", string.len(tostring(pos)) + 8))
+						print(indent .. string.rep(" ", string.len(tostring(pos)) + 6) .. "}")
 					elseif (type(val) == "string") then
-						print(indent .. "[" .. pos .. '] => "' .. val .. '"')
+						print(indent .. "[" .. tostring(pos) .. '] => "' .. val .. '"')
 					else
-						print(indent .. "[" .. pos .. "] => " .. tostring(val))
+						print(indent .. "[" .. tostring(pos) .. "] => " .. tostring(val))
 					end
 				end
 			else
-				print(indent .. tostring(t))
+				print(indent .. tostring(tbl))
 			end
 		end
 	end
+	
 	if (type(t) == "table") then
 		print(tostring(t) .. " {")
 		sub_print_r(t, "  ")
@@ -120,8 +173,17 @@ function M.PrintT(t)
 	print()
 end
 
+--- 格式化打印函数
+--- @param fmt string
+--- @vararg any
 function M.Printf(fmt, ...)
-	print(string.format(tostring(fmt), ...))
+	-- 错误处理，防止格式化过程中出现异常
+	local success, result = pcall(string_format, tostring(fmt), ...)
+	if not success then
+		print("Log.Printf: Failed to format string")
+		return
+	end
+	print(result)
 end
 
 return M

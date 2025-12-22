@@ -10,63 +10,78 @@ local lmsgpack = require("lmsgpack")
 ---@type lproject
 local lproject = require("lproject")
 
----@class Msgpack
+local function Read(filePath)
+	local file = UE.File()
+	if not file:Open(filePath, "rb") then
+		return nil
+	end
+	local s = UE.File.Read(file,file:TotalSize())
+	file:Close()
+	if not s then
+        return nil    
+    end
+	local success, msgpackData = pcall(lmsgpack.decode, s)
+	if not success then
+		return nil
+	end
+	return msgpackData
+end
+
+local function Write(filePath, ...)
+	local success, s = pcall(lmsgpack.encode, ...)
+	if not success or not s then
+		return 0
+	end
+
+	local file = UE.File()
+	if not file:Open(filePath,"wb") then
+		return 0
+	end
+
+	local bytesWrite = file:Write(s)
+	file:Close()
+	return bytesWrite
+end
+
+---@class MsgPackFile
 local M = {}
 
+--- 从内容目录读取MsgPack文件
 ---@param filename string
 ---@return any
 function M.Read(filename)
-	local path = lproject.get_content_dir() .. filename
-	local file = UE.File()
-	if not file:Open(path,"rb") then
-		return nil
-	end
-	local s = UE.File.Read(file,file:TotalSize())
-	file:Close()
-	return lmsgpack.decode(s)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	local filePath = lproject.get_content_dir() .. filename
+	return Read(filePath)
 end
 
----@param filename string
----@vararg string | table | number | integer | boolean
----@return any
-function M.Write(filename,...)
-	local s = lmsgpack.encode(...)
-	local path = lproject.get_content_dir().. filename
-	local file = UE.File()
-	if not file:Open(path,"wb") then
-		return nil
-	end
-	local r = file:Write(s)
-	file:Close()
-	return r
+--- 向内容目录写入MsgPack文件
+--- @param filename string
+--- @vararg string | table | number | integer | boolean
+--- @return integer
+function M.Write(filename, ...)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	local filePath = lproject.get_content_dir() .. filename
+	return Write(filePath, ...)
 end
 
-
----@param filename string
----@return any
+--- 从沙盒目录读取MsgPack文件
+--- @param filename string
+--- @return any
 function M.ReadToSandbox(filename)
-	local path = lproject.get_app_sandboxes_dir() .. filename
-	local file = UE.File()
-	if not file:Open(path,"rb") then
-		return nil
-	end
-	local s = UE.File.Read(file,file:TotalSize())
-	file:Close()
-	return lmsgpack.decode(s)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	local filePath = lproject.get_app_sandboxes_dir() .. filename
+	return Read(filePath)
 end
 
----@param filename string
----@vararg string | table | number | integer | boolean
----@return any
-function M.WriteToSandbox(filename,...)
-	local s = lmsgpack.encode(...)
-	local path = lproject.get_app_sandboxes_dir().. filename
-	local file = UE.File()
-	if not file:Open(path,"wb") then
-		return nil
-	end
-	local r = file:Write(s)
-	file:Close()
-	return r
+--- 向沙盒目录写入MsgPack文件
+--- @param filename string
+--- @vararg string | table | number | integer | boolean
+--- @return integer
+function M.WriteToSandbox(filename, ...)
+	assert(filename and type(filename) == "string", "filename must be a string")
+	local filePath = lproject.get_app_sandboxes_dir() .. filename
+	return Write(filePath, ...)
 end
+
 return M

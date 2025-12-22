@@ -4,12 +4,12 @@
 --- DateTime: 2025/12/17 18:46
 ---
 
-local LuaHelper = require "Utility.LuaHelper"
+local Interface = require "Utility.Interface"
 
 ---@class HistoryManager
-local M = LuaHelper.LuaClass()
+local M = Interface("HistoryManager")
 
-function M:__OnNew(maxStep)
+function M:__init(maxStep)
 	self.undoStack = {}
 	self.redoStack = {}
 	self.maxStep = maxStep or 256

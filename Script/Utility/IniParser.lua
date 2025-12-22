@@ -14,15 +14,14 @@ lpeg.locale(lpeg)
 ---@class IniParser
 local M = {}
 
-local grammar = nil -- Gramma
+local grammar = nil
 
-M.config = function(t)
-	-- Config parameters
-	local sc = t.separator or '=' -- Separator character
-	local cc = t.comment or ';#' -- Comment characters
-	local trim = t.trim == nil and true or t.trim -- Should capture or trim white spaces
-	local lc = t.lowercase == nil and false or t.lowercase -- Should keys be lowercase?
-	local escape = t.escape == nil and true or t.escape -- Should string literals used escape sequences?
+M.config = function(config)
+	local separatorChar = config.separator or '=' 
+	local commentChars = config.comment or ';#' 
+	local shouldTrim = config.trim == nil and true or config.trim
+	local lowerCaseKeys = config.lowercase == nil and false or config.lowercase
+	local useEscape = config.escape == nil and true or config.escape
 
 	-- LPeg shortcut
 	local P = lpeg.P    -- Pattern
@@ -40,10 +39,10 @@ M.config = function(t)
 	local digit = lpeg.digit
 	local any = P(1)
 
-	local _alpha = P('_') + alpha -- underscore or alpha character
-	local keyid = _alpha^1 * (_alpha + digit)^0
-	-- Lua escape sequences (http://www.lua.org/pil/2.4.html)
-	if escape then
+	local underscoreOrAlpha = P('_') + alpha 
+	local keyIdentifier = underscoreOrAlpha^1 * (underscoreOrAlpha + digit)^0
+	
+	if useEscape then
 		any = any
 			- P'\\a' + P'\\a'/'\a' -- bell
 			- P'\\n' + P'\\n'/'\n' -- newline
@@ -57,42 +56,60 @@ M.config = function(t)
 
 	grammar = P{
 		'all';
-		key = not lc and C(keyid) * space^0 or Cs(keyid / function(s) return s:lower() end) * space^0,
-		sep = P(sc),
+		key = not lowerCaseKeys and C(keyIdentifier) * space^0 or Cs(keyIdentifier / function(s) return s:lower() end) * space^0,
+		sep = P(separatorChar),
 		cr = P'\n' + P'\r\n',
-		comment = S(cc)^1 * lpeg.print^0,
+		comment = S(commentChars)^1 * lpeg.print^0,
 		string = space^0 * P'"' * Cs((any - P'"' + P'""'/'"')^0) * P'"' * space^0,
-		value = trim and space^0 * C(((space - '\n')^0 * (any - space)^1)^1) * space^0 or C((any - P'\n') ^1),
+		value = shouldTrim and space^0 * C(((space - '\n')^0 * (any - space)^1)^1) * space^0 or C((any - P'\n') ^1),
 		set = Cg(V'key' * V'sep' * (V'string' + V'value')),
 		line = space^0 * (V'comment' + V'set'),
 		body = Cf(Ct'' * (V'cr' + V'line')^0, rawset),
-		label = P'[' * space^0 * V'key' * space^0 * P']' * space^0, -- the section label
+		label = P'[' * space^0 * V'key' * space^0 * P']' * space^0,
 		section = space^0 * Cg(V'label' * V'body'),
 		sections = V'section' * (V'cr' + V'section')^0,
-		all = Cf(Ct'' * ((V'cr' + V'line')^0 * V'sections'^0), rawset) * (V'cr' + -1), -- lines followed by a line return or end of string
+		all = Cf(Ct'' * ((V'cr' + V'line')^0 * V'sections'^0), rawset) * (V'cr' + -1),
 	}
 end
 
----@param s string
----@return table
+--- 解析INI格式字符串
+--- @param s string
+--- @return table
 function M.Parse(s)
-	assert(type(s) == "string")
-	return lpeg.match(grammar, s)
+	assert(s and type(s) == "string", "s must be a string")
+	
+	local success, result = pcall(lpeg.match, grammar, s)
+	if not success then
+		return nil
+	end
+	return result
 end
 
----@param filename string
----@return table
+---
+--- 从文件读取并解析INI数据
+--- @param filename string
+--- @return table
 function M.Read(filename)
-	local path = lproject.get_content_dir() .. filename
+	assert(filename and type(filename) == "string", "filename must be a string")
+	
+	local pathFile = lproject.get_content_dir() .. filename
 	local file = UE.File()
-	if not file:Open(path,"rb") then
+	if not file:Open(pathFile,"rb") then
 		return nil
 	end
 	local s = UE.File.Read(file,file:TotalSize())
 	file:Close()
-	return M.Parse(s)
+	if not s then
+		return nil	
+	end
+	
+	local success, result = pcall(lpeg.match, grammar, s)
+	if not success then
+		return nil
+	end
+	return result
 end
 
-M.config{}
+M.config({})
 
 return M
