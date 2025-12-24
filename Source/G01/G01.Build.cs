@@ -38,6 +38,8 @@ public class G01 : ModuleRules
 			"LuaTw2Library",
 			"LuaExtension",
 			"UnLua",
+			"WebSockets",
+			"HTTP"
 		});
 
 		PrivateIncludePaths.AddRange(new string[]

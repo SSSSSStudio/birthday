@@ -3,3 +3,153 @@
 --- Created by hebo.pb.
 --- DateTime: 2025/12/17 19:23
 ---
+
+local Interface = require("Utility.Interface")
+local EventLoop = require("Utility.EventLoop")
+
+local disconnected<const> = 0
+local connecting<const> = 1
+local connected<const> = 2
+
+local M = Interface("WebSocket")
+
+function M:__init()
+	self.webSocketObj = UE.NewObject(UE.UWebSocketObject)
+	self.refWebsocket = UnLua.Ref(self.webSocketObj)
+	self.staus = disconnected
+	self.timeout = nil
+	
+	self.webSocketObj:SetCallback(
+		function(messageString)
+			if self.messageCB then
+				self.messageCB(messageString)
+			end
+		end,
+		function()
+			if self._OnConnected then
+				self._OnConnected()
+			end
+		end,
+		function(error)
+			if self._OnError then
+				self._OnError(error)
+			end
+		end,
+		function(statusCode, reason, bWasClean)
+			if self._OnClose then
+				self._OnClose(statusCode, reason, bWasClean)
+			end
+		end,
+		function(messageString,bIsLastFragment)
+			if self.binaryMessageCB then
+				self.binaryMessageCB(messageString,bIsLastFragment)
+			end
+		end
+	)
+
+end
+
+---@param func function(messageString:string)
+function M:SetMessageCallback(func)
+    self.messageCB = func
+end
+
+---@param func function(messageString:string,bIsLastFragment:boolean)
+function M:SetBinaryMessageCallback(func)
+	self.binaryMessageCB = func
+end
+
+---@param func function(error:string)
+function M:SetDisconnectCallback(func)
+	self._disconnectCB = func
+end
+
+---@param url string
+---@param timeoutMs number
+---@param func function(success:boolean)
+---@return boolean
+function M:Connect(url, timeoutMs, func)
+	if self.staus ~= disconnected then
+		return false
+	end
+	self.staus = connecting
+
+	self._OnConnected = function()
+		if self.staus == connecting then
+			self.staus = connected
+			if self.timeout then
+				self.timeout:stop()
+				self.timeout = nil
+			end
+			func(true)
+			self._OnConnected = nil
+			self._OnError = function(error)
+				if self.staus ~= connected then
+					return
+				end
+				if self._disconnectCB then
+					self._disconnectCB(error)
+				end
+			end
+		end
+	end
+
+	self._OnError = function(error)
+		if self.staus ~= connecting then
+			return
+		end
+		self.staus = disconnected
+		if func then
+			func(false)
+		end
+	end
+
+	self.webSocketObj:Connect(url)
+	self.staus = connecting
+
+	if timeoutMs and timeoutMs > 0 then
+		self.timeout = EventLoop.Timeout(timeoutMs, function()
+			if self.staus == connecting then
+				self.staus = disconnected
+				self.timeout = nil
+				self.webSocketObj:Close()
+				func(false)
+				self._OnConnected = nil
+			end
+		end)
+	end
+	return true
+end
+
+function M:Close()
+	if self.staus ~= disconnected then
+		if self.timeout then
+			self.timeout:stop()
+			self.timeout = nil
+		end
+		self.staus = disconnected
+		self.webSocketObj:Close()
+		UnLua.Unref(self.webSocketObj)
+		self.refWebsocket = nil
+	end
+end
+
+function M:SendString(messageString)
+	if self.staus == connected then
+		self.webSocketObj:SendStringMessage(messageString)
+	end
+end
+
+function M:SendBinaryMessage(message)
+	if self.staus == connected then
+		self.webSocketObj:SendArrayMessage(message)
+	end
+end
+function M:IsConnected()
+	if self.webSocketObj then
+		return self.webSocketObj:IsConnected()
+	end
+	return false
+end
+
+return M

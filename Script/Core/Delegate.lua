@@ -18,7 +18,7 @@ end
 ---@return boolean
 function M:Bind(func)
 	assert(func and type(func) == "function", "func is not a function")
-	if func then
+	if self.func then
 		return false
 	end
 	self.func = func
@@ -31,7 +31,7 @@ end
 function M:BindObject(obj,method)
 	assert(obj and type(obj) == "table", "obj is not a table")
 	assert(method and type(method) == "function", "method is not a function")
-	if method then
+	if self.func then
 		return false
 	end
 	

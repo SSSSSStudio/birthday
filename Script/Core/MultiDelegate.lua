@@ -6,6 +6,9 @@
 
 local LuaHelper = require("Utility.LuaHelper")
 local Interface = require("Utility.Interface")
+local TableEx = require("Utility.TableEx")
+
+local weak = { __mode = "kv" }
 
 ---@class MultiDelegate
 local M = Interface("MultiDelegate")
@@ -24,7 +27,9 @@ function M:Add(func)
 	end
 
 	self.listenerSet[func] = true
-	table.insert(self.listenerList, func)
+	local v = { func, weak }
+	setmetatable(v, weak)
+	table.insert(self.listenerList, v)
 	return true
 end
 
@@ -39,8 +44,8 @@ function M:AddObject(obj,method)
 	end
 
 	self.listenerSet[method] = true
-	local func = LuaHelper.Handler(obj, method)
-	table.insert(self.listenerList, func)
+	local v = { method, obj }
+	table.insert(self.listenerList, v)
 	return true
 end
 
@@ -53,12 +58,11 @@ function M:Remove(func)
     end
     self.listenerSet[func] = nil
 
-    for k,v in ipairs(self.listenerList) do
-        if v == func then
-            table.remove(self.listenerList, k)
-            break
-        end
-    end
+	TableEx.ArrayRemove(self.listenerList, function(v)
+		if v[1] == func then
+			return true
+		end
+	end)
 	
 	return true
 end
@@ -75,13 +79,12 @@ function M:Broadcast(...)
         return false
     end
 	
-	local snapshot = {}
-	for i = 1, #self.listenerList do
-		snapshot[i] = self.listenerList[i]
-	end
-	
-	for _,func in ipairs(snapshot) do
-		func(...)
+	for _,v in ipairs(self.listenerList) do
+		if v[2] == weak then
+			LuaHelper.XpCall(v[1], ...)
+		else
+			LuaHelper.XpCall(v[1], v[2], ...)
+		end
 	end
 	return true
 end

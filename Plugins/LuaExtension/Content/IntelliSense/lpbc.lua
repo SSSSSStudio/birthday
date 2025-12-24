@@ -22,15 +22,15 @@ end
 
 ---@param name string
 ---@param s string
----@param length intgeter @[optional]
+---@param length integer @[optional]
 ---@return table<string,any>
 function lpbc.decode(name,s,length)
 end
 
 ---@param name string
 ---@param proto table<string,any>
----@return userdata
----@return integer
+---@return userdata data 
+---@return integer length
 function lpbc.encode(name,proto)
 end
 

@@ -39,7 +39,7 @@ end
 function lcrypt.aes_decrypt(key,s)
 end
 
----@param s string
+---@param length integer
 ---@return string
 function lcrypt.rand_bytes(length)
 end

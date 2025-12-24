@@ -7,16 +7,16 @@
 ---@class lwsproto
 local lwsproto = {}
 
----@param opcode intgeter
----@param maskingKey intgeter
+---@param opcode integer
+---@param maskingKey integer
 ---@param s string
----@param length intgeter @[optional]
+---@param length integer @[optional]
 ---@return any string
 function lwsproto.write(opcode,maskingKey,s,length)
 end
 ---@param s string
----@param length intgeter @[optional]
----@return intgeter opcode
+---@param length integer @[optional]
+---@return integer opcode
 ---@return string
 function lwsproto.read(s,length)
 end

@@ -13,8 +13,8 @@ function lmsgpack.encode(s)
 end
 
 ---@param s string
----@param length intgeter @[optional]
----@return any
+---@param length integer @[optional]
+---@return string | table | number | integer | boolean
 function lmsgpack.decode(s,length)
 end
 

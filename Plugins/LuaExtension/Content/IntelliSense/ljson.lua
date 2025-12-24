@@ -13,7 +13,7 @@ function ljson.encode(s)
 end
 
 ---@param s string
----@param length intgeter @[optional]
+---@param length integer @[optional]
 ---@return string | table | number | integer | boolean
 function ljson.decode(s,length)
 end

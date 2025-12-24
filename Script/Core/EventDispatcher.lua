@@ -11,11 +11,14 @@ local LuaHelper = require "Utility.LuaHelper"
 local M = {}
 
 local eventMap = {}
+local weak = { __mode = "kv" }
 
 ---@param event string
----@param target any
----@param func function(target:any, ...:any)
-function M.AddEventListener(event, target, func)
+---@param func function(target:table, ...:any)
+---@param target table
+function M.AddEvent(event, func, target)
+	assert(event and type(event) == "string", "event is not a string")
+	assert(func and type(func) == "function", "func is not a function")
 	local listener = eventMap[event] or {}
 	local obj = target or weak
 	local v = { func, obj }
@@ -25,20 +28,22 @@ function M.AddEventListener(event, target, func)
 end
 
 ---@param event string
----@param target any
-function M.RemoveEventListener(event, target)
+---@param func function(target:table, ...:any)
+function M.RemoveEvent(event, func)
+	assert(event and type(event) == "string", "event is not a string")
+	
 	local listener = eventMap[event]
 	if not listener then
 		return
 	end
 
-	if not target then
+	if not func then
 		eventMap[event] = nil
 		return
 	end
 
-	TableEx.ArrayRemoveValue(listener, function(v)
-		if v[2] == target then
+	TableEx.ArrayRemove(listener, function(v)
+		if v[1] == func then
 			return true
 		end
 	end)
@@ -46,7 +51,8 @@ end
 
 ---@param event string
 ---@vararg any
-function M.DispatchEvent(event, ...)
+function M.Dispatch(event, ...)
+	assert(event and type(event) == "string", "event is not a string")
 	local listener = eventMap[event]
 	if listener then
 		for _, v in ipairs(listener) do

@@ -23,25 +23,20 @@ end
 ---@param fileList string[]
 function M.ImportProtoFile(fileList)
 	for _, name in ipairs(fileList) do
-		print("ImportProtoFile", name)
 		assert(lpbc.import(name))
 	end
 end
 
 ---@param typename string
----@param target any
----@param func function(target:any, ...:any)
+---@param target table
+---@param func function(target:table, ...:any)
 function M.AddDispatch(typename, target, func)
 	local listener = protoList[typename]
 	if not listener then
 		listener = {}
 		protoList[typename] = listener
 	end
-	if target then
-		listener[target] = func
-	else
-		table.insert(listener, func)
-	end
+	listener[target] = func
 end
 
 ---@param typename string
@@ -50,7 +45,7 @@ function M.UnDispatch(typename)
 end
 
 ---@param typename string
----@param target any
+---@param target table
 function M.RemoveDispatch(typename, target)
 	local listener = protoList[typename]
 	if listener then

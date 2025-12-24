@@ -18,33 +18,36 @@ function M:__init()
 end
 
 ---@param signal string
----@param observer any
----@param func function(observer:any, ...:any)
-function M:Register(signal, observer, func)
+---@param func function(observer:table, ...:any)
+---@param observer table
+function M:Register(signal, func, observer)
+	assert(signal and type(signal) == "string", "signal is not a string")
+	assert(func and type(func) == "function", "func is not a function")
 	local list = self.container[signal] or {}
 	local obj = observer or weak
 	local v = { func, obj }
 	setmetatable(v, weak)
-	table.insert(list, v)
+	list[#list] = v
 	self.container[signal] = list
 end
 
 ---@param signal string
----@param observer any
-function M:Deregister(signal, observer)
+---@param func function(observer:table, ...:any)
+function M:Deregister(signal, func)
+	assert(signal and type(signal) == "string", "signal is not a string")
 	local container = self.container
 	local list = container[signal]
 	if not list then
 		return
 	end
 
-	if not observer then
+	if not func then
 		container[signal] = nil
 		return
 	end
 
-	TableEx.ArrayRemoveItem(list, function(v)
-		if v[2] == observer then
+	TableEx.ArrayRemove(list, function(v)
+		if v[1] == func then
 			return true
 		end
 	end)
@@ -53,6 +56,7 @@ end
 ---@param signal string
 ---@vararg any
 function M:Notify(signal, ...)
+	assert(signal and type(signal) == "string", "signal is not a string")
 	local container = self.container
 	local list = container[signal]
 	if not list then

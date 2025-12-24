@@ -9,12 +9,14 @@ local Interface = require "Utility.Interface"
 ---@class HistoryManager
 local M = Interface("HistoryManager")
 
+---@param maxStep integer
 function M:__init(maxStep)
 	self.undoStack = {}
 	self.redoStack = {}
 	self.maxStep = maxStep or 256
 end
 
+---@param his table
 function M:AddHistory(his)
 	assert(his.Undo and his.Redo)
 	table.insert(self.undoStack, his)
@@ -45,9 +47,12 @@ function M:Clear()
     self.redoStack = {}
 end
 
+---@return boolean
 function M:IsCanUndo()
 	return #self.undoStack > 0
 end
+
+---@return boolean
 function M:IsCanRedo()
 	return #self.redoStack > 0
 end

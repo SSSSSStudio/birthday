@@ -8,9 +8,9 @@
 local lxml = {}
 
 ---@param s string
----@param length intgeter @[optional]
+---@param length integer @[optional]
 ---@return table
-function lxml.parse(s)
+function lxml.parse(s,length)
 end
 
 

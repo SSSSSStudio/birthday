@@ -8,7 +8,6 @@ local M = UnLua.Class()
 function M:ReceiveInit()
 	LuaHelper.DisableGlobalVariable()
 	EventLoop.Startup();
-	testGlobal = 1
 end
 
 function M:ReceiveShutdown()
