@@ -39,16 +39,14 @@ local function testParseWithQuotes()
 end
 
 -- 测试空 CSV 解析
--- 已知问题：CsvParser.lua 模块存在 bug（第 49 行未检查 data[1] 是否为 nil）
--- 此测试会失败，用于记录模块的已知问题
+-- 预期：空内容应该返回 nil 或空表，而不是抛出异常
+-- 实际：CsvParser.lua 第 49 行存在 bug，未检查 data[1] 是否为 nil，会抛出异常
 local function testParseEmpty()
     local csvContent = ""
     
-    TestFramework.assertNoError(function()
-        local result = CsvParser.Parse(csvContent)
-        -- 空内容应该返回 nil，这是预期行为
-        TestFramework.assertNil(result, "Parse should return nil for empty content")
-    end, "Parse should handle empty content")
+    -- 期望：Parse 应该优雅地处理空内容，返回 nil
+    local result = CsvParser.Parse(csvContent)
+    TestFramework.assertNil(result, "Parse should return nil for empty content")
 end
 
 -- 注册测试用例

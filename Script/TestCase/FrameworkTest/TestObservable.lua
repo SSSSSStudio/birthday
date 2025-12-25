@@ -63,8 +63,9 @@ local function testDeregister()
 end
 
 -- 测试 Notify 函数
--- 注意：Observable.Register 有 bug (list[#list] = v 应该是 list[#list + 1] = v)
--- 导致注册多个观察者时只有最后一个会被保留，这里只测试单个观察者
+-- 预期：注册的观察者应该在 Notify 时被调用
+-- 实际：Observable.lua 第 30 行存在 bug (list[#list] = v 应该是 list[#list + 1] = v)
+--       导致每次注册都会覆盖最后一个元素，而不是追加新元素
 local function testNotify()
     local observable = Observable:New()
     local called = false
@@ -75,14 +76,12 @@ local function testNotify()
         receivedData = data
     end
     
-    -- Observable.Notify 需要 signal 参数
-    TestFramework.assertNoError(function()
-        observable:Register("test_signal", observer)
-        observable:Notify("test_signal", 10)
-    end, "Notify should not throw exception")
+    -- 注册观察者并触发通知
+    observable:Register("test_signal", observer)
+    observable:Notify("test_signal", 10)
     
-    -- 验证观察者被调用
-    TestFramework.assertTrue(called, "Notify should call observer")
+    -- 期望：观察者应该被调用
+    TestFramework.assertTrue(called, "Observer should be called after Notify")
     TestFramework.assertEquals(receivedData, 10, "Observer should receive correct data")
 end
 

@@ -5,26 +5,8 @@
 
 local TestFramework = require("TestCase.FrameworkTest.init")
 
--- Mock lproject 模块
-package.loaded["lproject"] = {
-    get_content_dir = function() return "/tmp/" end,
-    get_app_sandboxes_dir = function() return "/tmp/" end
-}
-
--- Mock ljson 模块
-package.loaded["ljson"] = {
-    encode = function(data)
-        -- 简单的 JSON 编码模拟
-        if type(data) == "table" then
-            return '{"mocked":"json"}'
-        end
-        return tostring(data)
-    end,
-    decode = function(str)
-        -- 简单的 JSON 解码模拟
-        return {mocked = "data"}
-    end
-}
+-- 在 UE 环境下，直接使用真实的 lproject 和 ljson 模块
+-- 这些模块由 LuaExtension 插件提供，无需 mock
 
 local JsonFile = require("Utility.JsonFile")
 

@@ -21,12 +21,15 @@ package.loaded["Utility.Interface"] = function(name)
     return class
 end
 
+-- 预期：WebSocket 模块应该能正常加载
+-- 实际：WebSocket.lua 第 8 行存在 bug，require("Utility.EventLoop") 路径错误
+--       正确路径应该是 require("Core.EventLoop")
 local WebSocket = require("Core.WebSocket")
 
 -- 测试初始化
 local function testInit()
     TestFramework.assertNoError(function()
-        local ws = WebSocket()
+        local ws = WebSocket:New()
         TestFramework.assertNotNil(ws, "WebSocket should be created")
     end, "WebSocket creation should not throw exception")
 end
@@ -52,7 +55,7 @@ end
 -- 测试 Close 函数
 local function testClose()
     TestFramework.assertNoError(function()
-        local ws = WebSocket()
+        local ws = WebSocket:New()
         ws:Close()
     end, "Close should not throw exception")
 end

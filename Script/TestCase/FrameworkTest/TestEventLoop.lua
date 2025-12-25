@@ -5,33 +5,8 @@
 
 local TestFramework = require("TestCase.FrameworkTest.init")
 
--- Mock lproject 模块
-package.loaded["lproject"] = {
-    set_beginplay_callback = function() end,
-    set_tick_callback = function() end,
-    set_endplay_callback = function() end,
-    startup = function() return true end,
-    shutdown = function() return true end
-}
-
--- Mock ltw2 模块
-package.loaded["ltw2.core"] = {
-    clock_monotonic = function() return 1000 end,
-    clock_realtime = function() return 1000 end,
-    sleep_for = function() end
-}
-
-package.loaded["ltw2.event"] = {
-    start = function() return true end,
-    run = function() end,
-    stop = function() end,
-    timer_watcher_new = function()
-        return {
-            start = function() return true end,
-            stop = function() end
-        }
-    end
-}
+-- 在 UE 环境下，直接使用真实的 lproject 和 ltw2 模块
+-- 这些模块由 LuaExtension 插件提供，无需 mock
 
 local EventLoop = require("Core.EventLoop")
 
@@ -74,17 +49,17 @@ local function testDelTicker()
 end
 
 -- 测试 Timeout 函数
--- 已知问题：EventLoop.lua 第 88 行存在 bug
--- 当 levent.timer_watcher_new() 返回 nil 时，会尝试调用 nil 的 start 方法导致崩溃
--- 此测试会失败，用于记录模块的已知问题
+-- 预期：Timeout 应该返回一个有效的 timer 对象，或在失败时返回 nil
+-- 实际：EventLoop.lua 第 88 行存在 bug，当 levent.timer_watcher_new() 返回 nil 时
+--       会尝试调用 nil:start() 导致崩溃
 local function testTimeout()
-    TestFramework.assertNoError(function()
-        local timer = EventLoop.Timeout(1000, function()
-            -- Timeout callback
-        end, false)
-        -- 如果 ltw2 库未正确初始化，timer 会为 nil
-        -- 但 EventLoop.Timeout 没有做 nil 检查就调用了 start 方法
-    end, "Timeout should not throw exception")
+    local timer = EventLoop.Timeout(1000, function()
+        -- Timeout callback
+    end, false)
+    
+    -- 期望：timer 应该是一个有效对象或 nil（如果创建失败）
+    -- 不应该抛出异常
+    TestFramework.assertNotNil(timer, "Timeout should return a valid timer object")
 end
 
 -- 注册测试用例

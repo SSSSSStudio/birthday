@@ -59,6 +59,105 @@ local function testPrintf()
     end, "Printf should not throw exception")
 end
 
+-- 测试多参数日志
+local function testMultipleArguments()
+    TestFramework.assertNoError(function()
+        Log.Info("String:", "test", "Number:", 123, "Boolean:", true)
+    end, "Log should handle multiple arguments")
+end
+
+-- 测试表格日志
+local function testTableLogging()
+    local complexTable = {
+        simple = "value",
+        nested = {
+            level1 = {
+                level2 = {
+                    level3 = "deep"
+                }
+            }
+        },
+        array = {1, 2, 3, 4, 5}
+    }
+    
+    TestFramework.assertNoError(function()
+        Log.Info(complexTable)
+    end, "Log should handle complex tables")
+end
+
+-- 测试 nil 值日志
+local function testNilLogging()
+    TestFramework.assertNoError(function()
+        Log.Info("Value is:", nil)
+    end, "Log should handle nil values")
+end
+
+-- 测试循环引用表
+local function testCircularReference()
+    local t1 = {name = "t1"}
+    local t2 = {name = "t2"}
+    t1.ref = t2
+    t2.ref = t1  -- 循环引用
+    
+    TestFramework.assertNoError(function()
+        Log.Info(t1)
+    end, "Log should handle circular references")
+end
+
+-- 测试深层嵌套表
+local function testDeepNesting()
+    -- 创建超过默认深度限制的嵌套表
+    local deepTable = {}
+    local current = deepTable
+    for i = 1, 100 do
+        current.next = {level = i}
+        current = current.next
+    end
+    
+    TestFramework.assertNoError(function()
+        Log.Info(deepTable)
+    end, "Log should handle deep nesting with depth limit")
+end
+
+-- 测试特殊字符
+local function testSpecialCharacters()
+    TestFramework.assertNoError(function()
+        Log.Info("Special chars: \n\t\r\"'\\")
+    end, "Log should handle special characters")
+end
+
+-- 测试空表
+local function testEmptyTable()
+    TestFramework.assertNoError(function()
+        Log.PrintT({})
+    end, "PrintT should handle empty table")
+    
+    TestFramework.assertNoError(function()
+        Log.PrintT(nil)
+    end, "PrintT should handle nil")
+end
+
+-- 测试格式化错误
+local function testPrintfFormatError()
+    -- 测试格式字符串与参数不匹配
+    TestFramework.assertNoError(function()
+        Log.Printf("Test %s %d", "only one param")
+    end, "Printf should handle format mismatch gracefully")
+    
+    TestFramework.assertNoError(function()
+        Log.Printf(nil, "arg1", "arg2")
+    end, "Printf should handle nil format string")
+end
+
+-- 测试大量日志输出
+local function testBulkLogging()
+    TestFramework.assertNoError(function()
+        for i = 1, 100 do
+            Log.Info("Bulk log message", i)
+        end
+    end, "Log should handle bulk logging")
+end
+
 -- 注册测试用例
 TestFramework.addTestCase("Log.Config", testConfig)
 TestFramework.addTestCase("Log.Error", testError)
@@ -66,6 +165,15 @@ TestFramework.addTestCase("Log.Warning", testWarning)
 TestFramework.addTestCase("Log.Info", testInfo)
 TestFramework.addTestCase("Log.PrintT", testPrintT)
 TestFramework.addTestCase("Log.Printf", testPrintf)
+TestFramework.addTestCase("Log.MultipleArguments", testMultipleArguments)
+TestFramework.addTestCase("Log.TableLogging", testTableLogging)
+TestFramework.addTestCase("Log.NilLogging", testNilLogging)
+TestFramework.addTestCase("Log.CircularReference", testCircularReference)
+TestFramework.addTestCase("Log.DeepNesting", testDeepNesting)
+TestFramework.addTestCase("Log.SpecialCharacters", testSpecialCharacters)
+TestFramework.addTestCase("Log.EmptyTable", testEmptyTable)
+TestFramework.addTestCase("Log.PrintfFormatError", testPrintfFormatError)
+TestFramework.addTestCase("Log.BulkLogging", testBulkLogging)
 
 return {
     testConfig = testConfig,
@@ -73,5 +181,14 @@ return {
     testWarning = testWarning,
     testInfo = testInfo,
     testPrintT = testPrintT,
-    testPrintf = testPrintf
+    testPrintf = testPrintf,
+    testMultipleArguments = testMultipleArguments,
+    testTableLogging = testTableLogging,
+    testNilLogging = testNilLogging,
+    testCircularReference = testCircularReference,
+    testDeepNesting = testDeepNesting,
+    testSpecialCharacters = testSpecialCharacters,
+    testEmptyTable = testEmptyTable,
+    testPrintfFormatError = testPrintfFormatError,
+    testBulkLogging = testBulkLogging
 }

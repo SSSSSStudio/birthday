@@ -5,46 +5,8 @@
 
 local TestFramework = require("TestCase.FrameworkTest.init")
 
--- Mock UE 模块
-package.loaded["UE"] = package.loaded["UE"] or {}
-UE.UHttpObject = UE.UHttpObject or {}
-UE.UHttpObject.HttpAsyncAction = function()
-    return {
-        RegisterCompleteCallback = function(self, callback)
-            -- Mock callback registration
-        end,
-        Request = function(self)
-            -- Mock request
-        end
-    }
-end
-
-UE.UHttpDownloadObject = UE.UHttpDownloadObject or {}
-UE.UHttpDownloadObject.HttpAsyncAction = function()
-    return {
-        RegisterCompleteCallback = function(self, callback)
-            -- Mock callback registration
-        end,
-        Request = function(self)
-            -- Mock request
-        end
-    }
-end
-
-UE.UHttpUploadObject = UE.UHttpUploadObject or {}
-UE.UHttpUploadObject.HttpAsyncAction = function()
-    return {
-        RegisterCompleteCallback = function(self, callback)
-            -- Mock callback registration
-        end,
-        Request = function(self)
-            -- Mock request
-        end
-    }
-end
-
-UE.EHttpVerb = {GET = 0, POST = 1, PUT = 2, DELETE = 3, Post = 1}
-UE.EHttpContentType = {None = 0, Json = 1, Form_Data = 2}
+-- 在 UE 环境下，直接使用真实的 UE 模块
+-- UE 模块由 UnLua 自动提供，无需 mock
 
 local HttpHelper = require("Core.HttpHelper")
 

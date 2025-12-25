@@ -5,21 +5,8 @@
 
 local TestFramework = require("TestCase.FrameworkTest.init")
 
--- Mock Interface 模块
-package.loaded["Utility.Interface"] = function(name)
-    local class = {}
-    class.__index = class
-    
-    function class.New(self, ...)
-        local instance = setmetatable({}, self)
-        if instance.__init then
-            instance:__init(...)
-        end
-        return instance
-    end
-    
-    return class
-end
+-- 使用真实的 Interface 模块
+local Interface = require("Utility.Interface")
 
 local HistoryManager = require("Core.HistoryManager")
 
