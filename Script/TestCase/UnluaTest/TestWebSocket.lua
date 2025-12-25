@@ -2,7 +2,7 @@
 -- WebSocket Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the Interface module
 package.loaded["Utility.Interface"] = function(name)
@@ -83,7 +83,7 @@ package.loaded.UnLua = {
 
 local WebSocket = require("Core.WebSocket")
 
-function testInit()
+local function testInit()
     local ws = WebSocket:New()
     
     TestFramework.assertNotNil(ws, "WebSocket should be created")
@@ -91,7 +91,7 @@ function testInit()
     TestFramework.assertNotNil(ws.refWebsocket, "WebSocket should have refWebsocket")
 end
 
-function testSetMessageCallback()
+local function testSetMessageCallback()
     local ws = WebSocket:New()
     local callbackCalled = false
     local receivedMessage = nil
@@ -105,7 +105,7 @@ function testSetMessageCallback()
     TestFramework.assertEquals(ws.messageCB, messageCallback, "Message callback should be set")
 end
 
-function testSetBinaryMessageCallback()
+local function testSetBinaryMessageCallback()
     local ws = WebSocket:New()
     local callbackCalled = false
     local receivedMessage = nil
@@ -121,7 +121,7 @@ function testSetBinaryMessageCallback()
     TestFramework.assertEquals(ws.binaryMessageCB, binaryCallback, "Binary message callback should be set")
 end
 
-function testSetDisconnectCallback()
+local function testSetDisconnectCallback()
     local ws = WebSocket:New()
     local callbackCalled = false
     local receivedError = nil
@@ -135,7 +135,7 @@ function testSetDisconnectCallback()
     TestFramework.assertEquals(ws._disconnectCB, disconnectCallback, "Disconnect callback should be set")
 end
 
-function testConnect()
+local function testConnect()
     local ws = WebSocket:New()
     local connectResult = nil
     
@@ -149,7 +149,7 @@ function testConnect()
     TestFramework.assertEquals(ws.staus, 1, "Status should be connecting")
 end
 
-function testConnectWhenAlreadyConnected()
+local function testConnectWhenAlreadyConnected()
     local ws = WebSocket:New()
     ws.staus = 1  -- connecting
     
@@ -162,7 +162,7 @@ function testConnectWhenAlreadyConnected()
     TestFramework.assertFalse(result, "Connect should return false when already connecting")
 end
 
-function testClose()
+local function testClose()
     local ws = WebSocket:New()
     ws.staus = 2  -- connected
     
@@ -171,7 +171,7 @@ function testClose()
     TestFramework.assertEquals(ws.staus, 0, "Status should be disconnected after close")
 end
 
-function testSendString()
+local function testSendString()
     local ws = WebSocket:New()
     ws.staus = 2  -- connected
     
@@ -180,7 +180,7 @@ function testSendString()
     TestFramework.assertTrue(true, "SendString should not crash when connected")
 end
 
-function testSendStringWhenNotConnected()
+local function testSendStringWhenNotConnected()
     local ws = WebSocket:New()
     ws.staus = 0  -- disconnected
     
@@ -189,7 +189,7 @@ function testSendStringWhenNotConnected()
     TestFramework.assertTrue(true, "SendString should not crash when not connected")
 end
 
-function testSendBinaryMessage()
+local function testSendBinaryMessage()
     local ws = WebSocket:New()
     ws.staus = 2  -- connected
     
@@ -198,7 +198,7 @@ function testSendBinaryMessage()
     TestFramework.assertTrue(true, "SendBinaryMessage should not crash when connected")
 end
 
-function testSendBinaryMessageWhenNotConnected()
+local function testSendBinaryMessageWhenNotConnected()
     local ws = WebSocket:New()
     ws.staus = 0  -- disconnected
     
@@ -207,7 +207,7 @@ function testSendBinaryMessageWhenNotConnected()
     TestFramework.assertTrue(true, "SendBinaryMessage should not crash when not connected")
 end
 
-function testIsConnected()
+local function testIsConnected()
     local ws = WebSocket:New()
     
     local result = ws:IsConnected()

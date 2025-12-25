@@ -1,11 +1,11 @@
----
+--
 -- TableEx Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 local TableEx = require("Utility.TableEx")
 
-function testCheckTable()
+local function testCheckTable()
     -- Test with nil input
     local result = TableEx.CheckTable(nil)
     TestFramework.assertNotNil(result)
@@ -22,7 +22,7 @@ function testCheckTable()
     TestFramework.assertEquals(type(result), "table")
 end
 
-function testDeepCopy()
+local function testDeepCopy()
     local original = {
         a = 1,
         b = "string",
@@ -51,7 +51,7 @@ function testDeepCopy()
     TestFramework.assertFalse(copied.c.e == original.c.e)
 end
 
-function testLength()
+local function testLength()
     -- Test with empty table
     local emptyTable = {}
     TestFramework.assertEquals(TableEx.Length(emptyTable), 0)
@@ -65,7 +65,7 @@ function testLength()
     TestFramework.assertEquals(TableEx.Length(arrayTable), 4)
 end
 
-function testGetKeys()
+local function testGetKeys()
     local testTable = {a = 1, b = 2, c = 3}
     local keys = TableEx.GetKeys(testTable)
     
@@ -83,7 +83,7 @@ function testGetKeys()
     TestFramework.assertTrue(keySet.c)
 end
 
-function testGetMapValues()
+local function testGetMapValues()
     local testTable = {a = 1, b = 2, c = 3}
     local values = TableEx.GetMapValues(testTable)
     
@@ -101,7 +101,7 @@ function testGetMapValues()
     TestFramework.assertTrue(valueSet[3])
 end
 
-function testMerge()
+local function testMerge()
     local dest = {a = 1, b = 2}
     local src = {b = 3, c = 4}
     
@@ -112,7 +112,7 @@ function testMerge()
     TestFramework.assertEquals(dest.c, 4)  -- Should be added
 end
 
-function testMap()
+local function testMap()
     local testTable = {a = 1, b = 2, c = 3}
     
     TableEx.Map(testTable, function(value, key)

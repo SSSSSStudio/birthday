@@ -1,11 +1,11 @@
----
+--
 -- LuaHelper Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 local LuaHelper = require("Utility.LuaHelper")
 
-function testXpCall()
+local function testXpCall()
     -- Test with a function that doesn't throw an error
     local function testFunc(a, b)
         return a + b
@@ -23,7 +23,7 @@ function testXpCall()
     TestFramework.assertTrue(success, "XpCall should handle errors gracefully")
 end
 
-function testSplit()
+local function testSplit()
     -- Test normal split
     local result = LuaHelper.Split("a,b,c", ",")
     TestFramework.assertNotNil(result)
@@ -48,7 +48,7 @@ function testSplit()
     TestFramework.assertEquals(#result, 0)
 end
 
-function testDateFormat()
+local function testDateFormat()
     -- Test date formatting
     local timestamp = os.time({year = 2023, month = 12, day = 25, hour = 14, min = 30, sec = 45})
     local result = LuaHelper.DateFormat("yyyy.MM.dd hh:mm:ss", timestamp)
@@ -59,7 +59,7 @@ function testDateFormat()
     TestFramework.assertEquals(result, "23-12-25 14:30:45", "DateFormat should handle different formats")
 end
 
-function testSecondsFormat()
+local function testSecondsFormat()
     -- Test positive seconds
     local result = LuaHelper.SecondsFormat("hh:mm:ss", 3661)
     TestFramework.assertEquals(result, "01:01:01", "SecondsFormat should format positive seconds correctly")
@@ -73,7 +73,7 @@ function testSecondsFormat()
     TestFramework.assertEquals(result, "1:1:1", "SecondsFormat should handle different formats")
 end
 
-function testHandler()
+local function testHandler()
     local obj = {value = 0}
     
     function obj:increment(amount)
@@ -88,7 +88,7 @@ function testHandler()
     TestFramework.assertEquals(obj.value, 5, "Handler should modify object state")
 end
 
-function testHandleFunc()
+local function testHandleFunc()
     local target = {value = 0}
     local callCount = 0
     

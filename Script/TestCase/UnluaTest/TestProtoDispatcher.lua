@@ -2,7 +2,7 @@
 -- ProtoDispatcher Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the lpbc module
 local mockLpbc = {
@@ -21,19 +21,19 @@ package.loaded["lpbc"] = mockLpbc
 
 local ProtoDispatcher = require("Core.ProtoDispatcher")
 
-function testInit()
+local function testInit()
     -- This should not crash
     ProtoDispatcher.Init("test/path")
     TestFramework.assertTrue(true, "Init should not crash")
 end
 
-function testCleanup()
+local function testCleanup()
     -- This should not crash
     ProtoDispatcher.Cleanup()
     TestFramework.assertTrue(true, "Cleanup should not crash")
 end
 
-function testImportProtoFile()
+local function testImportProtoFile()
     local fileList = {"file1.proto", "file2.proto"}
     
     -- This should not crash
@@ -49,7 +49,7 @@ function testImportProtoFile()
     TestFramework.assertFalse(success, "ImportProtoFile should reject nil file list")
 end
 
-function testAddDispatch()
+local function testAddDispatch()
     local testTarget = {}
     
     local function testFunc(target, arg1, arg2)
@@ -69,7 +69,7 @@ function testAddDispatch()
     TestFramework.assertTrue(true, "AddDispatch should not crash when adding another function for same type")
 end
 
-function testUnDispatch()
+local function testUnDispatch()
     local testTarget = {}
     
     local function testFunc(target, arg1, arg2)
@@ -85,7 +85,7 @@ function testUnDispatch()
     TestFramework.assertTrue(true, "UnDispatch should not crash")
 end
 
-function testRemoveDispatch()
+local function testRemoveDispatch()
     local testTarget1 = {}
     local testTarget2 = {}
     
@@ -107,7 +107,7 @@ function testRemoveDispatch()
     TestFramework.assertTrue(true, "RemoveDispatch should not crash")
 end
 
-function testDispatchMessage()
+local function testDispatchMessage()
     local testTarget = {value = 0}
     local executeCount = 0
     local receivedArgs = {}
@@ -137,7 +137,7 @@ function testDispatchMessage()
     TestFramework.assertEquals(testTarget.value, 1, "Target value should be updated")
 end
 
-function testDispatchMessageMultipleTargets()
+local function testDispatchMessageMultipleTargets()
     local testTarget1 = {value = 0}
     local testTarget2 = {value = 0}
     local executeCount1 = 0

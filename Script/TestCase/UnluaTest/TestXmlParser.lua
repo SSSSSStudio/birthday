@@ -1,8 +1,8 @@
----
+--
 -- XmlParser Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the lxml module
 local mockLxml = {
@@ -46,7 +46,7 @@ package.loaded.UE = {
 
 local XmlParser = require("Utility.XmlParser")
 
-function testParse()
+local function testParse()
     local xmlString = "<root><element>test</element></root>"
     local result = XmlParser.Parse(xmlString)
     
@@ -62,7 +62,7 @@ function testParse()
     TestFramework.assertFalse(success, "XmlParser.Parse should reject non-string input")
 end
 
-function testRead()
+local function testRead()
     local result = XmlParser.Read("test.xml")
     
     TestFramework.assertNotNil(result, "XmlParser.Read should return data")

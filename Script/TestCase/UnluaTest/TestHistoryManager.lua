@@ -1,8 +1,8 @@
----
+--
 -- HistoryManager Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the Interface module
 package.loaded["Utility.Interface"] = function(name)
@@ -22,7 +22,7 @@ end
 
 local HistoryManager = require("Core.HistoryManager")
 
-function testInit()
+local function testInit()
     local historyManager = HistoryManager:New()
     
     TestFramework.assertNotNil(historyManager, "HistoryManager should be created")
@@ -35,7 +35,7 @@ function testInit()
     TestFramework.assertEquals(historyManager2.maxStep, 100, "HistoryManager should accept custom maxStep")
 end
 
-function testAddHistory()
+local function testAddHistory()
     local historyManager = HistoryManager:New()
     
     local testHistory = {
@@ -82,7 +82,7 @@ function testAddHistory()
     TestFramework.assertEquals(#historyManager.redoStack, 0, "Redo stack should be cleared after adding new history")
 end
 
-function testAddHistoryWithInvalidParams()
+local function testAddHistoryWithInvalidParams()
     local historyManager = HistoryManager:New()
     
     -- Test with nil history
@@ -110,7 +110,7 @@ function testAddHistoryWithInvalidParams()
     TestFramework.assertFalse(success, "AddHistory should reject history without Redo method")
 end
 
-function testAddHistoryWithMaxStepLimit()
+local function testAddHistoryWithMaxStepLimit()
     local historyManager = HistoryManager:New(3)
     
     for i = 1, 5 do
@@ -128,7 +128,7 @@ function testAddHistoryWithMaxStepLimit()
     TestFramework.assertEquals(#historyManager.undoStack, 3, "Undo stack should not exceed maxStep")
 end
 
-function testUndo()
+local function testUndo()
     local historyManager = HistoryManager:New()
     local undoCalled = false
     local redoCalled = false
@@ -157,7 +157,7 @@ function testUndo()
     TestFramework.assertEquals(#historyManager.undoStack, 0, "Undo stack should remain empty when no history available")
 end
 
-function testRedo()
+local function testRedo()
     local historyManager = HistoryManager:New()
     local undoCalled = 0
     local redoCalled = 0
@@ -192,7 +192,7 @@ function testRedo()
     TestFramework.assertEquals(#historyManager.redoStack, 0, "Redo stack should remain empty when no history available")
 end
 
-function testClear()
+local function testClear()
     local historyManager = HistoryManager:New()
     
     local testHistory = {
@@ -217,7 +217,7 @@ function testClear()
     TestFramework.assertEquals(#historyManager.redoStack, 0, "Redo stack should be empty after clear")
 end
 
-function testIsCanUndo()
+local function testIsCanUndo()
     local historyManager = HistoryManager:New()
     
     -- Test when no history
@@ -246,7 +246,7 @@ function testIsCanUndo()
     TestFramework.assertFalse(result3, "IsCanUndo should return false after undo")
 end
 
-function testIsCanRedo()
+local function testIsCanRedo()
     local historyManager = HistoryManager:New()
     
     -- Test when no history

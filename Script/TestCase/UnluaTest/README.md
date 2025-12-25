@@ -67,7 +67,7 @@ UnluaTest/
 ## 编写测试用例
 
 1. 创建一个新的测试文件，命名为`Test{ModuleName}.lua`
-2. 引入测试框架: `local TestFramework = require("UnluaTest.init")`
+2. 引入测试框架: `local TestFramework = require("TestCase.UnluaTest.init")`
 3. 引入要测试的模块: `local Module = require("Path.To.Module")`
 4. 编写测试函数
 5. 使用`TestFramework.addTestCase()`注册测试用例
@@ -75,7 +75,7 @@ UnluaTest/
 
 示例:
 ```lua
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 local MyModule = require("Path.To.MyModule")
 
 function testMyFunction()
@@ -94,20 +94,20 @@ return {
 
 ### 运行所有测试
 ```lua
-require("UnluaTest.RunAllTests")
+require("TestCase.UnluaTest.RunAllTests")
 ```
 
 ### 运行单个测试模块
 ```lua
-require("UnluaTest.TestModuleName")
-local TestFramework = require("UnluaTest.init")
+require("TestCase.UnluaTest.TestModuleName")
+local TestFramework = require("TestCase.UnluaTest.init")
 TestFramework.runAllTests()
 ```
 
 ### 运行单个测试用例
 ```lua
-require("UnluaTest.TestModuleName")
-local TestFramework = require("UnluaTest.init")
+require("TestCase.UnluaTest.TestModuleName")
+local TestFramework = require("TestCase.UnluaTest.init")
 TestFramework.runTest("TestCaseName")
 ```
 

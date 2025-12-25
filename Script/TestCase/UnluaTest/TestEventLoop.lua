@@ -1,8 +1,8 @@
----
+--
 -- EventLoop Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the lproject module
 local mockLproject = {
@@ -79,19 +79,19 @@ package.loaded["Utility.luaHelper"] = {
 
 local EventLoop = require("Core.EventLoop")
 
-function testStartup()
+local function testStartup()
     local result = EventLoop.Startup()
     
     TestFramework.assertTrue(result, "Startup should return true")
 end
 
-function testShutdown()
+local function testShutdown()
     local result = EventLoop.Shutdown()
     
     TestFramework.assertTrue(result, "Shutdown should return true")
 end
 
-function testAddTicker()
+local function testAddTicker()
     local testObj = {}
     local callbackCalled = false
     local receivedObj = nil
@@ -110,7 +110,7 @@ function testAddTicker()
     TestFramework.assertTrue(true, "AddTicker should not crash")
 end
 
-function testDelTicker()
+local function testDelTicker()
     local testObj = {}
     
     local function testFunc(obj, deltaTime)
@@ -123,7 +123,7 @@ function testDelTicker()
     TestFramework.assertTrue(true, "DelTicker should not crash")
 end
 
-function testResetTicker()
+local function testResetTicker()
     local testObj = {}
     
     local function testFunc(obj, deltaTime)
@@ -136,25 +136,25 @@ function testResetTicker()
     TestFramework.assertTrue(true, "ResetTicker should not crash")
 end
 
-function testClockMonotonic()
+local function testClockMonotonic()
     local result = EventLoop.ClockMonotonic()
     
     TestFramework.assertEquals(result, 1000, "ClockMonotonic should return mocked value")
 end
 
-function testClockRealtime()
+local function testClockRealtime()
     local result = EventLoop.ClockRealtime()
     
     TestFramework.assertEquals(result, 2000, "ClockRealtime should return mocked value")
 end
 
-function testSleepFor()
+local function testSleepFor()
     -- This should not crash
     EventLoop.SleepFor(100)
     TestFramework.assertTrue(true, "SleepFor should not crash")
 end
 
-function testTimeout()
+local function testTimeout()
     local callbackCalled = false
     
     local function testFunc()

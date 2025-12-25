@@ -1,8 +1,8 @@
----
+--
 -- HttpHelper Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the UE module for testing
 local mockHttpObject = {}
@@ -105,7 +105,7 @@ package.loaded.UE = {
 
 local HttpHelper = require("Core.HttpHelper")
 
-function testRequest()
+local function testRequest()
     local target = {}
     local callbackCalled = false
     local callbackResult = nil
@@ -137,7 +137,7 @@ function testRequest()
     TestFramework.assertFalse(success, "HttpHelper.Request should reject nil callback")
 end
 
-function testDownload()
+local function testDownload()
     local target = {}
     local callbackCalled = false
     local callbackResult = nil
@@ -169,7 +169,7 @@ function testDownload()
     TestFramework.assertFalse(success, "HttpHelper.Download should reject nil callback")
 end
 
-function testUpload()
+local function testUpload()
     local target = {}
     local callbackCalled = false
     local callbackResult = nil

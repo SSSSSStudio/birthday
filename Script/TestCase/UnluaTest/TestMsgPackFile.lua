@@ -1,8 +1,8 @@
----
+--
 -- MsgPackFile Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the lmsgpack module
 local mockLmsgpack = {
@@ -56,7 +56,7 @@ package.loaded.UE = {
 
 local MsgPackFile = require("Utility.MsgPackFile")
 
-function testRead()
+local function testRead()
     -- Test reading from content directory
     local result = MsgPackFile.Read("test.msgpack")
     TestFramework.assertNotNil(result, "MsgPackFile.Read should return data")
@@ -70,7 +70,7 @@ function testRead()
     TestFramework.assertFalse(success, "MsgPackFile.Read should reject non-string filename")
 end
 
-function testWrite()
+local function testWrite()
     -- Test writing to content directory
     local result = MsgPackFile.Write("test.msgpack", {key = "value", number = 42})
     TestFramework.assertNotNil(result, "MsgPackFile.Write should return result")
@@ -84,7 +84,7 @@ function testWrite()
     TestFramework.assertFalse(success, "MsgPackFile.Write should reject non-string filename")
 end
 
-function testReadToSandbox()
+local function testReadToSandbox()
     -- Test reading from sandbox directory
     local result = MsgPackFile.ReadToSandbox("test.msgpack")
     TestFramework.assertNotNil(result, "MsgPackFile.ReadToSandbox should return data")
@@ -98,7 +98,7 @@ function testReadToSandbox()
     TestFramework.assertFalse(success, "MsgPackFile.ReadToSandbox should reject non-string filename")
 end
 
-function testWriteToSandbox()
+local function testWriteToSandbox()
     -- Test writing to sandbox directory
     local result = MsgPackFile.WriteToSandbox("test.msgpack", {key = "value", number = 42})
     TestFramework.assertNotNil(result, "MsgPackFile.WriteToSandbox should return result")

@@ -14,4 +14,8 @@ function M:ReceiveShutdown()
 	EventLoop.Shutdown();
 end
 
+function M:RunTest()
+	local test = require("TestCase.UnluaTest.RunAllTests")
+end
+
 return M

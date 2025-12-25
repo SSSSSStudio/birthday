@@ -1,19 +1,19 @@
----
+--
 -- Interface Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 local Interface = require("Utility.Interface")
 
-function testInterfaceCreation()
+local function testInterfaceCreation()
     local interface = Interface()
     
     TestFramework.assertNotNil(interface, "Interface should be created")
     TestFramework.assertNotNil(interface._keys, "Interface should have _keys")
 end
 
-function testInterfaceInstantiation()
+local function testInterfaceInstantiation()
     local TestClass = Interface()
     
     function TestClass:__init(value)
@@ -31,7 +31,7 @@ function testInterfaceInstantiation()
     TestFramework.assertEquals(instance:getValue(), 42, "Instance should have correct method result")
 end
 
-function testInterfaceWithFailedInit()
+local function testInterfaceWithFailedInit()
     local TestClass = Interface()
     
     function TestClass:__init(value)
@@ -43,7 +43,7 @@ function testInterfaceWithFailedInit()
     TestFramework.assertTrue(string.find(errorMsg, "Interface initialization failed") ~= nil, "Error message should contain initialization failure info")
 end
 
-function testInterfaceMethodAccess()
+local function testInterfaceMethodAccess()
     local TestClass = Interface()
     
     function TestClass:getValue()
@@ -55,7 +55,7 @@ function testInterfaceMethodAccess()
     TestFramework.assertEquals(instance:getValue(), 42, "Instance should be able to access methods")
 end
 
-function testInterfacePairsError()
+local function testInterfacePairsError()
     local TestClass = Interface()
     local instance = TestClass()
     
@@ -64,7 +64,7 @@ function testInterfacePairsError()
     TestFramework.assertTrue(string.find(errorMsg, "cannot use pairs") ~= nil, "Error message should indicate pairs is not allowed")
 end
 
-function testInterfaceIpairsError()
+local function testInterfaceIpairsError()
     local TestClass = Interface()
     local instance = TestClass()
     

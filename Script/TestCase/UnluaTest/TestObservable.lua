@@ -1,8 +1,8 @@
----
+--
 -- Observable Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the Interface module
 package.loaded["Utility.Interface"] = function(name)
@@ -40,14 +40,14 @@ package.loaded["Utility.TableEx"] = {
 
 local Observable = require("Core.Observable")
 
-function testInit()
+local function testInit()
     local observable = Observable:New()
     
     TestFramework.assertNotNil(observable, "Observable should be created")
     TestFramework.assertNotNil(observable.container, "Observable should have container")
 end
 
-function testRegister()
+local function testRegister()
     local observable = Observable:New()
     local testObserver = {}
     
@@ -69,7 +69,7 @@ function testRegister()
     TestFramework.assertEquals(#observable.container["testSignal"], 2, "Container should have two entries")
 end
 
-function testRegisterWithInvalidParams()
+local function testRegisterWithInvalidParams()
     local observable = Observable:New()
     local testObserver = {}
     
@@ -94,7 +94,7 @@ function testRegisterWithInvalidParams()
     TestFramework.assertFalse(success, "Register should reject non-function")
 end
 
-function testRegisterWithoutObserver()
+local function testRegisterWithoutObserver()
     local observable = Observable:New()
     
     local function testFunc(arg1, arg2)
@@ -107,7 +107,7 @@ function testRegisterWithoutObserver()
     TestFramework.assertEquals(#observable.container["testSignal"], 1, "Container should have one entry")
 end
 
-function testDeregister()
+local function testDeregister()
     local observable = Observable:New()
     local testObserver = {}
     
@@ -128,7 +128,7 @@ function testDeregister()
     TestFramework.assertTrue(true, "Deregister should not crash when deregistering non-existent function")
 end
 
-function testDeregisterWithInvalidParams()
+local function testDeregisterWithInvalidParams()
     local observable = Observable:New()
     
     -- Test with nil signal
@@ -140,7 +140,7 @@ function testDeregisterWithInvalidParams()
     TestFramework.assertFalse(success, "Deregister should reject non-string signal")
 end
 
-function testDeregisterAllForSignal()
+local function testDeregisterAllForSignal()
     local observable = Observable:New()
     local testObserver = {}
     
@@ -164,7 +164,7 @@ function testDeregisterAllForSignal()
     TestFramework.assertNil(observable.container["testSignal"], "Signal should be removed from container")
 end
 
-function testNotify()
+local function testNotify()
     local observable = Observable:New()
     local testObserver = {value = 0}
     local executeCount = 0
@@ -195,7 +195,7 @@ function testNotify()
     TestFramework.assertEquals(testObserver.value, 1, "Observer value should be updated")
 end
 
-function testNotifyWithoutObserver()
+local function testNotifyWithoutObserver()
     local observable = Observable:New()
     local executeCount = 0
     local receivedArgs = {}
@@ -216,7 +216,7 @@ function testNotifyWithoutObserver()
     TestFramework.assertEquals(receivedArgs[2], "test2", "Second argument should be correct")
 end
 
-function testNotifyMultipleFunctions()
+local function testNotifyMultipleFunctions()
     local observable = Observable:New()
     local testObserver = {}
     local executeCount1 = 0
@@ -241,7 +241,7 @@ function testNotifyMultipleFunctions()
     TestFramework.assertEquals(executeCount2, 1, "Second function should be executed once")
 end
 
-function testNotifyWithInvalidSignal()
+local function testNotifyWithInvalidSignal()
     local observable = Observable:New()
     
     -- Test with nil signal

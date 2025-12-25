@@ -1,8 +1,8 @@
----
+--
 -- IniParser Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the lpeg module for testing
 package.loaded.lpeg = {
@@ -95,7 +95,7 @@ package.loaded.UE = {
 
 local IniParser = require("Utility.IniParser")
 
-function testParse()
+local function testParse()
     -- Test parsing a simple INI string
     local iniString = "[section1]\nkey1=value1\nkey2=value2\n[section2]\nkey3=value3"
     local result = IniParser.Parse(iniString)
@@ -116,7 +116,7 @@ function testParse()
     TestFramework.assertNil(result3, "IniParser.Parse should return nil for non-string input")
 end
 
-function testRead()
+local function testRead()
     -- Test reading from file
     local result = IniParser.Read("test.ini")
     
@@ -131,7 +131,7 @@ function testRead()
     TestFramework.assertFalse(success, "IniParser.Read should reject non-string filename")
 end
 
-function testConfig()
+local function testConfig()
     -- Test configuring the parser
     IniParser.config({
         separator = ":",

@@ -1,8 +1,8 @@
----
+--
 -- MultiDelegate Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the Interface module
 package.loaded["Utility.Interface"] = function(name)
@@ -40,7 +40,7 @@ package.loaded["Utility.TableEx"] = {
 
 local MultiDelegate = require("Core.MultiDelegate")
 
-function testInit()
+local function testInit()
     local multiDelegate = MultiDelegate:New()
     
     TestFramework.assertNotNil(multiDelegate, "MultiDelegate should be created")
@@ -49,7 +49,7 @@ function testInit()
     TestFramework.assertEquals(#multiDelegate.listenerList, 0, "Listener list should be empty initially")
 end
 
-function testAdd()
+local function testAdd()
     local multiDelegate = MultiDelegate:New()
     
     local function testFunc()
@@ -68,7 +68,7 @@ function testAdd()
     TestFramework.assertEquals(#multiDelegate.listenerList, 1, "Listener list should still have one entry")
 end
 
-function testAddWithInvalidFunc()
+local function testAddWithInvalidFunc()
     local multiDelegate = MultiDelegate:New()
     
     -- Test with nil function
@@ -80,7 +80,7 @@ function testAddWithInvalidFunc()
     TestFramework.assertFalse(success, "Add should reject non-function")
 end
 
-function testAddObject()
+local function testAddObject()
     local multiDelegate = MultiDelegate:New()
     local testObj = {}
     
@@ -100,7 +100,7 @@ function testAddObject()
     TestFramework.assertEquals(#multiDelegate.listenerList, 1, "Listener list should still have one entry")
 end
 
-function testAddObjectWithInvalidParams()
+local function testAddObjectWithInvalidParams()
     local multiDelegate = MultiDelegate:New()
     local testObj = {}
     
@@ -125,7 +125,7 @@ function testAddObjectWithInvalidParams()
     TestFramework.assertFalse(success, "AddObject should reject non-function method")
 end
 
-function testRemove()
+local function testRemove()
     local multiDelegate = MultiDelegate:New()
     
     local function testFunc()
@@ -147,7 +147,7 @@ function testRemove()
     TestFramework.assertFalse(result2, "Remove should return false when removing non-existent function")
 end
 
-function testRemoveWithInvalidFunc()
+local function testRemoveWithInvalidFunc()
     local multiDelegate = MultiDelegate:New()
     
     -- Test with nil function
@@ -159,7 +159,7 @@ function testRemoveWithInvalidFunc()
     TestFramework.assertFalse(success, "Remove should reject non-function")
 end
 
-function testRemoveAll()
+local function testRemoveAll()
     local multiDelegate = MultiDelegate:New()
     local testObj = {}
     
@@ -189,7 +189,7 @@ function testRemoveAll()
     TestFramework.assertEquals(next(multiDelegate.listenerSet), nil, "ListenerSet should be empty after RemoveAll")
 end
 
-function testBroadcast()
+local function testBroadcast()
     local multiDelegate = MultiDelegate:New()
     local executeCount = 0
     local receivedArgs = {}
@@ -214,7 +214,7 @@ function testBroadcast()
     TestFramework.assertEquals(receivedArgs[2], "test2", "Second argument should be correct")
 end
 
-function testBroadcastWithObject()
+local function testBroadcastWithObject()
     local multiDelegate = MultiDelegate:New()
     local testObj = {value = 0}
     local executeCount = 0
@@ -239,7 +239,7 @@ function testBroadcastWithObject()
     TestFramework.assertEquals(testObj.value, 1, "Object value should be updated")
 end
 
-function testBroadcastMultipleListeners()
+local function testBroadcastMultipleListeners()
     local multiDelegate = MultiDelegate:New()
     local executeCount1 = 0
     local executeCount2 = 0

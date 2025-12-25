@@ -1,8 +1,8 @@
----
+--
 -- Delegate Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the Interface module
 package.loaded["Utility.Interface"] = function(name)
@@ -22,7 +22,7 @@ end
 
 local Delegate = require("Core.Delegate")
 
-function testInit()
+local function testInit()
     local delegate = Delegate:New()
     
     TestFramework.assertNotNil(delegate, "Delegate should be created")
@@ -30,7 +30,7 @@ function testInit()
     TestFramework.assertNil(delegate.func, "Delegate func should be nil initially")
 end
 
-function testBind()
+local function testBind()
     local delegate = Delegate:New()
     
     local function testFunc()
@@ -47,7 +47,7 @@ function testBind()
     TestFramework.assertFalse(result2, "Bind should return false when already bound")
 end
 
-function testBindWithInvalidFunc()
+local function testBindWithInvalidFunc()
     local delegate = Delegate:New()
     
     -- Test with nil function
@@ -59,7 +59,7 @@ function testBindWithInvalidFunc()
     TestFramework.assertFalse(success, "Bind should reject non-function")
 end
 
-function testBindObject()
+local function testBindObject()
     local delegate = Delegate:New()
     local testObj = {}
     
@@ -78,7 +78,7 @@ function testBindObject()
     TestFramework.assertFalse(result2, "BindObject should return false when already bound")
 end
 
-function testBindObjectWithInvalidParams()
+local function testBindObjectWithInvalidParams()
     local delegate = Delegate:New()
     local testObj = {}
     
@@ -103,7 +103,7 @@ function testBindObjectWithInvalidParams()
     TestFramework.assertFalse(success, "BindObject should reject non-function method")
 end
 
-function testUnbind()
+local function testUnbind()
     local delegate = Delegate:New()
     local testObj = {}
     
@@ -118,7 +118,7 @@ function testUnbind()
     TestFramework.assertNil(delegate.func, "Delegate func should be nil after unbind")
 end
 
-function testExecute()
+local function testExecute()
     local delegate = Delegate:New()
     local executeCount = 0
     
@@ -139,7 +139,7 @@ function testExecute()
     TestFramework.assertEquals(executeCount, 1, "Function should be executed once")
 end
 
-function testExecuteWithObject()
+local function testExecuteWithObject()
     local delegate = Delegate:New()
     local testObj = {value = 0}
     local executeCount = 0
@@ -160,7 +160,7 @@ function testExecuteWithObject()
     TestFramework.assertEquals(testObj.value, 1, "Object value should be updated")
 end
 
-function testIsValid()
+local function testIsValid()
     local delegate = Delegate:New()
     
     -- Test when not bound

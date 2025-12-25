@@ -1,11 +1,11 @@
----
+--
 -- EventDispatcher Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 local EventDispatcher = require("Core.EventDispatcher")
 
-function testAddEvent()
+local function testAddEvent()
     local eventReceived = false
     local testTarget = {}
     
@@ -22,7 +22,7 @@ function testAddEvent()
     TestFramework.assertTrue(eventReceived, "Event should be received")
 end
 
-function testRemoveEvent()
+local function testRemoveEvent()
     local eventReceived = false
     local testTarget = {}
     
@@ -42,7 +42,7 @@ function testRemoveEvent()
     TestFramework.assertFalse(eventReceived, "Event should not be received after removal")
 end
 
-function testRemoveAllEvents()
+local function testRemoveAllEvents()
     local eventReceived = false
     local testTarget = {}
     
@@ -62,7 +62,7 @@ function testRemoveAllEvents()
     TestFramework.assertFalse(eventReceived, "Event should not be received after removing all events")
 end
 
-function testDispatch()
+local function testDispatch()
     local receivedData = nil
     local testTarget = {}
     
@@ -76,7 +76,7 @@ function testDispatch()
     TestFramework.assertEquals(receivedData, "testData", "Event should receive correct data")
 end
 
-function testDispatchWithoutTarget()
+local function testDispatchWithoutTarget()
     local receivedData = nil
     
     local function testHandler(data)
@@ -89,7 +89,7 @@ function testDispatchWithoutTarget()
     TestFramework.assertEquals(receivedData, "testData", "Event without target should receive correct data")
 end
 
-function testMultipleListeners()
+local function testMultipleListeners()
     local receivedCount = 0
     local testTarget = {}
     

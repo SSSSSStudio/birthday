@@ -1,8 +1,8 @@
----
+--
 -- CsvParser Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the lpeg module for testing
 package.loaded.lpeg = {
@@ -71,7 +71,7 @@ package.loaded.UE = {
 
 local CsvParser = require("Utility.CsvParser")
 
-function testParse()
+local function testParse()
     -- Test parsing a simple CSV string
     local csvString = "name,age\nstring,int\nJohn,25\nJane,30"
     local result = CsvParser.Parse(csvString)
@@ -97,7 +97,7 @@ function testParse()
     TestFramework.assertNil(result3, "CsvParser.Parse should return nil for non-string input")
 end
 
-function testRead()
+local function testRead()
     -- Test reading from file
     local result = CsvParser.Read("test.csv")
     

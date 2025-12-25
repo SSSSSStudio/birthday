@@ -1,8 +1,8 @@
----
+--
 -- Channel Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the ltw2.event module
 local mockTimerWatcher = {}
@@ -73,7 +73,7 @@ package.loaded["ltw2.core"] = mockLtw2Core
 
 local Channel = require("Core.Channel")
 
-function testConnect()
+local function testConnect()
     local connectResult = nil
     
     local function connectCallback(bSucc)
@@ -88,7 +88,7 @@ function testConnect()
     TestFramework.assertTrue(connectResult, "Connect callback should be called with success")
 end
 
-function testConnectFailure()
+local function testConnectFailure()
     -- Mock connection failure
     mockConnection.connect = function(self, bStream, addr, callback)
         -- Simulate failed connection
@@ -114,7 +114,7 @@ function testConnectFailure()
     end
 end
 
-function testSetDisconnectCallback()
+local function testSetDisconnectCallback()
     local channel = Channel.Connect("127.0.0.1:8080", 5000, true, function(bSucc) end)
     
     local callbackCalled = false
@@ -126,7 +126,7 @@ function testSetDisconnectCallback()
     TestFramework.assertEquals(channel.disconnectCB, disconnectCallback, "Disconnect callback should be set")
 end
 
-function testSetMessageCallback()
+local function testSetMessageCallback()
     local channel = Channel.Connect("127.0.0.1:8080", 5000, true, function(bSucc) end)
     
     local callbackCalled = false
@@ -141,7 +141,7 @@ function testSetMessageCallback()
     TestFramework.assertEquals(channel.messageCB, messageCallback, "Message callback should be set")
 end
 
-function testBind()
+local function testBind()
     local channel = Channel.Connect("127.0.0.1:8080", 5000, true, function(bSucc) end)
     
     local result = channel.Bind(channel, true, true)
@@ -150,7 +150,7 @@ function testBind()
     TestFramework.assertNotNil(channel.dataCache, "Channel should have a data cache after binding")
 end
 
-function testBindWithoutConnection()
+local function testBindWithoutConnection()
     local channel = {}
     
     local result = channel.Bind(channel, true, true)
@@ -158,7 +158,7 @@ function testBindWithoutConnection()
     TestFramework.assertFalse(result, "Bind should return false when there's no connection")
 end
 
-function testSend()
+local function testSend()
     local channel = Channel.Connect("127.0.0.1:8080", 5000, true, function(bSucc) end)
     channel.Bind(channel, true, true)
     
@@ -167,7 +167,7 @@ function testSend()
     TestFramework.assertTrue(result, "Send should return true")
 end
 
-function testSendWithoutConnection()
+local function testSendWithoutConnection()
     local channel = {}
     
     local result = channel.Send(channel, "test data")
@@ -175,7 +175,7 @@ function testSendWithoutConnection()
     TestFramework.assertFalse(result, "Send should return false when there's no connection")
 end
 
-function testClose()
+local function testClose()
     local channel = Channel.Connect("127.0.0.1:8080", 5000, true, function(bSucc) end)
     
     -- This should not crash

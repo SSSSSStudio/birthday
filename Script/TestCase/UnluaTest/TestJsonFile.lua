@@ -1,8 +1,8 @@
----
+--
 -- JsonFile Module Tests
 --
 
-local TestFramework = require("UnluaTest.init")
+local TestFramework = require("TestCase.UnluaTest.init")
 
 -- Mock the ljson and lproject modules for testing
 package.loaded.ljson = {
@@ -53,7 +53,7 @@ package.loaded.UE = {
 
 local JsonFile = require("Utility.JsonFile")
 
-function testRead()
+local function testRead()
     -- Test reading from content directory
     local result = JsonFile.Read("test.json")
     TestFramework.assertNotNil(result, "JsonFile.Read should return data")
@@ -66,7 +66,7 @@ function testRead()
     TestFramework.assertFalse(success, "JsonFile.Read should reject non-string filename")
 end
 
-function testWrite()
+local function testWrite()
     -- Test writing to content directory
     local testData = {key = "value", number = 42}
     local result = JsonFile.Write("test.json", testData)
@@ -84,7 +84,7 @@ function testWrite()
     TestFramework.assertFalse(success, "JsonFile.Write should reject nil data")
 end
 
-function testReadToSandbox()
+local function testReadToSandbox()
     -- Test reading from sandbox directory
     local result = JsonFile.ReadToSandbox("test.json")
     TestFramework.assertNotNil(result, "JsonFile.ReadToSandbox should return data")
@@ -97,7 +97,7 @@ function testReadToSandbox()
     TestFramework.assertFalse(success, "JsonFile.ReadToSandbox should reject non-string filename")
 end
 
-function testWriteToSandbox()
+local function testWriteToSandbox()
     -- Test writing to sandbox directory
     local testData = {key = "value", number = 42}
     local result = JsonFile.WriteToSandbox("test.json", testData)
