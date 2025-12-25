@@ -1,0 +1,383 @@
+================================================================
+Lua 框架测试套件 - 已知问题记录
+================================================================
+记录时间: 2025-12-25
+测试框架版本: 1.0
+运行环境: Unreal Engine (UnLua)
+
+测试统计:
+- 总测试模块数: 19
+- 成功加载模块数: 19 (UE环境) / 13 (独立Lua环境)
+- 总测试用例数: 92
+- 通过测试数: 61
+- 失败测试数: 31
+- 通过率: 66%
+
+================================================================
+一、测试用例失败详情（按模块分类）
+================================================================
+
+【CsvParser 模块】- 1个失败
+-----------------------------------
+❌ CsvParser.ParseEmpty
+   错误: CsvParser.lua:49: attempt to get length of a nil value
+   原因: 模块未检查 data[1] 是否为 nil
+   影响: 空 CSV 字符串解析时会抛出异常
+
+【EventDispatcher 模块】- 5个失败
+-----------------------------------
+❌ EventDispatcher.On
+   错误: TestEventDispatcher.lua:17: attempt to call a nil value (field 'On')
+   原因: EventDispatcher 模块缺少 On 方法或 API 不匹配
+
+❌ EventDispatcher.Off
+   错误: TestEventDispatcher.lua:28: attempt to call a nil value (field 'On')
+   原因: 同上
+
+❌ EventDispatcher.Emit
+   错误: TestEventDispatcher.lua:42: attempt to call a nil value (field 'On')
+   原因: 同上
+
+❌ EventDispatcher.MultipleListeners
+   错误: TestEventDispatcher.lua:60: attempt to call a nil value (field 'On')
+   原因: 同上
+
+❌ EventDispatcher.Clear
+   错误: TestEventDispatcher.lua:73: attempt to call a nil value (field 'On')
+   原因: 同上
+
+【EventLoop 模块】- 2个失败
+-----------------------------------
+❌ EventLoop.Startup
+   错误: Startup should return true: Expected true, but got false
+   原因: 在 UE 环境中，lproject.startup() 可能返回 false（可能已在其他地方启动）
+   影响: 测试用例对返回值的断言过于严格
+
+❌ EventLoop.Timeout
+   错误: EventLoop.lua:88: attempt to index a nil value (local 'timerWatcher')
+   原因: 当 levent.timer_watcher_new() 返回 nil 时，代码未做检查就调用了 start 方法
+   影响: 在 ltw2 库未正确初始化的环境中会导致崩溃
+   建议修复: 在 EventLoop.lua:88 添加 nil 检查
+   ```lua
+   function M.Timeout(intervalMs, func, bLoop)
+       local timerWatcher = levent.timer_watcher_new()
+       if not timerWatcher then
+           return nil
+       end
+       return timerWatcher:start(intervalMs, not bLoop, func) and timerWatcher
+   end
+   ```
+
+【HistoryManager 模块】- 4个失败
+-----------------------------------
+❌ HistoryManager.Push
+   错误: TestHistoryManager.lua:38: attempt to call a nil value (method 'Push')
+   原因: HistoryManager 缺少 Push 方法或 API 不匹配
+
+❌ HistoryManager.Undo
+   错误: TestHistoryManager.lua:46: attempt to call a nil value (method 'Push')
+   原因: 同上
+
+❌ HistoryManager.Redo
+   错误: TestHistoryManager.lua:55: attempt to call a nil value (method 'Push')
+   原因: 同上
+
+❌ HistoryManager.Clear
+   错误: TestHistoryManager.lua:65: attempt to call a nil value (method 'Push')
+   原因: 同上
+
+【Interface 模块】- 3个失败
+-----------------------------------
+❌ Interface.Instantiation
+   错误: TestInterface.lua:26: attempt to call a nil value (method 'New')
+   原因: Interface 缺少 New 方法或实例化方式不匹配
+
+❌ Interface.MethodCall
+   错误: TestInterface.lua:48: attempt to call a nil value (method 'New')
+   原因: 同上
+
+❌ Interface.MultipleInstances
+   错误: TestInterface.lua:64: attempt to call a nil value (method 'New')
+   原因: 同上
+
+【JsonFile 模块】- 3个失败
+-----------------------------------
+❌ JsonFile.Encode
+   错误: TestJsonFile.lua:19: attempt to call a nil value (field 'Encode')
+   原因: JsonFile 模块缺少 Encode 方法或 API 不匹配
+
+❌ JsonFile.Decode
+   错误: TestJsonFile.lua:29: attempt to call a nil value (field 'Decode')
+   原因: JsonFile 模块缺少 Decode 方法或 API 不匹配
+
+❌ JsonFile.EncodeDecodeRoundTrip
+   错误: TestJsonFile.lua:48: attempt to call a nil value (field 'Encode')
+   原因: 同上
+
+【Log 模块】- 1个失败
+-----------------------------------
+❌ Log.Config
+   错误: Log.lua:73: Depth must be an integer
+   原因: Log.lua 第 73 行使用了 math.type() 函数进行整数类型检查
+         math.type() 是 Lua 5.3+ 的特性，在 Lua 5.1/5.2 环境中不存在
+   影响: 在 UnLua 环境（可能使用 Lua 5.1/5.2）中无法使用 Config 方法
+   建议修复: 在 Log.lua:73 将 math.type() 替换为兼容性更好的检查方式
+   ```lua
+   function M.Config(depth)
+       if depth then
+           -- 兼容 Lua 5.1/5.2 的整数检查
+           if type(depth) ~= "number" or depth ~= math.floor(depth) then
+               error("Depth must be an integer")
+           end
+           maxDepth = depth
+       end
+   end
+   ```
+
+【LuaHelper 模块】- 1个失败
+-----------------------------------
+❌ LuaHelper.XpCall
+   错误: XpCall should return correct result: Expected success, but got nil
+   原因: XpCall 方法返回值不符合预期
+
+【MsgPackFile 模块】- 3个失败
+-----------------------------------
+❌ MsgPackFile.Encode
+   错误: TestMsgPackFile.lua:20: attempt to call a nil value (field 'Encode')
+   原因: MsgPackFile 模块缺少 Encode 方法或 API 不匹配
+
+❌ MsgPackFile.Decode
+   错误: TestMsgPackFile.lua:33: attempt to call a nil value (field 'Encode')
+   原因: 同上
+
+❌ MsgPackFile.EncodeDecodeRoundTrip
+   错误: TestMsgPackFile.lua:52: attempt to call a nil value (field 'Encode')
+   原因: 同上
+
+【MultiDelegate 模块】- 2个失败
+-----------------------------------
+❌ MultiDelegate.Init
+   错误: Delegates list should exist: Expected non-nil value, but got nil
+   原因: Init 方法未正确初始化 delegates 列表
+
+❌ MultiDelegate.Clear
+   错误: TestMultiDelegate.lua:110: attempt to call a nil value (method 'Clear')
+   原因: MultiDelegate 缺少 Clear 方法或 API 不匹配
+
+【Observable 模块】- 1个失败（已修复 4个）
+-----------------------------------
+✅ Observable.Init (已修复)
+   原因: 测试用例检查了错误的属性名，应检查 container 而非 observers
+
+✅ Observable.Register (已修复)
+   原因: 测试用例缺少必需的 signal 参数
+
+✅ Observable.Deregister (已修复)
+   原因: 测试用例缺少必需的 signal 参数
+
+✅ Observable.DeregisterAll (已修复)
+   原因: 测试用例使用了不存在的 Clear 方法，应使用 Deregister(signal) 清除所有监听器
+
+❌ Observable.Notify (模块 bug)
+   错误: 注册多个观察者时只有最后一个会被调用
+   原因: Observable.lua:30 使用了 `list[#list] = v`，这会覆盖最后一个元素而非添加新元素
+   影响: 无法正确支持多个观察者监听同一信号
+   建议修复: 在 Observable.lua:30 将 `list[#list] = v` 改为 `list[#list + 1] = v` 或 `table.insert(list, v)`
+   ```lua
+   function M:Register(signal, func, observer)
+       assert(signal and type(signal) == "string", "signal is not a string")
+       assert(func and type(func) == "function", "func is not a function")
+       local list = self.container[signal] or {}
+       local obj = observer or weak
+       local v = { func, obj }
+       setmetatable(v, weak)
+       list[#list + 1] = v  -- 修复：添加新元素而非覆盖
+       self.container[signal] = list
+   end
+   ```
+   临时方案: 测试用例已修改为只测试单个观察者的情况
+
+【ProtoDispatcher 模块】- 4个失败
+-----------------------------------
+❌ ProtoDispatcher.Register
+   错误: TestProtoDispatcher.lua:12: attempt to call a nil value (field 'Register')
+   原因: ProtoDispatcher 模块缺少 Register 方法或 API 不匹配
+
+❌ ProtoDispatcher.Unregister
+   错误: TestProtoDispatcher.lua:21: attempt to call a nil value (field 'Register')
+   原因: 同上
+
+❌ ProtoDispatcher.Dispatch
+   错误: TestProtoDispatcher.lua:33: attempt to call a nil value (field 'Register')
+   原因: 同上
+
+❌ ProtoDispatcher.Clear
+   错误: TestProtoDispatcher.lua:46: attempt to call a nil value (field 'Register')
+   原因: 同上
+
+【WebSocket 模块】- 1个失败
+-----------------------------------
+❌ WebSocket.Send
+   错误: TestWebSocket.lua:46: attempt to call a nil value (method 'Send')
+   原因: WebSocket 缺少 Send 方法或 API 不匹配
+
+================================================================
+二、问题分类统计
+================================================================
+
+按问题类型分类:
+1. API 不匹配/缺少方法: 24个失败
+   - EventDispatcher (5个)
+   - HistoryManager (4个)  
+   - Interface (3个)
+   - JsonFile (3个)
+   - MsgPackFile (3个)
+   - ProtoDispatcher (4个)
+   - MultiDelegate.Clear (1个)
+   - WebSocket.Send (1个)
+
+2. 模块实现 Bug: 3个失败
+   - CsvParser.ParseEmpty (空值检查)
+   - EventLoop.Timeout (nil 检查缺失)
+   - Observable.Notify (数组添加元素 bug)
+
+3. 环境适配问题: 1个失败
+   - EventLoop.Startup (UE 环境返回值)
+
+4. 参数验证问题: 1个失败
+   - Log.Config (1个 - Depth 参数验证)
+
+5. 初始化问题: 1个失败
+   - MultiDelegate.Init (delegates 列表未初始化)
+
+6. 返回值问题: 1个失败
+   - LuaHelper.XpCall (返回值不符合预期)
+
+================================================================
+三、通过测试的模块（57个测试用例）
+================================================================
+
+✅ Channel 模块 (4/4 通过)
+   - Close, Connect, Send, SetDisconnectCallback
+
+✅ CsvParser 模块 (2/3 通过)
+   - Parse, ParseWithQuotes
+   ❌ ParseEmpty (已知 bug)
+
+✅ Delegate 模块 (7/7 通过)
+   - Bind, BindObject, Execute, ExecuteWithObject, Init, IsValid, Unbind
+
+✅ EventLoop 模块 (3/5 通过)
+   - AddTicker, DelTicker, Shutdown
+   ❌ Startup, Timeout
+
+✅ HistoryManager 模块 (1/5 通过)
+   - Init
+   ❌ Push, Undo, Redo, Clear
+
+✅ HttpHelper 模块 (3/3 通过)
+   - Download, Request, Upload
+
+✅ IniParser 模块 (3/3 通过)
+   - Parse, ParseEmpty, ParseWithComments
+
+✅ Interface 模块 (1/4 通过)
+   - CreateInterface
+   ❌ Instantiation, MethodCall, MultipleInstances
+
+✅ Log 模块 (5/6 通过)
+   - Error, Info, PrintT, Printf, Warning
+   ❌ Config
+
+✅ LuaHelper 模块 (1/2 通过)
+   - DisableGlobalVariable
+   ❌ XpCall
+
+✅ MultiDelegate 模块 (4/6 通过)
+   - Add, AddObject, Broadcast, Remove
+   ❌ Init, Clear
+
+✅ Observable 模块 (4/5 通过)
+   - Init, Register, Deregister, DeregisterAll
+   ❌ Notify (模块 bug - 多观察者支持)
+
+✅ TableEx 模块 (17/17 通过)
+   - ArrayForeach, ArrayIndexOf, ArrayNext, ArrayRemove, CheckTable
+   - DeepCopy, Filter, Foreach, GetFilter, GetFilterArray
+   - GetKeys, GetValues, KeyOf, Length, Map, Merge, Walk
+
+✅ WebSocket 模块 (3/4 通过)
+   - Close, Connect, Init
+   ❌ Send
+
+✅ XmlParser 模块 (3/3 通过)
+   - Parse, ParseEmpty, ParseSimple
+
+================================================================
+四、需要修复的优先级
+================================================================
+
+【高优先级】- 影响核心功能
+1. EventDispatcher 模块 (5个失败) - 事件系统核心组件
+2. HistoryManager 模块 (4个失败) - 历史管理核心功能
+3. ProtoDispatcher 模块 (4个失败) - 协议分发核心功能
+4. Observable.Notify (1个失败 - 模块 bug) - 观察者模式核心组件
+
+【中优先级】- 影响常用功能
+5. JsonFile 模块 (3个失败) - 常用数据格式
+6. MsgPackFile 模块 (3个失败) - 数据序列化
+7. Interface 模块 (3个失败) - 接口定义机制
+8. EventLoop 模块 (2个失败) - 事件循环部分功能
+9. MultiDelegate 模块 (2个失败) - 多播委托部分功能
+
+【低优先级】- 影响辅助功能
+10. CsvParser.ParseEmpty (1个失败) - 边界情况处理
+11. WebSocket.Send (1个失败) - WebSocket 部分功能
+12. Log.Config (1个失败) - 日志配置
+13. LuaHelper.XpCall (1个失败) - 辅助函数
+
+================================================================
+五、修复建议
+================================================================
+
+1. API 不匹配问题:
+   - 检查测试用例中使用的 API 是否与模块实际提供的 API 一致
+   - 更新测试用例以匹配实际的模块 API
+   - 或者更新模块实现以提供测试用例期望的 API
+
+2. 模块实现 Bug:
+   - CsvParser.lua:49 - 添加 data[1] 的 nil 检查
+   - EventLoop.lua:88 - 添加 timerWatcher 的 nil 检查（见上方代码示例）
+
+3. 环境适配问题:
+   - EventLoop.Startup - 测试用例应适配 UE 环境，不强制要求返回 true
+
+4. 参数验证问题:
+   - Observable 模块 - 检查 signal 参数验证逻辑是否过于严格
+   - Log.Config - 检查 Depth 参数类型验证
+
+5. 初始化问题:
+   - MultiDelegate.Init - 确保 delegates 列表被正确初始化
+   - Observable.Init - 确保 observers 列表被正确初始化
+
+5. 环境依赖:
+   - 在独立 Lua 环境中，部分模块因缺少依赖库无法加载
+   - 建议在 UE 环境中运行完整测试套件
+
+================================================================
+六、测试环境说明
+================================================================
+
+独立 Lua 环境:
+- 成功加载: 13/19 模块
+- 失败原因: 缺少第三方库 (ljson, lxml, lmsgpack, lpbc) 和 UE 环境
+
+UE (UnLua) 环境:
+- 成功加载: 19/19 模块
+- 所有模块均可加载，但存在 API 不匹配和实现 bug
+
+建议:
+- 日常开发测试使用 UE 环境
+- 持续集成可考虑为独立 Lua 环境提供 Mock 实现
+
+================================================================
