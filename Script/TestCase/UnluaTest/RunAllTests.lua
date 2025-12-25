@@ -1,40 +1,37 @@
+---
+-- 运行所有测试用例
+-- 使用新的测试框架和测试运行器
 --
--- Run All Tests
---
 
-print("Starting all tests...")
+local TestRunner = require("Framework.UnitTest.TestRunner")
 
--- Load test modules
-require("TestCase.UnluaTest.TestTableEx")
-require("TestCase.UnluaTest.TestLog")
-require("TestCase.UnluaTest.TestLuaHelper")
-require("TestCase.UnluaTest.TestJsonFile")
-require("TestCase.UnluaTest.TestCsvParser")
-require("TestCase.UnluaTest.TestIniParser")
-require("TestCase.UnluaTest.TestEventDispatcher")
-require("TestCase.UnluaTest.TestHttpHelper")
-require("TestCase.UnluaTest.TestWebSocket")
-require("TestCase.UnluaTest.TestChannel")
-require("TestCase.UnluaTest.TestDelegate")
-require("TestCase.UnluaTest.TestMultiDelegate")
-require("TestCase.UnluaTest.TestObservable")
-require("TestCase.UnluaTest.TestEventLoop")
-require("TestCase.UnluaTest.TestHistoryManager")
-require("TestCase.UnluaTest.TestProtoDispatcher")
-require("TestCase.UnluaTest.TestInterface")
-require("TestCase.UnluaTest.TestXmlParser")
-require("TestCase.UnluaTest.TestMsgPackFile")
+-- 定义所有测试模块
+local testModules = {
+    -- Utility 模块测试
+    "TestCase.UnluaTest.TestTableEx",
+    "TestCase.UnluaTest.TestLog",
+    "TestCase.UnluaTest.TestLuaHelper",
+    "TestCase.UnluaTest.TestJsonFile",
+    "TestCase.UnluaTest.TestCsvParser",
+    "TestCase.UnluaTest.TestIniParser",
+    "TestCase.UnluaTest.TestXmlParser",
+    "TestCase.UnluaTest.TestMsgPackFile",
+    "TestCase.UnluaTest.TestInterface",
+    
+    -- Core 模块测试
+    "TestCase.UnluaTest.TestEventDispatcher",
+    "TestCase.UnluaTest.TestHttpHelper",
+    "TestCase.UnluaTest.TestWebSocket",
+    "TestCase.UnluaTest.TestChannel",
+    "TestCase.UnluaTest.TestDelegate",
+    "TestCase.UnluaTest.TestMultiDelegate",
+    "TestCase.UnluaTest.TestObservable",
+    "TestCase.UnluaTest.TestEventLoop",
+    "TestCase.UnluaTest.TestHistoryManager",
+    "TestCase.UnluaTest.TestProtoDispatcher",
+}
 
--- Get the test framework
-local TestFramework = require("TestCase.UnluaTest.init")
-
--- Run all tests
-local success = TestFramework.runAllTests()
-
-if success then
-    print("\n🎉 All tests passed!")
-else
-    print("\n❌ Some tests failed!")
-end
+-- 运行测试套件
+local success = TestRunner.runTestSuite(testModules)
 
 return success
