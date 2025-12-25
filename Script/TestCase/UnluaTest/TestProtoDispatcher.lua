@@ -3,22 +3,6 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the lpbc module
-local mockLpbc = {
-    init = function(path)
-        -- Mock implementation
-    end,
-    cleanup = function()
-        -- Mock implementation
-    end,
-    import = function(name)
-        return true
-    end
-}
-
-package.loaded["lpbc"] = mockLpbc
-
 local ProtoDispatcher = require("Core.ProtoDispatcher")
 
 local function testInit()

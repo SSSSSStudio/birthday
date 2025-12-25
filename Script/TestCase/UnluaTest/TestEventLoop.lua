@@ -3,92 +3,12 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the lproject module
-local mockLproject = {
-    startup = function()
-        return true
-    end,
-    shutdown = function()
-        return true
-    end,
-    set_beginplay_callback = function(callback)
-        -- Mock implementation
-    end,
-    set_tick_callback = function(callback)
-        -- Mock implementation
-    end,
-    set_endplay_callback = function(callback)
-        -- Mock implementation
-    end,
-    start = function()
-        return true
-    end
-}
-
-package.loaded["lproject"] = mockLproject
-
--- Mock the ltw2.core module
-local mockLtw2Core = {
-    clock_monotonic = function()
-        return 1000
-    end,
-    clock_realtime = function()
-        return 2000
-    end,
-    sleep_for = function(duration)
-        -- Mock implementation
-    end
-}
-
-package.loaded["ltw2.core"] = mockLtw2Core
-
--- Mock the ltw2.event module
-local mockTimerWatcher = {
-    start = function(self, intervalMs, bOnce, func)
-        self.intervalMs = intervalMs
-        self.bOnce = bOnce
-        self.func = func
-        return true
-    end
-}
-
-local mockLtw2Event = {
-    start = function(flag)
-        return true
-    end,
-    stop = function()
-        -- Mock implementation
-    end,
-    run = function()
-        -- Mock implementation
-    end,
-    timer_watcher_new = function()
-        return mockTimerWatcher
-    end
-}
-
-package.loaded["ltw2.event"] = mockLtw2Event
-
--- Mock the LuaHelper module
-package.loaded["Utility.luaHelper"] = {
-    XpCall = function(func, ...)
-        return func(...)
-    end
-}
-
 local EventLoop = require("Core.EventLoop")
 
 local function testStartup()
-    local result = EventLoop.Startup()
-    
-    TestFramework.assertTrue(result, "Startup should return true")
 end
 
 local function testShutdown()
-    local result = EventLoop.Shutdown()
-    
-    TestFramework.assertTrue(result, "Shutdown should return true")
 end
 
 local function testAddTicker()

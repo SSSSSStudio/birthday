@@ -3,41 +3,6 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the Interface module
-package.loaded["Utility.Interface"] = function(name)
-    local class = {}
-    class.__index = class
-    
-    function class.New(self, ...)
-        local instance = setmetatable({}, self)
-        if instance.__init then
-            instance:__init(...)
-        end
-        return instance
-    end
-    
-    return class
-end
-
--- Mock the LuaHelper module
-package.loaded["Utility.LuaHelper"] = {
-    XpCall = function(func, ...)
-        return func(...)
-    end
-}
-
--- Mock the TableEx module
-package.loaded["Utility.TableEx"] = {
-    ArrayRemove = function(array, func)
-        for i = #array, 1, -1 do
-            if func(array[i]) then
-                table.remove(array, i)
-            end
-        end
-    end
-}
-
 local MultiDelegate = require("Core.MultiDelegate")
 
 local function testInit()

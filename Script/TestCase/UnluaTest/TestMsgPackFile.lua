@@ -3,57 +3,6 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the lmsgpack module
-local mockLmsgpack = {
-    encode = function(...)
-        return "encoded_data"
-    end,
-    decode = function(s)
-        return {mocked = true, data = s}
-    end
-}
-
-package.loaded["lmsgpack"] = mockLmsgpack
-
--- Mock the lproject module
-package.loaded["lproject"] = {
-    get_content_dir = function()
-        return "Content/"
-    end,
-    get_app_sandboxes_dir = function()
-        return "Sandbox/"
-    end
-}
-
--- Mock the UE.File class
-local mockFile = {}
-mockFile.Open = function(self, path, mode)
-    self.path = path
-    self.mode = mode
-    return true
-end
-mockFile.TotalSize = function(self)
-    return 100
-end
-mockFile.Read = function(self, size)
-    return "encoded_data"
-end
-mockFile.Write = function(self, data)
-    self.writtenData = data
-    return #data
-end
-mockFile.Close = function(self)
-    return true
-end
-
--- Mock UE module
-package.loaded.UE = {
-    File = function()
-        return mockFile
-    end
-}
-
 local MsgPackFile = require("Utility.MsgPackFile")
 
 local function testRead()

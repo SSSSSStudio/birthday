@@ -3,54 +3,6 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the ljson and lproject modules for testing
-package.loaded.ljson = {
-    encode = function(data)
-        return "{" .. tostring(data) .. "}"
-    end,
-    decode = function(str)
-        return {mocked = true, data = str}
-    end
-}
-
-package.loaded.lproject = {
-    get_content_dir = function()
-        return "Content/"
-    end,
-    get_app_sandboxes_dir = function()
-        return "Sandbox/"
-    end
-}
-
--- Mock the UE.File class
-local mockFile = {}
-mockFile.Open = function(self, path, mode)
-    self.path = path
-    self.mode = mode
-    return true
-end
-mockFile.TotalSize = function(self)
-    return 100
-end
-mockFile.Read = function(self, size)
-    return "{}"
-end
-mockFile.Write = function(self, data)
-    self.writtenData = data
-    return #data
-end
-mockFile.Close = function(self)
-    return true
-end
-
--- Mock UE module
-package.loaded.UE = {
-    File = function()
-        return mockFile
-    end
-}
-
 local JsonFile = require("Utility.JsonFile")
 
 local function testRead()

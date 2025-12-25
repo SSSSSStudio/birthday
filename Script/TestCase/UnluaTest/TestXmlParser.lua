@@ -3,47 +3,6 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the lxml module
-local mockLxml = {
-    parse = function(s)
-        return {mocked = true, content = s}
-    end
-}
-
-package.loaded["lxml"] = mockLxml
-
--- Mock the lproject module
-package.loaded["lproject"] = {
-    get_content_dir = function()
-        return "Content/"
-    end
-}
-
--- Mock the UE.File class
-local mockFile = {}
-mockFile.Open = function(self, path, mode)
-    self.path = path
-    self.mode = mode
-    return true
-end
-mockFile.TotalSize = function(self)
-    return 100
-end
-mockFile.Read = function(self, size)
-    return "<root><element>test</element></root>"
-end
-mockFile.Close = function(self)
-    return true
-end
-
--- Mock UE module
-package.loaded.UE = {
-    File = function()
-        return mockFile
-    end
-}
-
 local XmlParser = require("Utility.XmlParser")
 
 local function testParse()

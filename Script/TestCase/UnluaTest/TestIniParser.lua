@@ -3,96 +3,6 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the lpeg module for testing
-package.loaded.lpeg = {
-    P = function(pattern)
-        if pattern == '\r\n' or pattern == '\n' then
-            return {type = "eol"}
-        end
-        return {type = "pattern", value = pattern}
-    end,
-    S = function(chars)
-        return {type = "set", chars = chars}
-    end,
-    C = function(pattern)
-        return {type = "capture", pattern = pattern}
-    end,
-    Cf = function(pattern, func)
-        return {type = "fold_capture", pattern = pattern, func = func}
-    end,
-    Cc = function(value)
-        return {type = "constant_capture", value = value}
-    end,
-    Ct = function(pattern)
-        return {type = "table_capture", pattern = pattern}
-    end,
-    Cg = function(pattern, name)
-        return {type = "group_capture", pattern = pattern, name = name}
-    end,
-    Cs = function(pattern)
-        return {type = "substitution_capture", pattern = pattern}
-    end,
-    R = function(range)
-        return {type = "range", range = range}
-    end,
-    V = function(name)
-        return {type = "variable", name = name}
-    end,
-    locale = function(lpeg)
-        lpeg.space = {type = "space"}
-        lpeg.alpha = {type = "alpha"}
-        lpeg.digit = {type = "digit"}
-        return lpeg
-    end,
-    match = function(grammar, input)
-        -- Mock implementation for testing
-        if input == "[section1]\nkey1=value1\nkey2=value2\n[section2]\nkey3=value3" then
-            return {
-                section1 = {
-                    key1 = "value1",
-                    key2 = "value2"
-                },
-                section2 = {
-                    key3 = "value3"
-                }
-            }
-        end
-        return nil
-    end
-}
-
--- Mock the lproject module
-package.loaded.lproject = {
-    get_content_dir = function()
-        return "Content/"
-    end
-}
-
--- Mock the UE.File class
-local mockFile = {}
-mockFile.Open = function(self, path, mode)
-    self.path = path
-    self.mode = mode
-    return true
-end
-mockFile.TotalSize = function(self)
-    return 100
-end
-mockFile.Read = function(self, size)
-    return "[section1]\nkey1=value1\nkey2=value2\n[section2]\nkey3=value3"
-end
-mockFile.Close = function(self)
-    return true
-end
-
--- Mock UE module
-package.loaded.UE = {
-    File = function()
-        return mockFile
-    end
-}
-
 local IniParser = require("Utility.IniParser")
 
 local function testParse()
@@ -118,7 +28,7 @@ end
 
 local function testRead()
     -- Test reading from file
-    local result = IniParser.Read("test.ini")
+    local result = IniParser.Read("DefaultGame.ini")
     
     TestFramework.assertNotNil(result, "IniParser.Read should return data")
     TestFramework.assertTrue(type(result) == "table", "IniParser.Read should return a table")

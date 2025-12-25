@@ -3,107 +3,8 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the UE module for testing
-local mockHttpObject = {}
-mockHttpObject.HttpAsyncAction = function(url, verb, contentType, context, token)
-    local obj = {
-        url = url,
-        verb = verb,
-        contentType = contentType,
-        context = context,
-        token = token,
-        callbacks = {}
-    }
-    
-    function obj:RegisterCompleteCallback(callback)
-        table.insert(obj.callbacks, callback)
-    end
-    
-    function obj:Request()
-        -- Simulate async completion
-        for _, callback in ipairs(self.callbacks) do
-            callback("mock response", 200)
-        end
-    end
-    
-    return obj
-end
-
-local mockHttpDownloadObject = {}
-mockHttpDownloadObject.HttpAsyncAction = function(url, verb, contentType, context, token, savePath)
-    local obj = {
-        url = url,
-        verb = verb,
-        contentType = contentType,
-        context = context,
-        token = token,
-        savePath = savePath,
-        callbacks = {}
-    }
-    
-    function obj:RegisterCompleteCallback(callback)
-        table.insert(obj.callbacks, callback)
-    end
-    
-    function obj:Request()
-        -- Simulate async completion
-        for _, callback in ipairs(self.callbacks) do
-            callback("mock download response", 200)
-        end
-    end
-    
-    return obj
-end
-
-local mockHttpUploadObject = {}
-mockHttpUploadObject.HttpAsyncAction = function(url, verb, contentType, context, token, filePath)
-    local obj = {
-        url = url,
-        verb = verb,
-        contentType = contentType,
-        context = context,
-        token = token,
-        filePath = filePath,
-        callbacks = {}
-    }
-    
-    function obj:RegisterCompleteCallback(callback)
-        table.insert(obj.callbacks, callback)
-    end
-    
-    function obj:Request()
-        -- Simulate async completion
-        for _, callback in ipairs(self.callbacks) do
-            callback("mock upload response", 200)
-        end
-    end
-    
-    return obj
-end
-
-local mockEHttpVerb = {
-    GET = "GET",
-    POST = "POST",
-    PUT = "PUT",
-    DELETE = "DELETE"
-}
-
-local mockEHttpContentType = {
-    None = "None",
-    Form_Data = "Form_Data",
-    Json = "Json"
-}
-
-package.loaded.UE = {
-    UHttpObject = mockHttpObject,
-    UHttpDownloadObject = mockHttpDownloadObject,
-    UHttpUploadObject = mockHttpUploadObject,
-    EHttpVerb = mockEHttpVerb,
-    EHttpContentType = mockEHttpContentType
-}
-
 local HttpHelper = require("Core.HttpHelper")
+local EventLoop = require("Core.EventLoop")
 
 local function testRequest()
     local target = {}
@@ -118,21 +19,23 @@ local function testRequest()
     end
     
     -- Test normal request
-    HttpHelper.Request("http://example.com", target, testCallback, UE.EHttpVerb.GET, UE.EHttpContentType.None, "", "")
-    
-    TestFramework.assertTrue(callbackCalled, "HttpHelper.Request should call callback")
-    TestFramework.assertEquals(callbackResult, "mock response", "HttpHelper.Request should return correct result")
-    TestFramework.assertEquals(callbackCode, 200, "HttpHelper.Request should return correct code")
+    HttpHelper.Request(httpTestUrl, target, testCallback, UE.EHttpVerb.GET, UE.EHttpContentType.None, "", "")
+	
+	EventLoop.Timeout(1000, function()
+		TestFramework.assertTrue(callbackCalled, "HttpHelper.Request should call callback")
+		TestFramework.assertNotNil(callbackResult,  "HttpHelper.Request should return correct result")
+		TestFramework.assertEquals(callbackCode, 200, "HttpHelper.Request should return correct code")
+	end, true)
     
     -- Test with invalid target
     local success, errorMsg = pcall(function() 
-        HttpHelper.Request("http://example.com", nil, testCallback, UE.EHttpVerb.GET, UE.EHttpContentType.None, "", "") 
+        HttpHelper.Request(httpTestUrl, nil, testCallback, UE.EHttpVerb.GET, UE.EHttpContentType.None, "", "") 
     end)
     TestFramework.assertFalse(success, "HttpHelper.Request should reject nil target")
     
     -- Test with invalid callback
     success, errorMsg = pcall(function() 
-        HttpHelper.Request("http://example.com", target, nil, UE.EHttpVerb.GET, UE.EHttpContentType.None, "", "") 
+        HttpHelper.Request(httpTestUrl, target, nil, UE.EHttpVerb.GET, UE.EHttpContentType.None, "", "") 
     end)
     TestFramework.assertFalse(success, "HttpHelper.Request should reject nil callback")
 end
@@ -150,21 +53,25 @@ local function testDownload()
     end
     
     -- Test normal download
-    HttpHelper.Download("http://example.com/file", target, testCallback, "save/path/file.txt")
-    
-    TestFramework.assertTrue(callbackCalled, "HttpHelper.Download should call callback")
-    TestFramework.assertEquals(callbackResult, "mock download response", "HttpHelper.Download should return correct result")
-    TestFramework.assertEquals(callbackCode, 200, "HttpHelper.Download should return correct code")
+    HttpHelper.Download(httpTestUrl, target, testCallback, "save/path/file.txt")
+
+	local function testFunc()
+		TestFramework.assertTrue(callbackCalled, "HttpHelper.Download should call callback")
+		TestFramework.assertEquals(callbackResult, "mock download response", "HttpHelper.Download should return correct result")
+		TestFramework.assertEquals(callbackCode, 200, "HttpHelper.Download should return correct code")
+	end
+	
+	EventLoop.Timeout(1000, testFunc, false)
     
     -- Test with invalid target
     local success, errorMsg = pcall(function() 
-        HttpHelper.Download("http://example.com/file", nil, testCallback, "save/path/file.txt") 
+        HttpHelper.Download(httpTestUrl, nil, testCallback, "save/path/file.txt") 
     end)
     TestFramework.assertFalse(success, "HttpHelper.Download should reject nil target")
     
     -- Test with invalid callback
     success, errorMsg = pcall(function() 
-        HttpHelper.Download("http://example.com/file", target, nil, "save/path/file.txt") 
+        HttpHelper.Download(httpTestUrl, target, nil, "save/path/file.txt") 
     end)
     TestFramework.assertFalse(success, "HttpHelper.Download should reject nil callback")
 end

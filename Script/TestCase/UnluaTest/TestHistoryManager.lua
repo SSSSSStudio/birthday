@@ -3,23 +3,6 @@
 --
 
 local TestFramework = require("TestCase.UnluaTest.init")
-
--- Mock the Interface module
-package.loaded["Utility.Interface"] = function(name)
-    local class = {}
-    class.__index = class
-    
-    function class.New(self, ...)
-        local instance = setmetatable({}, self)
-        if instance.__init then
-            instance:__init(...)
-        end
-        return instance
-    end
-    
-    return class
-end
-
 local HistoryManager = require("Core.HistoryManager")
 
 local function testInit()
