@@ -7,9 +7,10 @@ local MsgPackFile = require("Utility.MsgPackFile")
 
 local function testRead()
     -- Test reading from content directory
-    local result = MsgPackFile.Read("test.msgpack")
+    local result = MsgPackFile.Read("Test/TestCaseData/Read.msg")
     TestFramework.assertNotNil(result, "MsgPackFile.Read should return data")
-    TestFramework.assertTrue(result.mocked, "MsgPackFile.Read should return mocked data")
+    TestFramework.assertEquals(result.number, 42,"MsgPackFile.Read should return mocked data")
+	TestFramework.assertEquals(result.table2.key, "su","MsgPackFile.Read should return mocked data")
     
     -- Test with invalid filename
     local success, errorMsg = pcall(function() MsgPackFile.Read(nil) end)
@@ -20,8 +21,13 @@ local function testRead()
 end
 
 local function testWrite()
+	local testTable = {
+		key = "value", 
+		number = 42,
+		table2 = {key = "su", number = 41}
+	}
     -- Test writing to content directory
-    local result = MsgPackFile.Write("test.msgpack", {key = "value", number = 42})
+    local result = MsgPackFile.Write("Test/TestCaseData/Write.msg",testTable)
     TestFramework.assertNotNil(result, "MsgPackFile.Write should return result")
     TestFramework.assertTrue(result > 0, "MsgPackFile.Write should return positive byte count")
     
@@ -35,9 +41,10 @@ end
 
 local function testReadToSandbox()
     -- Test reading from sandbox directory
-    local result = MsgPackFile.ReadToSandbox("test.msgpack")
+    local result = MsgPackFile.ReadToSandbox("Read.msg")
     TestFramework.assertNotNil(result, "MsgPackFile.ReadToSandbox should return data")
-    TestFramework.assertTrue(result.mocked, "MsgPackFile.ReadToSandbox should return mocked data")
+	TestFramework.assertEquals(result.number, 42,"MsgPackFile.ReadToSandbox should return mocked data")
+	TestFramework.assertEquals(result.table2.key, "su","MsgPackFile.ReadToSandbox should return mocked data")
     
     -- Test with invalid filename
     local success, errorMsg = pcall(function() MsgPackFile.ReadToSandbox(nil) end)
@@ -49,7 +56,12 @@ end
 
 local function testWriteToSandbox()
     -- Test writing to sandbox directory
-    local result = MsgPackFile.WriteToSandbox("test.msgpack", {key = "value", number = 42})
+	local testTable = {
+		key = "value",
+		number = 42,
+		table2 = {key = "su", number = 41}
+	}
+    local result = MsgPackFile.WriteToSandbox("test.msg",testTable)
     TestFramework.assertNotNil(result, "MsgPackFile.WriteToSandbox should return result")
     TestFramework.assertTrue(result > 0, "MsgPackFile.WriteToSandbox should return positive byte count")
     

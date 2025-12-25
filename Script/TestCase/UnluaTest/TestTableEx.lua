@@ -85,7 +85,7 @@ end
 
 local function testGetMapValues()
     local testTable = {a = 1, b = 2, c = 3}
-    local values = TableEx.GetMapValues(testTable)
+    local values = TableEx.GetValues(testTable)
     
     TestFramework.assertNotNil(values)
     TestFramework.assertEquals(#values, 3)

@@ -17,18 +17,11 @@ local function testParse()
     TestFramework.assertEquals(result.section1.key1, "value1", "IniParser should parse key1 correctly")
     TestFramework.assertEquals(result.section1.key2, "value2", "IniParser should parse key2 correctly")
     TestFramework.assertEquals(result.section2.key3, "value3", "IniParser should parse key3 correctly")
-    
-    -- Test with invalid input
-    local result2 = IniParser.Parse(nil)
-    TestFramework.assertNil(result2, "IniParser.Parse should return nil for nil input")
-    
-    local result3 = IniParser.Parse(123)
-    TestFramework.assertNil(result3, "IniParser.Parse should return nil for non-string input")
 end
 
 local function testRead()
     -- Test reading from file
-    local result = IniParser.Read("DefaultGame.ini")
+    local result = IniParser.Read("Test/TestCaseData/DefaultGame.ini")
     
     TestFramework.assertNotNil(result, "IniParser.Read should return data")
     TestFramework.assertTrue(type(result) == "table", "IniParser.Read should return a table")

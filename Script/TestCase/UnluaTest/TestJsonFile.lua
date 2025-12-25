@@ -4,10 +4,11 @@
 
 local TestFramework = require("TestCase.UnluaTest.init")
 local JsonFile = require("Utility.JsonFile")
-
+local JsonFilePath = "Test/TestCaseData/UGC_SG.json";
+local WriteJsonFilePath = "Test/TestCaseData/Test_Write.json";
 local function testRead()
     -- Test reading from content directory
-    local result = JsonFile.Read("test.json")
+    local result = JsonFile.Read(JsonFilePath)
     TestFramework.assertNotNil(result, "JsonFile.Read should return data")
     
     -- Test with invalid filename
@@ -38,7 +39,7 @@ end
 
 local function testReadToSandbox()
     -- Test reading from sandbox directory
-    local result = JsonFile.ReadToSandbox("test.json")
+    local result = JsonFile.ReadToSandbox("UGC_SG.json")
     TestFramework.assertNotNil(result, "JsonFile.ReadToSandbox should return data")
     
     -- Test with invalid filename

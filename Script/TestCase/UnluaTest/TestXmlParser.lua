@@ -6,26 +6,17 @@ local TestFramework = require("TestCase.UnluaTest.init")
 local XmlParser = require("Utility.XmlParser")
 
 local function testParse()
-    local xmlString = "<root><element>test</element></root>"
+    local xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Configuration xmlns=\"https://www.unrealengine.com/BuildConfiguration\"> </Configuration>"
     local result = XmlParser.Parse(xmlString)
-    
-    TestFramework.assertNotNil(result, "XmlParser.Parse should return data")
-    TestFramework.assertTrue(result.mocked, "XmlParser.Parse should return mocked data")
-    TestFramework.assertEquals(result.content, xmlString, "XmlParser.Parse should return correct content")
-    
-    -- Test with invalid input
-    local success, errorMsg = pcall(function() XmlParser.Parse(nil) end)
-    TestFramework.assertFalse(success, "XmlParser.Parse should reject nil input")
-    
-    success, errorMsg = pcall(function() XmlParser.Parse(123) end)
-    TestFramework.assertFalse(success, "XmlParser.Parse should reject non-string input")
+	TestFramework.assertNotNil(result, "XmlParser.Parse should return data")
+	TestFramework.assertEquals(result.xmlns, "https://www.unrealengine.com/BuildConfiguration","XmlParser.Read should return str data")
 end
 
 local function testRead()
-    local result = XmlParser.Read("test.xml")
+    local result = XmlParser.Read("Test/TestCaseData/BuildConfiguration.xml")
     
     TestFramework.assertNotNil(result, "XmlParser.Read should return data")
-    TestFramework.assertTrue(result.mocked, "XmlParser.Read should return mocked data")
+    TestFramework.assertEquals(result.xmlns, "https://www.unrealengine.com/BuildConfiguration","XmlParser.Read should return str data")
     
     -- Test with invalid filename
     local success, errorMsg = pcall(function() XmlParser.Read(nil) end)

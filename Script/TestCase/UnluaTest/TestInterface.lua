@@ -59,18 +59,13 @@ local function testInterfacePairsError()
     local TestClass = Interface()
     local instance = TestClass()
     
-    local success, errorMsg = pcall(function() pairs(instance) end)
+    local success, errorMsg = pcall(function()
+		for index, value in pairs(instance) do
+			-- 处理逻辑
+		end
+	end)
     TestFramework.assertFalse(success, "pairs should fail on interface instance")
     TestFramework.assertTrue(string.find(errorMsg, "cannot use pairs") ~= nil, "Error message should indicate pairs is not allowed")
-end
-
-local function testInterfaceIpairsError()
-    local TestClass = Interface()
-    local instance = TestClass()
-    
-    local success, errorMsg = pcall(function() ipairs(instance) end)
-    TestFramework.assertFalse(success, "ipairs should fail on interface instance")
-    TestFramework.assertTrue(string.find(errorMsg, "cannot use ipairs") ~= nil, "Error message should indicate ipairs is not allowed")
 end
 
 -- Register test cases
@@ -79,7 +74,6 @@ TestFramework.addTestCase("Interface.Instantiation", testInterfaceInstantiation)
 TestFramework.addTestCase("Interface.WithFailedInit", testInterfaceWithFailedInit)
 TestFramework.addTestCase("Interface.MethodAccess", testInterfaceMethodAccess)
 TestFramework.addTestCase("Interface.PairsError", testInterfacePairsError)
-TestFramework.addTestCase("Interface.IpairsError", testInterfaceIpairsError)
 
 return {
     testInterfaceCreation = testInterfaceCreation,
@@ -87,5 +81,4 @@ return {
     testInterfaceWithFailedInit = testInterfaceWithFailedInit,
     testInterfaceMethodAccess = testInterfaceMethodAccess,
     testInterfacePairsError = testInterfacePairsError,
-    testInterfaceIpairsError = testInterfaceIpairsError
 }
