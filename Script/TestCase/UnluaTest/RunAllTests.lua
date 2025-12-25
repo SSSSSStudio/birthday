@@ -3,7 +3,7 @@
 -- 使用新的测试框架和测试运行器
 --
 
-local TestRunner = require("Framework.UnitTest.TestRunner")
+local TestRunner = require("TestCase.TestRunner")
 
 -- 定义所有测试模块
 local testModules = {

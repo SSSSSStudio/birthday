@@ -3,7 +3,7 @@
 -- 负责加载和运行测试套件
 --
 
-local TestFramework = require("Framework.UnitTest.TestFramework")
+local TestFramework = require("TestCase.TestFramework")
 
 local TestRunner = {}
 
