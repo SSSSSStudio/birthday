@@ -1,4 +1,3 @@
----
 -- 测试运行器
 -- 负责加载和运行测试套件
 --
@@ -51,6 +50,14 @@ function TestRunner.runAll()
 end
 
 ---
+-- 异步运行所有已加载的测试
+-- @param onComplete function 完成回调 (boolean allPassed)
+--
+function TestRunner.runAllAsync(onComplete)
+    TestFramework.runAllTestsAsync(onComplete)
+end
+
+---
 -- 运行指定的测试用例
 -- @param testName string 测试用例名称
 -- @return boolean 测试是否通过
@@ -98,6 +105,34 @@ function TestRunner.runTestSuite(testModules)
     
     -- 运行所有测试
     return TestRunner.runAll()
+end
+
+---
+-- 异步运行测试套件（加载并运行）
+-- @param testModules table 测试模块路径列表
+-- @param onComplete function 完成回调 (boolean allPassed)
+--
+function TestRunner.runTestSuiteAsync(testModules, onComplete)
+    -- 清空之前的测试
+    TestRunner.clear()
+    
+    -- 加载测试模块
+    local loadedCount, failedCount = TestRunner.loadTests(testModules)
+    
+    if failedCount > 0 then
+        print("\n⚠️  Some test modules failed to load. Aborting test run.")
+        if onComplete then onComplete(false) end
+        return
+    end
+    
+    if loadedCount == 0 then
+        print("\n⚠️  No test modules loaded. Nothing to run.")
+        if onComplete then onComplete(false) end
+        return
+    end
+    
+    -- 异步运行所有测试
+    TestRunner.runAllAsync(onComplete)
 end
 
 return TestRunner

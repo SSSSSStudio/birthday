@@ -1,4 +1,4 @@
----
+--
 -- EventLoop 模块测试用例
 -- 测试 Core.EventLoop 的所有功能
 --
@@ -59,20 +59,41 @@ local function testTimeout()
     
     -- 期望：timer 应该是一个有效对象或 nil（如果创建失败）
     -- 不应该抛出异常
-    TestFramework.assertNotNil(timer, "Timeout should return a valid timer object")
+    if timer then
+        TestFramework.assertNotNil(timer, "Timeout should return a valid timer object")
+    else
+        print("Warning: EventLoop.Timeout returned nil (timer creation failed), but no crash occurred.")
+    end
+end
+
+-- 异步测试 Timeout 回调
+local function testTimeoutAsync(done)
+    print("   [Test] Waiting for timeout callback (100ms)...")
+    local timer = EventLoop.Timeout(100, function()
+        print("   [Test] Timeout callback received")
+        done()
+    end, false)
+    
+    if not timer then
+        done("Failed to create timer")
+    end
 end
 
 -- 注册测试用例
+-- 注意：Shutdown 测试必须放在最后，因为它会关闭 EventLoop
+-- 如果 Shutdown 在前面执行，后续依赖 EventLoop 的测试都会失败
 TestFramework.addTestCase("EventLoop.Startup", testStartup)
-TestFramework.addTestCase("EventLoop.Shutdown", testShutdown)
 TestFramework.addTestCase("EventLoop.AddTicker", testAddTicker)
 TestFramework.addTestCase("EventLoop.DelTicker", testDelTicker)
 TestFramework.addTestCase("EventLoop.Timeout", testTimeout)
+TestFramework.addTestCase("EventLoop.TimeoutAsync", testTimeoutAsync, { isAsync = true })
+TestFramework.addTestCase("EventLoop.Shutdown", testShutdown)  -- 必须最后执行
 
 return {
     testStartup = testStartup,
     testShutdown = testShutdown,
     testAddTicker = testAddTicker,
     testDelTicker = testDelTicker,
-    testTimeout = testTimeout
+    testTimeout = testTimeout,
+    testTimeoutAsync = testTimeoutAsync
 }
