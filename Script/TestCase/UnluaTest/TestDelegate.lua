@@ -6,7 +6,7 @@ local TestFramework = require("TestCase.UnluaTest.init")
 local Delegate = require("Core.Delegate")
 
 local function testInit()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     
     TestFramework.assertNotNil(delegate, "Delegate should be created")
     TestFramework.assertNil(delegate.obj, "Delegate obj should be nil initially")
@@ -14,7 +14,7 @@ local function testInit()
 end
 
 local function testBind()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     
     local function testFunc()
         -- Test function
@@ -31,7 +31,7 @@ local function testBind()
 end
 
 local function testBindWithInvalidFunc()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     
     -- Test with nil function
     local success, errorMsg = pcall(function() delegate:Bind(nil) end)
@@ -43,7 +43,7 @@ local function testBindWithInvalidFunc()
 end
 
 local function testBindObject()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     local testObj = {}
     
     local function testMethod()
@@ -62,7 +62,7 @@ local function testBindObject()
 end
 
 local function testBindObjectWithInvalidParams()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     local testObj = {}
     
     local function testMethod()
@@ -87,7 +87,7 @@ local function testBindObjectWithInvalidParams()
 end
 
 local function testUnbind()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     local testObj = {}
     
     local function testFunc()
@@ -102,7 +102,7 @@ local function testUnbind()
 end
 
 local function testExecute()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     local executeCount = 0
     
     local function testFunc(arg1, arg2)
@@ -123,7 +123,7 @@ local function testExecute()
 end
 
 local function testExecuteWithObject()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     local testObj = {value = 0}
     local executeCount = 0
     
@@ -144,7 +144,7 @@ local function testExecuteWithObject()
 end
 
 local function testIsValid()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     
     -- Test when not bound
     local result = delegate:IsValid()

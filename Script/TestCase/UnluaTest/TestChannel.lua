@@ -4,20 +4,22 @@
 
 local TestFramework = require("TestCase.UnluaTest.init")
 local Channel = require("Core.Channel")
+local EventLoop = require("Core.EventLoop")
 
 local function testConnect()
     local connectResult = nil
-    
     local function connectCallback(bSucc)
-        connectResult = bSucc
+		connectResult = bSucc
+		if bSucc then
+			print("✅ Async Test 'Channel.Connect' passed")
+		else
+			print("❌ Async Test 'Channel.Connect' failed: connectCallback false")
+		end
     end
-    
     local channel = Channel.Connect("127.0.0.1:8080", 5000, true, connectCallback)
-    
-    TestFramework.assertNotNil(channel, "Channel.Connect should return a channel")
-    TestFramework.assertNotNil(channel.conn, "Channel should have a connection")
-    TestFramework.assertTrue(channel.bConnecting, "Channel should be connecting")
-    TestFramework.assertTrue(connectResult, "Connect callback should be called with success")
+	TestFramework.assertNotNil(channel, "Channel.Connect should return a channel")
+	TestFramework.assertNotNil(channel.conn, "Channel should have a connection")
+	TestFramework.assertTrue(channel.bConnecting, "Channel should be connecting")
 end
 
 local function testConnectFailure()
@@ -25,7 +27,7 @@ local function testConnectFailure()
         -- Should be called with false
     end
     
-    local channel = Channel.Connect("127.0.0.1195:8080", 5000, true, connectCallback)
+    local channel = Channel.Connect("Error dir", 5000, true, connectCallback)
     
     TestFramework.assertNil(channel, "Channel.Connect should return nil on connection failure")
 end

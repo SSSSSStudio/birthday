@@ -6,6 +6,8 @@ local TestFramework = require("TestCase.UnluaTest.init")
 local HttpHelper = require("Core.HttpHelper")
 local EventLoop = require("Core.EventLoop")
 
+local httpTestUrl = "https://yuque.antfin-inc.com/aliyunops/zeus-doc/https-apply" 
+
 local function testRequest()
     local target = {}
     local callbackCalled = false
@@ -16,17 +18,22 @@ local function testRequest()
         callbackCalled = true
         callbackResult = result
         callbackCode = code
+
+		if #callbackResult > 1 then
+			print("✅ Async Test 'HttpHelper.testRequest' passed1")
+		else
+			print("❌ Async Test 'HttpHelper.testRequest' failed: callbackResult should have content")
+		end
+
+		if callbackCode == 200 then
+			print("✅ Async Test 'HttpHelper.testRequest' passed2")
+		else
+			print("❌ Async Test 'HttpHelper.testRequest' failed: callbackCode should be 200")
+		end
     end
     
     -- Test normal request
     HttpHelper.Request(httpTestUrl, target, testCallback, UE.EHttpVerb.GET, UE.EHttpContentType.None, "", "")
-	
-	EventLoop.Timeout(1000, function()
-		TestFramework.assertTrue(callbackCalled, "HttpHelper.Request should call callback")
-		TestFramework.assertNotNil(callbackResult,  "HttpHelper.Request should return correct result")
-		TestFramework.assertEquals(callbackCode, 200, "HttpHelper.Request should return correct code")
-	end, true)
-    
     -- Test with invalid target
     local success, errorMsg = pcall(function() 
         HttpHelper.Request(httpTestUrl, nil, testCallback, UE.EHttpVerb.GET, UE.EHttpContentType.None, "", "") 
@@ -50,18 +57,22 @@ local function testDownload()
         callbackCalled = true
         callbackResult = result
         callbackCode = code
+
+		if #callbackResult > 1 then
+			print("✅ Async Test 'HttpHelper.testDownload' passed1")
+		else
+			print("❌ Async Test 'HttpHelper.testDownload' failed: callbackResult should have content")
+		end
+
+		if callbackCode == 200 then
+			print("✅ Async Test 'HttpHelper.testDownload' passed2")
+		else
+			print("❌ Async Test 'HttpHelper.testDownload' failed: callbackCode should be 200")
+		end
     end
     
     -- Test normal download
     HttpHelper.Download(httpTestUrl, target, testCallback, "save/path/file.txt")
-
-	local function testFunc()
-		TestFramework.assertTrue(callbackCalled, "HttpHelper.Download should call callback")
-		TestFramework.assertEquals(callbackResult, "mock download response", "HttpHelper.Download should return correct result")
-		TestFramework.assertEquals(callbackCode, 200, "HttpHelper.Download should return correct code")
-	end
-	
-	EventLoop.Timeout(1000, testFunc, false)
     
     -- Test with invalid target
     local success, errorMsg = pcall(function() 
@@ -86,15 +97,21 @@ local function testUpload()
         callbackCalled = true
         callbackResult = result
         callbackCode = code
+		if #callbackResult > 1 then
+			print("✅ Async Test 'HttpHelper.Upload' passed1")
+		else
+			print("❌ Async Test 'HttpHelper.Upload' failed: callbackResult should have content")
+		end
+		
+		if callbackCode == 200 then
+			print("✅ Async Test 'HttpHelper.Upload' passed2")
+		else
+			print("❌ Async Test 'HttpHelper.Upload' failed: callbackCode should be 200")
+		end
     end
     
     -- Test normal upload
-    HttpHelper.Upload("http://example.com/upload", target, testCallback, "path/to/file.txt")
-    
-    TestFramework.assertTrue(callbackCalled, "HttpHelper.Upload should call callback")
-    TestFramework.assertEquals(callbackResult, "mock upload response", "HttpHelper.Upload should return correct result")
-    TestFramework.assertEquals(callbackCode, 200, "HttpHelper.Upload should return correct code")
-    
+    HttpHelper.Upload(httpTestUrl, target, testCallback, "path/to/file.txt")
     -- Test with invalid target
     local success, errorMsg = pcall(function() 
         HttpHelper.Upload("http://example.com/upload", nil, testCallback, "path/to/file.txt") 

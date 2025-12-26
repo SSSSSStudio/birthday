@@ -6,7 +6,7 @@ local TestFramework = require("TestCase.UnluaTest.init")
 local HistoryManager = require("Core.HistoryManager")
 
 local function testInit()
-    local historyManager = HistoryManager:New()
+    local historyManager = HistoryManager()
     
     TestFramework.assertNotNil(historyManager, "HistoryManager should be created")
     TestFramework.assertNotNil(historyManager.undoStack, "HistoryManager should have undoStack")
@@ -14,12 +14,12 @@ local function testInit()
     TestFramework.assertEquals(historyManager.maxStep, 256, "HistoryManager should have default maxStep of 256")
     
     -- Test with custom maxStep
-    local historyManager2 = HistoryManager:New(100)
+    local historyManager2 = HistoryManager(100)
     TestFramework.assertEquals(historyManager2.maxStep, 100, "HistoryManager should accept custom maxStep")
 end
 
 local function testAddHistory()
-    local historyManager = HistoryManager:New()
+    local historyManager = HistoryManager()
     
     local testHistory = {
         Undo = function(self)
@@ -66,7 +66,7 @@ local function testAddHistory()
 end
 
 local function testAddHistoryWithInvalidParams()
-    local historyManager = HistoryManager:New()
+    local historyManager = HistoryManager()
     
     -- Test with nil history
     local success, errorMsg = pcall(function() historyManager:AddHistory(nil) end)
@@ -94,7 +94,7 @@ local function testAddHistoryWithInvalidParams()
 end
 
 local function testAddHistoryWithMaxStepLimit()
-    local historyManager = HistoryManager:New(3)
+    local historyManager = HistoryManager(3)
     
     for i = 1, 5 do
         local testHistory = {
@@ -112,7 +112,7 @@ local function testAddHistoryWithMaxStepLimit()
 end
 
 local function testUndo()
-    local historyManager = HistoryManager:New()
+    local historyManager = HistoryManager()
     local undoCalled = false
     local redoCalled = false
     
@@ -141,7 +141,7 @@ local function testUndo()
 end
 
 local function testRedo()
-    local historyManager = HistoryManager:New()
+    local historyManager = HistoryManager()
     local undoCalled = 0
     local redoCalled = 0
     
@@ -176,7 +176,7 @@ local function testRedo()
 end
 
 local function testClear()
-    local historyManager = HistoryManager:New()
+    local historyManager = HistoryManager()
     
     local testHistory = {
         Undo = function(self)
@@ -201,7 +201,7 @@ local function testClear()
 end
 
 local function testIsCanUndo()
-    local historyManager = HistoryManager:New()
+    local historyManager = HistoryManager()
     
     -- Test when no history
     local result = historyManager:IsCanUndo()
@@ -230,7 +230,7 @@ local function testIsCanUndo()
 end
 
 local function testIsCanRedo()
-    local historyManager = HistoryManager:New()
+    local historyManager = HistoryManager()
     
     -- Test when no history
     local result = historyManager:IsCanRedo()

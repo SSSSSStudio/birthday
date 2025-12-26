@@ -6,7 +6,7 @@ local TestFramework = require("TestCase.UnluaTest.init")
 local MultiDelegate = require("Core.MultiDelegate")
 
 local function testInit()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     TestFramework.assertNotNil(multiDelegate, "MultiDelegate should be created")
     TestFramework.assertNotNil(multiDelegate.listenerSet, "MultiDelegate should have listenerSet")
@@ -15,7 +15,7 @@ local function testInit()
 end
 
 local function testAdd()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     local function testFunc()
         -- Test function
@@ -34,7 +34,7 @@ local function testAdd()
 end
 
 local function testAddWithInvalidFunc()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     -- Test with nil function
     local success, errorMsg = pcall(function() multiDelegate:Add(nil) end)
@@ -46,7 +46,7 @@ local function testAddWithInvalidFunc()
 end
 
 local function testAddObject()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local testObj = {}
     
     local function testMethod()
@@ -66,7 +66,7 @@ local function testAddObject()
 end
 
 local function testAddObjectWithInvalidParams()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local testObj = {}
     
     local function testMethod()
@@ -91,7 +91,7 @@ local function testAddObjectWithInvalidParams()
 end
 
 local function testRemove()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     local function testFunc()
         -- Test function
@@ -113,7 +113,7 @@ local function testRemove()
 end
 
 local function testRemoveWithInvalidFunc()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     -- Test with nil function
     local success, errorMsg = pcall(function() multiDelegate:Remove(nil) end)
@@ -125,7 +125,7 @@ local function testRemoveWithInvalidFunc()
 end
 
 local function testRemoveAll()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local testObj = {}
     
     local function testFunc1()
@@ -155,7 +155,7 @@ local function testRemoveAll()
 end
 
 local function testBroadcast()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local executeCount = 0
     local receivedArgs = {}
     
@@ -180,7 +180,7 @@ local function testBroadcast()
 end
 
 local function testBroadcastWithObject()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local testObj = {value = 0}
     local executeCount = 0
     local receivedArgs = {}
@@ -205,7 +205,7 @@ local function testBroadcastWithObject()
 end
 
 local function testBroadcastMultipleListeners()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local executeCount1 = 0
     local executeCount2 = 0
     

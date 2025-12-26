@@ -6,14 +6,14 @@ local TestFramework = require("TestCase.UnluaTest.init")
 local Observable = require("Core.Observable")
 
 local function testInit()
-    local observable = Observable:New()
+    local observable = Observable()
     
     TestFramework.assertNotNil(observable, "Observable should be created")
     TestFramework.assertNotNil(observable.container, "Observable should have container")
 end
 
 local function testRegister()
-    local observable = Observable:New()
+    local observable = Observable()
     local testObserver = {}
     
     local function testFunc(observer, arg1, arg2)
@@ -35,7 +35,7 @@ local function testRegister()
 end
 
 local function testRegisterWithInvalidParams()
-    local observable = Observable:New()
+    local observable = Observable()
     local testObserver = {}
     
     local function testFunc(observer, arg1, arg2)
@@ -60,7 +60,7 @@ local function testRegisterWithInvalidParams()
 end
 
 local function testRegisterWithoutObserver()
-    local observable = Observable:New()
+    local observable = Observable()
     
     local function testFunc(arg1, arg2)
         -- Test function
@@ -73,7 +73,7 @@ local function testRegisterWithoutObserver()
 end
 
 local function testDeregister()
-    local observable = Observable:New()
+    local observable = Observable()
     local testObserver = {}
     
     local function testFunc(observer, arg1, arg2)
@@ -94,7 +94,7 @@ local function testDeregister()
 end
 
 local function testDeregisterWithInvalidParams()
-    local observable = Observable:New()
+    local observable = Observable()
     
     -- Test with nil signal
     local success, errorMsg = pcall(function() observable:Deregister(nil, function() end) end)
@@ -106,7 +106,7 @@ local function testDeregisterWithInvalidParams()
 end
 
 local function testDeregisterAllForSignal()
-    local observable = Observable:New()
+    local observable = Observable()
     local testObserver = {}
     
     local function testFunc1(observer, arg1, arg2)
@@ -116,12 +116,17 @@ local function testDeregisterAllForSignal()
     local function testFunc2(observer, arg1, arg2)
         -- Test function 2
     end
+	
+	local function testFunc3(observer, arg1, arg2)
+        -- Test function 3
+    end
     
     -- Register multiple functions
     observable:Register("testSignal", testFunc1, testObserver)
     observable:Register("testSignal", testFunc2, testObserver)
+	observable:Register("testSignal", testFunc3, testObserver)
     
-    TestFramework.assertEquals(#observable.container["testSignal"], 2, "Container should have two entries")
+    TestFramework.assertEquals(#observable.container["testSignal"], 3, "Container should have 3 entries")
     
     -- Deregister all functions for signal
     observable:Deregister("testSignal")
@@ -130,7 +135,7 @@ local function testDeregisterAllForSignal()
 end
 
 local function testNotify()
-    local observable = Observable:New()
+    local observable = Observable()
     local testObserver = {value = 0}
     local executeCount = 0
     local receivedArgs = {}
@@ -161,7 +166,7 @@ local function testNotify()
 end
 
 local function testNotifyWithoutObserver()
-    local observable = Observable:New()
+    local observable = Observable()
     local executeCount = 0
     local receivedArgs = {}
     
@@ -182,7 +187,7 @@ local function testNotifyWithoutObserver()
 end
 
 local function testNotifyMultipleFunctions()
-    local observable = Observable:New()
+    local observable = Observable()
     local testObserver = {}
     local executeCount1 = 0
     local executeCount2 = 0
@@ -207,7 +212,7 @@ local function testNotifyMultipleFunctions()
 end
 
 local function testNotifyWithInvalidSignal()
-    local observable = Observable:New()
+    local observable = Observable()
     
     -- Test with nil signal
     local success, errorMsg = pcall(function() observable:Notify(nil, "test1", "test2") end)

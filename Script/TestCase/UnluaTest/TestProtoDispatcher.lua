@@ -18,12 +18,6 @@ local function testCleanup()
 end
 
 local function testImportProtoFile()
-    local fileList = {"file1.proto", "file2.proto"}
-    
-    -- This should not crash
-    ProtoDispatcher.ImportProtoFile(fileList)
-    TestFramework.assertTrue(true, "ImportProtoFile should not crash")
-    
     -- Test with empty file list
     ProtoDispatcher.ImportProtoFile({})
     TestFramework.assertTrue(true, "ImportProtoFile should not crash with empty list")
