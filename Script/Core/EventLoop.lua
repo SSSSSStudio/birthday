@@ -101,7 +101,7 @@ function M.Timeout(intervalMs, func, bLoop)
         return nil
     end
 	timerList[timer] = timer
-	return timerWatcher
+	return timer
 end
 
 return M
