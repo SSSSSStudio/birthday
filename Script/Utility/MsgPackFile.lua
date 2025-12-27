@@ -30,17 +30,17 @@ end
 local function Write(filePath, ...)
 	local success, s = pcall(lmsgpack.encode, ...)
 	if not success or not s then
-		return 0
+		return false
 	end
 
 	local file = UE.File()
 	if not file:Open(filePath,"wb") then
-		return 0
+		return false
 	end
 
-	local bytesWrite = file:Write(s)
+	success = file:Write(s)
 	file:Close()
-	return bytesWrite
+	return success
 end
 
 ---@class MsgPackFile
@@ -58,7 +58,7 @@ end
 --- 向内容目录写入MsgPack文件
 --- @param filename string
 --- @vararg string | table | number | integer | boolean
---- @return integer
+--- @return boolean
 function M.Write(filename, ...)
 	assert(filename and type(filename) == "string", "filename must be a string")
 	local filePath = lproject.get_content_dir() .. filename
@@ -77,7 +77,7 @@ end
 --- 向沙盒目录写入MsgPack文件
 --- @param filename string
 --- @vararg string | table | number | integer | boolean
---- @return integer
+--- @return boolean
 function M.WriteToSandbox(filename, ...)
 	assert(filename and type(filename) == "string", "filename must be a string")
 	local filePath = lproject.get_app_sandboxes_dir() .. filename

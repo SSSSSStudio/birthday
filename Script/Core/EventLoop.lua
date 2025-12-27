@@ -15,11 +15,9 @@ local levent = require("ltw2.event")
 
 local LuaHelper = require("Utility.luaHelper")
 
-local function ReceiveBeginPlay()
-	assert(levent.start(1), "levent.start failed")
-end
-
 local tickerList = {}
+
+local timerList = {}
 
 local function Tick(deltaTime)
 	levent.run()
@@ -28,8 +26,17 @@ local function Tick(deltaTime)
 	end
 end
 
+local function ReceiveBeginPlay()
+	assert(levent.start(1), "levent.start failed")
+end
+
 local function ReceiveEndPlay()
+	for obj in pairs(timerList) do
+		obj:stop()
+    end
+	timerList = {}
 	levent.stop()
+	
 end
 
 lproject.set_beginplay_callback(ReceiveBeginPlay)
@@ -84,8 +91,17 @@ end
 ---@param func function
 ---@return ltw2_event_timer_watcher
 function M.Timeout(intervalMs, func, bLoop)
-	local timerWatcher = levent.timer_watcher_new()
-	return timerWatcher:start(intervalMs, not bLoop, func) and timerWatcher
+	local timer = levent.timer_watcher_new()
+	if not timer:start(intervalMs, not bLoop, function()
+		func()
+		if not bLoop then
+			timerList[timer] = nil
+		end
+	end) then
+        return nil
+    end
+	timerList[timer] = timer
+	return timerWatcher
 end
 
 return M

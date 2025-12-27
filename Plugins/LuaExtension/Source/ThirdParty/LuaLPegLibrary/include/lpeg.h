@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-
 #if defined(_WINDOWS) || defined(_WIN32)
 	#define LPEG_API __declspec(dllimport)
 #else
@@ -11,5 +9,5 @@
 extern "C" {
 	struct lua_State;
 
-	LPEG_API int32_t luaopen_lpeg(struct lua_State *L);
+	LPEG_API int luaopen_lpeg(struct lua_State *L);
 }

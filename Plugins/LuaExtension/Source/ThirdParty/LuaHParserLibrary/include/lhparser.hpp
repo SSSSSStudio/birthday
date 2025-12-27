@@ -16,7 +16,10 @@
 	#endif
 #endif
 
-struct lua_State;
-
-LHPARSER_API int32_t luaopen_lhparser(struct lua_State* L);
+extern "C" 
+{
+	struct lua_State;
+	
+	LHPARSER_API int32_t luaopen_lhparser(struct lua_State* L);
+}
 
