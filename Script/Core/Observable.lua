@@ -23,12 +23,12 @@ end
 function M:Register(signal, func, observer)
 	assert(signal and type(signal) == "string", "signal is not a string")
 	assert(func and type(func) == "function", "func is not a function")
-	local list = self.container[signal] or {}
+	local array = self.container[signal] or {}
 	local obj = observer or weak
 	local v = { func, obj }
 	setmetatable(v, weak)
-	list[#list] = v
-	self.container[signal] = list
+	array[#array+1] = v
+	self.container[signal] = array
 end
 
 ---@param signal string
@@ -36,8 +36,8 @@ end
 function M:Deregister(signal, func)
 	assert(signal and type(signal) == "string", "signal is not a string")
 	local container = self.container
-	local list = container[signal]
-	if not list then
+	local array = container[signal]
+	if not array then
 		return
 	end
 
@@ -46,7 +46,7 @@ function M:Deregister(signal, func)
 		return
 	end
 
-	TableEx.ArrayRemove(list, function(v)
+	TableEx.ArrayRemove(array, function(v)
 		if v[1] == func then
 			return true
 		end
@@ -58,12 +58,12 @@ end
 function M:Notify(signal, ...)
 	assert(signal and type(signal) == "string", "signal is not a string")
 	local container = self.container
-	local list = container[signal]
-	if not list then
+	local array = container[signal]
+	if not array then
 		return
 	end
 
-	for _, v in ipairs(list) do
+	for _, v in ipairs(array) do
 		if v[2] == weak then
 			LuaHelper.XpCall(v[1], ...)
 		else

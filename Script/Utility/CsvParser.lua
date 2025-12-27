@@ -42,7 +42,7 @@ function M.Parse(s)
 	assert(s and type(s) == "string", "s must be a string")
 	
 	local data = CsvMatch(s)
-	if not data then
+	if not data or #data < 3 then
 		return nil
 	end
 	
