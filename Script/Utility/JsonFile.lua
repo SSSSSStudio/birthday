@@ -33,16 +33,16 @@ end
 local function Write(filePath, jsonData)
 	local success, s = pcall(ljson.encode, jsonData)
 	if not success or not s then
-		return nil
+		return false
 	end
 	local file = UE.File()
 	if not file:Open(filePath, "wb") then
-		return nil
+		return false
 	end
 
-	local bytesWrite = file.Write(s);
+	success = file.Write(s);
 	file:Close()
-	return bytesWrite
+	return success
 end
 
 ---@class JsonFile
@@ -60,7 +60,7 @@ end
 --- 向内容目录写入JSON文件
 --- @param filename string
 --- @param jsonData table
---- @return integer
+--- @return boolean
 function M.Write(filename, jsonData)
 	assert(filename and type(filename) == "string", "filename must be a string")
 	assert(jsonData and type(jsonData) == "table", "jsonData must be a table")
@@ -81,7 +81,7 @@ end
 --- 向沙盒目录写入JSON文件
 --- @param filename string
 --- @param jsonData table
---- @return integer
+--- @return boolean
 function M.WriteToSandbox(filename, jsonData)
 	assert(filename and type(filename) == "string", "filename must be a string")
 	assert(jsonData and type(jsonData) == "table", "jsonData must be a table")

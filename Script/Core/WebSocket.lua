@@ -5,7 +5,7 @@
 ---
 
 local Interface = require("Utility.Interface")
-local EventLoop = require("Utility.EventLoop")
+local EventLoop = require("Core.EventLoop")
 
 local disconnected<const> = 0
 local connecting<const> = 1

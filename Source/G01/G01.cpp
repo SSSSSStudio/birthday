@@ -4,9 +4,9 @@
 #include "Modules/ModuleManager.h"
 
 extern "C" {
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+	#include "lua.h"
+	#include "lualib.h"
+	#include "lauxlib.h"
 }
 
 #include "UnLuaDelegates.h"
@@ -17,11 +17,12 @@ extern "C" {
 #include "lxml.h"
 #include "lpeg.h"
 #include "lpbc.h"
-#include "lmsgpack.h"
-#include "lwsproto.h"
-#include "lhparser.h"
 #include "lcore.h"
 #include "levent.h"
+
+#include "lmsgpack.hpp"
+#include "lwsproto.hpp"
+#include "lhparser.hpp"
 
 #include "ThirdParty/LuaProjectLibrary/LuaProjectLibraryModule.h"
 #include "ThirdParty/LuaTlsLibrary/LuaTlsLibraryModule.h"
