@@ -6,7 +6,7 @@ local TestFramework = require("TestCase.UnluaTest.init")
 local HttpHelper = require("Core.HttpHelper")
 local EventLoop = require("Core.EventLoop")
 
-local httpTestUrl = "https://yuque.antfin-inc.com/aliyunops/zeus-doc/https-apply" 
+local httpTestUrl = "https://alidocs.dingtalk.com/i/nodes/dQPGYqjpJYZnRbNYCzDRmXeK8akx1Z5N" 
 
 local function testRequest()
     local target = {}

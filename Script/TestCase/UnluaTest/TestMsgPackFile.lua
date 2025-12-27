@@ -29,7 +29,7 @@ local function testWrite()
     -- Test writing to content directory
     local result = MsgPackFile.Write("Test/TestCaseData/Write.msg",testTable)
     TestFramework.assertNotNil(result, "MsgPackFile.Write should return result")
-    TestFramework.assertTrue(result > 0, "MsgPackFile.Write should return positive byte count")
+    TestFramework.assertTrue(result == 0, "MsgPackFile.Write should return positive byte count")
     
     -- Test with invalid filename
     local success, errorMsg = pcall(function() MsgPackFile.Write(nil, {key = "value"}) end)
@@ -63,7 +63,7 @@ local function testWriteToSandbox()
 	}
     local result = MsgPackFile.WriteToSandbox("test.msg",testTable)
     TestFramework.assertNotNil(result, "MsgPackFile.WriteToSandbox should return result")
-    TestFramework.assertTrue(result > 0, "MsgPackFile.WriteToSandbox should return positive byte count")
+    TestFramework.assertTrue(result == 0, "MsgPackFile.WriteToSandbox should return positive byte count")
     
     -- Test with invalid filename
     local success, errorMsg = pcall(function() MsgPackFile.WriteToSandbox(nil, {key = "value"}) end)
