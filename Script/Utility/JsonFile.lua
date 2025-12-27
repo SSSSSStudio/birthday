@@ -16,7 +16,7 @@ local function Read(filePath)
 		return nil
 	end
 
-	local s = UE.File.Read(file,file:TotalSize())
+	local s = file:Read(file:TotalSize())
 	file:Close()
 	
 	if not s then
@@ -40,7 +40,7 @@ local function Write(filePath, jsonData)
 		return false
 	end
 
-	success = file.Write(s);
+	success = file:Write(s);
 	file:Close()
 	return success
 end

@@ -15,7 +15,7 @@ local function Read(filePath)
 	if not file:Open(filePath, "rb") then
 		return nil
 	end
-	local s = UE.File.Read(file,file:TotalSize())
+	local s = file:Read(file:TotalSize())
 	file:Close()
 	if not s then
         return nil    
