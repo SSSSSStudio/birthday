@@ -33,7 +33,11 @@
 
 namespace UnLua
 {
-    constexpr EInternalObjectFlags AsyncObjectFlags = EInternalObjectFlags::AsyncLoadingPhase2 | EInternalObjectFlags::Async| EInternalObjectFlags::AsyncLoadingPhase1;
+#if UE_VERSION_NEWER_THAN(5, 5, 0)
+    constexpr EInternalObjectFlags AsyncObjectFlags = EInternalObjectFlags_AsyncLoading | EInternalObjectFlags::Async;
+#else
+    constexpr EInternalObjectFlags AsyncObjectFlags = EInternalObjectFlags::AsyncLoading | EInternalObjectFlags::Async;
+#endif
 
     TMap<lua_State*, FLuaEnv*> FLuaEnv::AllEnvs;
     FLuaEnv::FOnCreated FLuaEnv::OnCreated;
@@ -602,12 +606,10 @@ namespace UnLua
         auto& Env = *(FLuaEnv*)lua_touserdata(L, lua_upvalueindex(1));
         TArray<uint8> Data;
         FString FullPath;
-    	FString RelativePath;
 
         auto LoadIt = [&]
         {
-            //if (Env.LoadString(L, Data, FullPath))
-        	if (Env.LoadString(L, Data, RelativePath)) //hebo.pb fix
+            if (Env.LoadString(L, Data, FullPath))
                 return 1;
             const auto Msg = FString::Printf(TEXT("file loading from file system error.\nfull path:%s"), *FullPath);
             return luaL_error(L, TCHAR_TO_UTF8(*Msg));
@@ -627,7 +629,6 @@ namespace UnLua
             Pattern.ReplaceInline(TEXT("?"), *FileName);
             const auto PathWithPersistentDir = FPaths::Combine(FPaths::ProjectPersistentDownloadDir(), Pattern);
             FullPath = FPaths::ConvertRelativePathToFull(PathWithPersistentDir);
-        	RelativePath = Pattern;
             if (FFileHelper::LoadFileToArray(Data, *FullPath, FILEREAD_Silent))
                 return LoadIt();
         }
@@ -637,7 +638,6 @@ namespace UnLua
         {
             const auto PathWithProjectDir = FPaths::Combine(FPaths::ProjectDir(), Pattern);
             FullPath = FPaths::ConvertRelativePathToFull(PathWithProjectDir);
-        	RelativePath = Pattern;
             if (FFileHelper::LoadFileToArray(Data, *FullPath, FILEREAD_Silent))
                 return LoadIt();
         }

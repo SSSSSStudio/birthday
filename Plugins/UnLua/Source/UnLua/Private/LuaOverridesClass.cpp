@@ -22,8 +22,12 @@ ULuaOverridesClass* ULuaOverridesClass::Create(UClass* Class)
     auto ClassName = MakeUniqueObjectName(GetTransientPackage(), Class, FName(*ClassNameString));
     auto Ret = NewObject<ULuaOverridesClass>(GetTransientPackage(), ClassName, RF_Public | RF_Transient);
     Ret->ClassFlags |= CLASS_NewerVersionExists; // bypass FBlueprintActionDatabase::RefreshClassActions
-	Ret->SetDefaultObject(StaticClass()->GetDefaultObject());
-	Ret->SetSuperStruct(StaticClass());
+#if UE_VERSION_NEWER_THAN_OR_EQUAL(5,6,0)
+    Ret->SetDefaultObject(StaticClass()->GetDefaultObject());
+#else
+    Ret->ClassDefaultObject = StaticClass()->GetDefaultObject();
+#endif
+    Ret->SetSuperStruct(StaticClass());
     Ret->Bind();
     Ret->Owner = Class;
     Ret->AddToOwner();
@@ -67,8 +71,10 @@ void ULuaOverridesClass::AddToOwner()
     if (!Class)
         return;
 
-#if UE_VERSION_NEWER_THAN(5, 2, 1)
+    //hebo.pb fix
+/*#if UE_VERSION_NEWER_THAN(5, 2, 1)
     auto ChildrenPtr = Class->Children.Get();
+
     auto Field = &ChildrenPtr;
 #else
     auto Field = &(Class->Children);
@@ -80,10 +86,20 @@ void ULuaOverridesClass::AddToOwner()
             Field = nullptr;
             break;
         }
-        UField* FieldNext = (*Field)->Next;
-        Field = &(FieldNext);
-    }
+        Field = &(*Field)->Next;
+    }*/
 
+    auto Field = &(Class->Children);
+    while (*Field)
+    {
+        if ((*Field).Get() == this)
+        {
+            Field = nullptr;
+            break;
+        }
+        Field = &(*Field)->Next;
+    }
+    
     if (Field)
         *Field = this;
 
@@ -97,8 +113,11 @@ void ULuaOverridesClass::RemoveFromOwner()
     if (!Class)
         return;
 
+    //hebo.pb fix
+/*
 #if UE_VERSION_NEWER_THAN(5, 2, 1)
     auto ChildrenPtr = Class->Children.Get();
+
     auto Field = &ChildrenPtr;
 #else
     auto Field = &Class->Children;
@@ -110,10 +129,20 @@ void ULuaOverridesClass::RemoveFromOwner()
             *Field = nullptr;
             break;
         }
-        UField* FieldNext = (*Field)->Next;
-        Field = &(FieldNext);
-    }
+        Field = &(*Field)->Next;
+    }*/
 
+    auto Field = &(Class->Children);
+    while (*Field)
+    {
+        if ((*Field).Get() == this)
+        {
+            Field = nullptr;
+            break;
+        }
+        Field = &(*Field)->Next;
+    }
+    
     if (!Class->IsRooted() && !GUObjectArray.IsDisregardForGC(Class))
         RemoveFromRoot();
 }

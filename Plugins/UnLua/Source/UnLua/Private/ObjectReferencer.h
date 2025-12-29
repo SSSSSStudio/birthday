@@ -58,7 +58,11 @@ namespace UnLua
         }
 
     private:
-    	TSet<TObjectPtr<UObject>> ReferencedObjects;
+#if UE_VERSION_OLDER_THAN(5, 1, 0)
+        TSet<UObject*> ReferencedObjects;
+#else
+        TSet<TObjectPtr<UObject>> ReferencedObjects;
+#endif
         FString Name = TEXT("FObjectReferencer");
     };
 }
