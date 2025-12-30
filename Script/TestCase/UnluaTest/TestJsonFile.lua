@@ -37,17 +37,17 @@ local function testWrite()
     TestFramework.assertFalse(success, "JsonFile.Write should reject nil data")
 end
 
-local function testReadToSandbox()
+local function testReadFromSandbox()
     -- Test reading from sandbox directory
-    local result = JsonFile.ReadToSandbox("UGC_SG.json")
-    TestFramework.assertNotNil(result, "JsonFile.ReadToSandbox should return data")
+    local result = JsonFile.ReadFromSandbox("UGC_SG.json")
+    TestFramework.assertNotNil(result, "JsonFile.ReadFromSandbox should return data")
     
     -- Test with invalid filename
-    local success, errorMsg = pcall(function() JsonFile.ReadToSandbox(nil) end)
-    TestFramework.assertFalse(success, "JsonFile.ReadToSandbox should reject nil filename")
+    local success, errorMsg = pcall(function() JsonFile.ReadFromSandbox(nil) end)
+    TestFramework.assertFalse(success, "JsonFile.ReadFromSandbox should reject nil filename")
     
-    success, errorMsg = pcall(function() JsonFile.ReadToSandbox(123) end)
-    TestFramework.assertFalse(success, "JsonFile.ReadToSandbox should reject non-string filename")
+    success, errorMsg = pcall(function() JsonFile.ReadFromSandbox(123) end)
+    TestFramework.assertFalse(success, "JsonFile.ReadFromSandbox should reject non-string filename")
 end
 
 local function testWriteToSandbox()
@@ -71,12 +71,12 @@ end
 -- Register test cases
 TestFramework.addTestCase("JsonFile.Read", testRead)
 TestFramework.addTestCase("JsonFile.Write", testWrite)
-TestFramework.addTestCase("JsonFile.ReadToSandbox", testReadToSandbox)
+TestFramework.addTestCase("JsonFile.ReadFromSandbox", testReadFromSandbox)
 TestFramework.addTestCase("JsonFile.WriteToSandbox", testWriteToSandbox)
 
 return {
     testRead = testRead,
     testWrite = testWrite,
-    testReadToSandbox = testReadToSandbox,
+    testReadFromSandbox = testReadFromSandbox,
     testWriteToSandbox = testWriteToSandbox
 }

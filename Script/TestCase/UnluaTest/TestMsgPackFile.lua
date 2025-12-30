@@ -41,17 +41,17 @@ end
 
 local function testReadToSandbox()
     -- Test reading from sandbox directory
-    local result = MsgPackFile.ReadToSandbox("Read.msg")
-    TestFramework.assertNotNil(result, "MsgPackFile.ReadToSandbox should return data")
-	TestFramework.assertEquals(result.number, 42,"MsgPackFile.ReadToSandbox should return mocked data")
-	TestFramework.assertEquals(result.table2.key, "su","MsgPackFile.ReadToSandbox should return mocked data")
+    local result = MsgPackFile.ReadFromSandbox("Read.msg")
+    TestFramework.assertNotNil(result, "MsgPackFile.ReadFromSandbox should return data")
+	TestFramework.assertEquals(result.number, 42,"MsgPackFile.ReadFromSandbox should return mocked data")
+	TestFramework.assertEquals(result.table2.key, "su","MsgPackFile.ReadFromSandbox should return mocked data")
     
     -- Test with invalid filename
-    local success, errorMsg = pcall(function() MsgPackFile.ReadToSandbox(nil) end)
-    TestFramework.assertFalse(success, "MsgPackFile.ReadToSandbox should reject nil filename")
+    local success, errorMsg = pcall(function() MsgPackFile.ReadFromSandbox(nil) end)
+    TestFramework.assertFalse(success, "MsgPackFile.ReadFromSandbox should reject nil filename")
     
-    success, errorMsg = pcall(function() MsgPackFile.ReadToSandbox(123) end)
-    TestFramework.assertFalse(success, "MsgPackFile.ReadToSandbox should reject non-string filename")
+    success, errorMsg = pcall(function() MsgPackFile.ReadFromSandbox(123) end)
+    TestFramework.assertFalse(success, "MsgPackFile.ReadFromSandbox should reject non-string filename")
 end
 
 local function testWriteToSandbox()
@@ -76,7 +76,7 @@ end
 -- Register test cases
 TestFramework.addTestCase("MsgPackFile.Read", testRead)
 TestFramework.addTestCase("MsgPackFile.Write", testWrite)
-TestFramework.addTestCase("MsgPackFile.ReadToSandbox", testReadToSandbox)
+TestFramework.addTestCase("MsgPackFile.ReadFromSandbox", testReadToSandbox)
 TestFramework.addTestCase("MsgPackFile.WriteToSandbox", testWriteToSandbox)
 
 return {

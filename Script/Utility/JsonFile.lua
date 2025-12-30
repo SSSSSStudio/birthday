@@ -72,7 +72,7 @@ end
 --- 从沙盒目录读取JSON文件
 --- @param filename string
 --- @return string | table | number | integer | boolean
-function M.ReadToSandbox(filename)
+function M.ReadFromSandbox(filename)
 	assert(filename and type(filename) == "string", "filename must be a string")
 	local filePath = lproject.get_app_sandboxes_dir() .. filename
 	return Read(filePath)

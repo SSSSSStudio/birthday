@@ -24,12 +24,12 @@ local function testWrite()
     end, "Write API test should not throw exception")
 end
 
--- 测试 ReadToSandbox 和 WriteToSandbox 方法（API 存在性测试）
+-- 测试 ReadFromSandbox 和 WriteToSandbox 方法（API 存在性测试）
 local function testSandboxMethods()
     TestFramework.assertNoError(function()
         -- 测试沙盒方法 API 存在
-        TestFramework.assertNotNil(MsgPackFile.ReadToSandbox, "ReadToSandbox method should exist")
-        TestFramework.assertEquals(type(MsgPackFile.ReadToSandbox), "function", "ReadToSandbox should be a function")
+        TestFramework.assertNotNil(MsgPackFile.ReadFromSandbox, "ReadFromSandbox method should exist")
+        TestFramework.assertEquals(type(MsgPackFile.ReadFromSandbox), "function", "ReadFromSandbox should be a function")
         
         TestFramework.assertNotNil(MsgPackFile.WriteToSandbox, "WriteToSandbox method should exist")
         TestFramework.assertEquals(type(MsgPackFile.WriteToSandbox), "function", "WriteToSandbox should be a function")

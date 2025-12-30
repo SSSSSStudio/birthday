@@ -28,12 +28,12 @@ local function testWrite()
     end, "Write API test should not throw exception")
 end
 
--- 测试 ReadToSandbox 和 WriteToSandbox 函数（API 存在性测试）
+-- 测试 ReadFromSandbox 和 WriteToSandbox 函数（API 存在性测试）
 local function testSandboxMethods()
     TestFramework.assertNoError(function()
-        TestFramework.assertNotNil(JsonFile.ReadToSandbox, "ReadToSandbox method should exist")
+        TestFramework.assertNotNil(JsonFile.ReadFromSandbox, "ReadFromSandbox method should exist")
         TestFramework.assertNotNil(JsonFile.WriteToSandbox, "WriteToSandbox method should exist")
-        TestFramework.assertEquals(type(JsonFile.ReadToSandbox), "function", "ReadToSandbox should be a function")
+        TestFramework.assertEquals(type(JsonFile.ReadFromSandbox), "function", "ReadFromSandbox should be a function")
         TestFramework.assertEquals(type(JsonFile.WriteToSandbox), "function", "WriteToSandbox should be a function")
     end, "Sandbox methods test should not throw exception")
 end
