@@ -4,47 +4,48 @@
 local UILayerManager = require "Script.UI.Core.UILayerManager"
 local UIStateManager = require "Script.UI.Core.Private.UIStateManager"
 
-local UIManager = {
+---@class UIManager
+local M = {
 	isInitialized = false
 }
 
 --private
 local function Initialize()
-    if UIManager.isInitialized then
+    if M.isInitialized then
         return
     end
     
     -- 初始化 UILayerManager
     UILayerManager:Initialize()
-    UIManager.isInitialized = true
+    M.isInitialized = true
 end
 
-function UIManager.Get()
+function M.Get()
 	Initialize()
-	return UIManager
+	return M
 end
 
 --- 打开状态 UI（State 层级的 UI）
 --- @param uiName string UI 名称
 --- @param params table|nil 传递给 UI 的参数（可选）
 --- @return UIControllerBase|nil 控制器实例
-function UIManager:StateOpen(uiName, params)
+function M:StateOpen(uiName, params)
     return UIStateManager:OpenUI(uiName, params)
 end
 
 --- 关闭状态 UI（State 层级的 UI）
 --- @param uiName string UI 名称
-function UIManager:StateClose(uiName)
+function M:StateClose(uiName)
     UIStateManager:CloseUI(uiName)
 end
 
 --- 清空状态 UI 缓存
-function UIManager:StateCacheClear()
+function M:StateCacheClear()
     UIStateManager:ClearCache()
 end
 
 -- 销毁 UI 管理器
-function UIManager:Destroy()
+function M:Destroy()
     if UILayerManager then
         UILayerManager:Destroy()
         UILayerManager = nil
@@ -53,4 +54,4 @@ function UIManager:Destroy()
     self.isInitialized = false
 end
 
-return UIManager
+return M
