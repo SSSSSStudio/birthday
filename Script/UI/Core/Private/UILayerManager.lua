@@ -4,7 +4,8 @@
 ---@class UILayerManager
 local M = {
 	layers = {},
-	isInitialized = false
+	isInitialized = false,
+	gameInstance = nil
 }
 
 --- 定义 UI 层级枚举
@@ -26,7 +27,8 @@ local LAYER_CONFIG = {
 }
 
 --- 初始化 UI 层管理器
-function M:Initialize()
+function M:Initialize(gameInst)
+	self.gameInstance = gameInst
     if self.isInitialized then
         return
     end
@@ -44,17 +46,19 @@ end
 --- @param config table 层配置
 --- @return UCanvasPanel UI 层
 function M:CreateLayer(config)
-    local layer = NewObject(UE.UCanvasPanel)
-    layer:SetName(config.name)
-    
-    -- 设置为全屏
-    local slot = layer:Slot()
-    slot:SetAnchors(EAnchors.Fill)
-    slot:SetOffsets(0, 0, 0, 0)
-    
+	
+	--local wClass = UE.UClass.Load("/Script/UMGEditor.WidgetBlueprint'/Game/UI/WBP_Main.WBP_Main_C'")
+	---@type UOverlay
+    local layer = NewObject(UE.UOverlay,self.gameInstance)
     -- 设置 ZOrder
-    layer:SetRenderOpacity(1.0)
-	layer:AddToViewport(config.zOrder)
+	local Slot = UE.FGameViewportWidgetSlot()
+	Slot.ZOrder = config.zOrder
+
+	---@type UGameViewportSubsystem
+	local GameViewportSubsystem = UE.USubsystemBlueprintLibrary.GetEngineSubsystem(UE.UGameViewportSubsystem)
+	GameViewportSubsystem:AddWidget(layer, Slot)
+    --layer:SetRenderOpacity(1.0)
+	--layer:AddToViewport(config.zOrder)
 	layer:SetVisibility(UE.ESlateVisibility.SelfHitTestInvisible)
     return layer
 end
@@ -70,9 +74,12 @@ end
 --- @param uiWidget UWidget UI 控件
 --- @param layerType integer 层级类型
 function M:AddToLayer(uiWidget, layerType)
+	---@type UOverlay
     local layer = self:GetLayer(layerType)
     if layer and uiWidget then
-        layer:AddChild(uiWidget)
+        layer:AddChildToOverlay(uiWidget)
+		uiWidget.Slot:SetHorizontalAlignment(UE.EHorizontalAlignment.HAlign_Fill)
+		uiWidget.Slot:SetVerticalAlignment(UE.EVerticalAlignment.VAlign_Fill)
     end
 end
 

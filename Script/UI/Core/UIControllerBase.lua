@@ -16,6 +16,11 @@ function M:__OnNew(view, model)
 	self.isActive = false      -- 是否激活
 	self.layerType = nil       -- 所属层级
 	self.isInitialized = false  -- 是否已初始化
+	
+	-- 将 Controller 引用设置到 View 上，方便 View 访问 Controller
+	if view then
+		view.Controller = self
+	end
 end
 
 --- 初始化控制器（子类可以重写）
@@ -25,7 +30,7 @@ function M:Initialize()
     end
     
     -- 绑定 View 事件
-    self:BindViewEvents()
+    --self:BindViewEvents()
     
     -- 初始化 Model 数据
     self:InitializeModel()
@@ -58,8 +63,10 @@ function M:Show(layerType)
     
     -- 添加到层级
     if self.layerType and self.view then
-        local UILayerManager = require "Script.UI.Core.Private.UILayerManager"
+        local UILayerManager = require "UI.Core.Private.UILayerManager"
         UILayerManager:AddToLayer(self.view, self.layerType)
+		-- 绑定 View 事件
+		self:BindViewEvents()
     end
     
     -- 设置可见性
@@ -97,7 +104,7 @@ function M:Destroy()
     
     -- 从层级移除
     if self.layerType and self.view then
-        local UILayerManager = require "Script.UI.Core.Private.UILayerManager"
+        local UILayerManager = require "UI.Core.Private.UILayerManager"
         UILayerManager:RemoveFromLayer(self.view, self.layerType)
     end
     
@@ -198,7 +205,7 @@ function M:GetWidget(widgetName)
     if not self.view then
         return nil
     end
-    return self.view:GetWidgetFromName(widgetName)
+    return self.view[widgetName]
 end
 
 --- 绑定按钮点击事件
@@ -207,7 +214,7 @@ end
 function M:BindButtonClick(buttonName, callback)
     local button = self:GetWidget(buttonName)
     if button and button.OnClicked then
-        button.OnClicked:Add(self, callback)
+        button.OnClicked:Add(self.view, callback)
     end
 end
 

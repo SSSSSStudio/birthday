@@ -1,9 +1,9 @@
 -- UIStateManager.lua
 -- UI 状态管理器，负责根据配置切换界面，并使用 LRU 缓存管理界面实例
 
-local LRUCache = require("Script.UI.Core.Private.LRUCache")
-local UILayerManager = require("Script.UI.Core.Private.UILayerManager")
-local UIConfig = require("Script.UI.Core.UIConfig")
+local LRUCache = require("UI.Core.Private.LRUCache")
+local UILayerManager = require("UI.Core.Private.UILayerManager")
+local UIConfig = require("UI.Core.UIConfig")
 
 ---@class UIStateManager
 local M = {
@@ -109,12 +109,12 @@ end
 
 --- 创建 UI 实例
 --- @param uiName string UI 名称
---- @param config table UI 配置
+--- @param config UIConfig UI 配置
 --- @return UIControllerBase|nil 控制器实例
 function M:CreateUI(uiName, config)
     -- config[1] 是 View 类，config[2] 是 Controller 类，config[3] 是 Model 数据
-    local ViewClass = config[1]
-    local ControllerClass = config[2]
+    local ViewClass = UE.UClass.Load(config.ViewPath)
+    local ControllerClass =  config[2]
     local ModelData = config[3] or {}
     
     if not ViewClass or not ControllerClass then
@@ -130,7 +130,7 @@ function M:CreateUI(uiName, config)
     end
     
     -- 创建 Controller 实例
-    local controller = ControllerClass.new(view, ModelData)
+    local controller = ControllerClass:New(view, ModelData)
     if not controller then
         error("Failed to create Controller for: " .. tostring(uiName))
         return nil
