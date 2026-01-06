@@ -7,20 +7,33 @@ local M = Interface("Stack")
 
 --- 创建新的堆栈实例
 --- @param maxSize integer|nil 最大容量（nil 表示无限制）
+--- @param allowDuplicate boolean|nil 是否允许重复元素（默认 true）
 --- @return Stack 堆栈实例
-function M:__init(maxSize)
+function M:__init(maxSize, allowDuplicate)
 	self.items = {}
 	self.maxSize = maxSize  -- 最大容量，nil 表示无限制
+	self.allowDuplicate = allowDuplicate ~= false  -- 默认允许重复
 end
 
 --- 压入元素到堆栈顶部
 --- @param item any 要压入的元素
+--- @return boolean true 如果压入成功，false 如果不允许重复且元素已存在
 function M:Push(item)
+    -- 如果不允许重复，检查元素是否已存在
+    if not self.allowDuplicate then
+        for i = 1, #self.items do
+            if self.items[i] == item then
+                return false  -- 元素已存在，不允许重复
+            end
+        end
+    end
+    
     -- 如果栈已满，先移除底部元素
     if self.maxSize and #self.items >= self.maxSize then
         table.remove(self.items, 1)
     end
     table.insert(self.items, item)
+    return true
 end
 
 --- 将堆栈中的指定元素移动到顶部
@@ -99,6 +112,18 @@ function M:SetMaxSize(maxSize)
             table.remove(self.items, 1)
         end
     end
+end
+
+--- 获取是否允许重复元素
+--- @return boolean true 如果允许重复，false 否则
+function M:GetAllowDuplicate()
+    return self.allowDuplicate
+end
+
+--- 设置是否允许重复元素
+--- @param allowDuplicate boolean 是否允许重复元素
+function M:SetAllowDuplicate(allowDuplicate)
+    self.allowDuplicate = allowDuplicate
 end
 
 --- 清空堆栈

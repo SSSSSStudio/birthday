@@ -17,9 +17,16 @@ end
 function M:BindViewEvents()
     -- 绑定按钮点击事件
     self:BindButtonClick("ButtonClose", self.OnButtonCloseClick)
-    self:BindButtonClick("ButtonOpenChild", self.OnButtonOpenChildClick)
     self:BindButtonClick("ButtonMain", self.OnButtonMainClick)
-    self:BindButtonClick("ButtonPlay", self.OnButtonPlayClick)
+	self:BindButtonClick("ButtonExp", self.OnButtonExpClick)
+end
+
+--- 经验按钮点击事件
+function M:OnButtonExpClick()
+	print("Exp button clicked")
+	--模拟服务器下发
+	EventDispatcher.Dispatch("Pet.Feed", {})
+	self:UpdateAttr()
 end
 
 --- 关闭按钮点击事件

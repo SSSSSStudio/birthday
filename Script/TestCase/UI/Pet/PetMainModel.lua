@@ -26,11 +26,21 @@ function M:Initialize()
     self:Set("maxHappiness", 100)
     self:Set("exp", 0)
     self:Set("maxExp", 100)
+
+	self.AttrData = {
+		Level = 1,
+		Exp = 0,
+		HP = 100
+	}
     
     -- 监听宠物相关事件
     EventDispatcher.AddEvent("Pet.Feed", self.OnPetFeed, self)
     EventDispatcher.AddEvent("Pet.Play", self.OnPetPlay, self)
     EventDispatcher.AddEvent("Pet.Update", self.OnPetUpdate, self)
+end
+
+function M:GetAttrData()
+	return self.AttrData
 end
 
 --- 更新模型（子类可以重写）
@@ -60,6 +70,10 @@ end
 function M:OnPetFeed(data)
     print("PetMainModel.OnPetFeed:", data)
     self:Feed(data and data.amount or 10)
+	
+	self.AttrData.Exp = self.AttrData.Exp + 10
+	self.AttrData.HP = self.AttrData.HP + 10
+	self.AttrData.Level = self.AttrData.Level + 1
 end
 
 --- 玩耍事件处理

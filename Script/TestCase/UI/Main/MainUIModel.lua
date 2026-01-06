@@ -12,6 +12,12 @@ local M = LuaHelper.LuaClass("UI.Core.UIModelBase")
 --- 创建模型实例
 function M:__OnNew()
     self.Super.__OnNew(self)
+	
+	self.AttrData = {
+        Level = 1,
+        Exp = 0,
+        HP = 100
+    }
 end
 
 --- 初始化模型
@@ -62,6 +68,14 @@ function M:AddExp(amount)
     else
         self:Set("exp", newExp)
     end
+	
+	self.AttrData.Level = self:Get("level");
+	self.AttrData.Exp = self:Get("exp");
+	self.AttrData.HP = 100+self:Get("level")*30
+end
+
+function M:GetAttrData()
+    return self.AttrData
 end
 
 --- 获取经验百分比

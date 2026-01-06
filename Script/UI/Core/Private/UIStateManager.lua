@@ -19,16 +19,16 @@ function M:Initialize(cacheCapacity)
         return
     end
     
-    self.uiRecordStack = Stack(cacheCapacity or 10)
+    self.uiRecordStack = Stack(cacheCapacity or 10,false)
     self.isInitialized = true
 end
 
 --- 打开指定 UI（如果当前有 UI，先关闭它）
 --- @param uiName string UI 名称（对应 UIConfig 中的键名）
 --- @param params table|nil 传递给 UI 的参数（可选）
---- @param isCache boolean|nil 是否使用 LRU 缓存（默认为 true）
+--- @param isCacheCurrent boolean|nil 是否使用 LRU 缓存（默认为 true）
 --- @return UIControllerBase|nil 控制器实例
-function M:OpenUI(uiName, params, isCache)
+function M:OpenUI(uiName, params, isCacheCurrent)
     if not self.isInitialized then
         self:Initialize()
     end
@@ -38,12 +38,12 @@ function M:OpenUI(uiName, params, isCache)
     end
 
 	-- 默认使用缓存
-	if isCache == nil then
-		isCache = true
+	if isCacheCurrent == nil then
+		isCacheCurrent = true
 	end
     
     -- 如果当前有 UI，先关闭它
-    if self.currentUI and isCache then
+    if self.currentUI and isCacheCurrent then
 		self.uiRecordStack:Push(self.currentUI)
         self:CloseCurrentUI()
     end
@@ -60,12 +60,19 @@ function M:OpenUI(uiName, params, isCache)
     if not controller then
         return nil
 	end
-    
+
+	-- 更新参数
+	if params and controller.UpdateModel then
+		controller:UpdateModel(params)
+	end
+	
     -- 显示 UI
     if controller.Show then
         controller:Show(UILayerManager.LayerType.State)
     end
-    
+
+	-- 移除当前 UI
+	self.uiRecordStack:Remove(uiName)
     -- 更新当前 UI
     self.currentUI = uiName
 	self.currentController = controller

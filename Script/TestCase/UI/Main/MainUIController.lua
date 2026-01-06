@@ -32,7 +32,9 @@ end
 --- 经验按钮点击事件
 function M:OnButtonExpClick()
 	print("Exp button clicked")
-	EventDispatcher.Dispatch("Character.AddExp",  200)
+	--模拟服务器下发
+	EventDispatcher.Dispatch("Character.AddExp",  20)
+	self:UpdateAttr()
 end
 
 function M:OnButtonEventClick()
