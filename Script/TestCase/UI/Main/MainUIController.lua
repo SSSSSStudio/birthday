@@ -26,7 +26,7 @@ end
 function M:OnButtonCloseClick()
 	print("Open button clicked")
 	local UIManager = require("UI.Core.UIManager")
-	UIManager.StateClose("Main")
+	UIManager.HideUI("Main")
 end
 
 --- 经验按钮点击事件
@@ -43,7 +43,7 @@ end
 function M:OnButtonPetClick()
     print("Pet button clicked")
     local UIManager = require("UI.Core.UIManager")
-    UIManager.StateOpen("PetMain")
+    UIManager.ShowUI("PetMain")
 end
 
 --- 更新 View 显示

@@ -1,8 +1,8 @@
 -- UIDialogManager.lua
 -- Dialog 层级 UI 管理器，支持多 Dialog 堆叠显示
 
-local UILayerManager = require("Script.UI.Core.Private.UILayerManager")
-local UIConfig = require("Script.UI.Core.UIConfig")
+local UILayerManager = require("UI.Core.Private.UILayerManager")
+local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
 
 ---@class UIDialogManager

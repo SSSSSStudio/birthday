@@ -1,8 +1,8 @@
 -- UIMsgBoxManager.lua
 -- 消息框管理器：管理 Messagebox 层级的 UI，支持多个消息框堆叠显示
 
-local UILayerManager = require("Script.UI.Core.Private.UILayerManager")
-local UIConfig = require("Script.UI.Core.UIConfig")
+local UILayerManager = require("UI.Core.Private.UILayerManager")
+local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
 
 ---@class UIMsgBoxManager
@@ -176,6 +176,7 @@ end
 --- 包装回调（添加异常处理和自动关闭）
 function M:WrapCallback(msgBoxId, callback)
     return function(...)
+        local args = {...}
         -- 检查该消息框的回调是否正在处理
         if self.processingCallbacks[msgBoxId] then
             Log.Warning("UIMsgBoxManager", "Callback for msgBoxId " .. msgBoxId .. " is already processing, skip")
@@ -187,7 +188,7 @@ function M:WrapCallback(msgBoxId, callback)
         -- 使用 pcall 保护回调执行和清理逻辑
         local success, err = pcall(function()
             if callback then
-                callback(...)
+                callback(table.unpack(args))
             end
         end)
         

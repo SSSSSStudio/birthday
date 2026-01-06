@@ -1,10 +1,10 @@
 -- UILockManager.lua
 -- Lock 锁定层管理器，用于显示加载动画、转菊花等锁定界面
 
-local UILayerManager = require("Script.UI.Core.Private.UILayerManager")
-local UIConfig = require("Script.UI.Core.UIConfig")
+local UILayerManager = require("UI.Core.Private.UILayerManager")
+local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
-local EventLoop = require("Script.Core.EventLoop")
+local EventLoop = require("Core.EventLoop")
 
 ---@class UILockManager
 local M = {

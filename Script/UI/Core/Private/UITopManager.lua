@@ -2,8 +2,8 @@
 -- Top 最上层管理器，负责管理 Top 层级的 UI
 -- 用于显示始终在最上层的 UI（如调试面板、GM 工具等），可多个共存
 
-local UILayerManager = require("Script.UI.Core.Private.UILayerManager")
-local UIConfig = require("Script.UI.Core.UIConfig")
+local UILayerManager = require("UI.Core.Private.UILayerManager")
+local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
 
 ---@class UITopManager

@@ -26,20 +26,20 @@ end
 function M:OnButtonCloseClick()
     print("PetMain: Close button clicked")
     local UIManager = require("UI.Core.UIManager")
-    UIManager.StateClose()
+    UIManager.HideUI("PetMain")
 end
 
 --- 打开子界面按钮点击事件
 function M:OnButtonOpenChildClick()
     print("PetMain: Open Child button clicked")
     local UIManager = require("UI.Core.UIManager")
-    UIManager.StateOpen("PetChild", { petId = self.model:Get("petId", 0) })
+    UIManager.ShowUI("PetChild", { petId = self.model:Get("petId", 0) })
 end
 
 function M:OnButtonMainClick()
 	print("PetMain: Open Main button clicked")
 	local UIManager = require("UI.Core.UIManager")
-    UIManager.StateOpen("Main")
+    UIManager.ShowUI("Main")
 end
 
 --- 玩耍按钮点击事件

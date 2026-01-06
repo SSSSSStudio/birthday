@@ -2,10 +2,10 @@
 -- Toast 提示管理器，负责管理 Toast 层级的 UI
 -- 支持多个 Toast 同时显示，自动消失
 
-local UILayerManager = require("Script.UI.Core.Private.UILayerManager")
-local UIConfig = require("Script.UI.Core.UIConfig")
+local UILayerManager = require("UI.Core.Private.UILayerManager")
+local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
-local EventLoop = require("Script.Core.EventLoop")
+local EventLoop = require("Core.EventLoop")
 
 ---@class UIToastManager
 local M = {

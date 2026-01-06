@@ -18,7 +18,7 @@ end
 
 function M:RunTest()
 	UIManager.Initialize(self);
-	UIManager.StateOpen(UIConfig.Main.Name)
+	UIManager.ShowUI(UIConfig.Main.Name);
 end
 
 return M
