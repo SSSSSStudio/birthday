@@ -15,7 +15,7 @@ local M = {
     isInitialized = false,   -- 是否已初始化
 }
 
---- Toast 配置
+--- Toast 配置常量
 local DEFAULT_DURATION = 2.0  -- 默认显示时长（秒）
 local TOAST_SPACING = 10      -- Toast 之间的间距（像素）
 local MAX_TOAST_COUNT = 3     -- 最大 Toast 堆叠数量
@@ -26,6 +26,7 @@ local MAX_POOL_SIZE = 5       -- 每种 Toast 最多缓存数量
 --- 初始化 Toast 管理器
 function M:Initialize()
     if self.isInitialized then return end
+    
     self.toastCache = {}
     self.toastList = {}
     self.nextToastId = 1
@@ -38,7 +39,7 @@ end
 --- @param duration number|nil 显示时长（秒），默认 2.0 秒
 --- @return number toastId Toast ID，用于手动关闭（失败时返回 0）
 function M:Show(uiName, params, duration)
-    -- 参数类型检查
+    -- 参数类型检查和错误处理统一化
     if type(uiName) ~= "string" or uiName == "" then
         Log.Error("UIToastManager", "Invalid uiName: expected non-empty string")
         return 0
@@ -46,6 +47,11 @@ function M:Show(uiName, params, duration)
     
     if duration ~= nil and type(duration) ~= "number" then
         Log.Error("UIToastManager", "Invalid duration: expected number")
+        return 0
+    end
+    
+    if params ~= nil and type(params) ~= "table" then
+        Log.Error("UIToastManager", "Invalid params: expected table or nil")
         return 0
     end
     
@@ -86,6 +92,11 @@ function M:Show(uiName, params, duration)
         -- 池中没有空闲实例，创建新的
         controller = self:CreateToast(uiName, config)
         if not controller then return 0 end
+    else
+        -- 复用前重置状态，防止数据污染
+        if controller.Reset then
+            pcall(function() controller:Reset() end)
+        end
     end
     
     -- 更新参数
@@ -94,18 +105,13 @@ function M:Show(uiName, params, duration)
     end
     
     -- 显示 Toast
-    if controller.Show then
-        local layerType = UILayerManager.LayerType and UILayerManager.LayerType.Toast or nil
-        local status, err = pcall(function() 
-            controller:Show(layerType) 
-        end)
-        if not status then
-            Log.Error("UIToastManager", "Show failed: " .. tostring(err))
-            return 0
-        end
-    else
+    if not controller.Show then
+        Log.Error("UIToastManager", "Controller has no Show method")
         return 0
     end
+    
+    local layerType = UILayerManager.LayerType and UILayerManager.LayerType.Toast or nil
+    controller:Show(layerType)
 
     -- 创建 Toast 信息
     local toastId = self.nextToastId
@@ -189,17 +195,20 @@ function M:Close(toastId, silent)
     for i, info in ipairs(self.toastList) do
         if info.toastId == toastId then
             -- 清理定时器
-            if info.timer and info.timer.stop then
-                pcall(function() info.timer:stop() end)
+            if info.timer then
+                if info.timer.stop then
+                    pcall(function() info.timer:stop() end)
+                end
                 info.timer = nil
             end
             
-            -- 隐藏并放回对象池
+            -- 隐藏并放回对象池或销毁
             if info.controller then
                 if info.controller.Hide then
                     pcall(function() info.controller:Hide() end)
                 end
                 
+                -- 确保 controller 要么回池，要么销毁，避免内存泄漏
                 if info.uiName then
                     local pool = self.toastCache[info.uiName]
                     if pool and #pool < MAX_POOL_SIZE then
@@ -207,6 +216,9 @@ function M:Close(toastId, silent)
                     elseif info.controller.Destroy then
                         pcall(function() info.controller:Destroy() end)
                     end
+                elseif info.controller.Destroy then
+                    -- uiName 为空时也要销毁，防止内存泄漏
+                    pcall(function() info.controller:Destroy() end)
                 end
             end
             
@@ -246,8 +258,19 @@ function M:UpdateToastPositions()
                 end
 
                 local slot = widget.Slot
-                if slot and slot.IsA and slot:IsA(UE.UCanvasPanelSlot) then
-                    slot:SetPosition(UE.FVector2D(0, currentY))
+                if slot and slot.IsA then
+                    if slot:IsA(UE.UCanvasPanelSlot) then
+                        slot:SetPosition(UE.FVector2D(0, currentY))
+                    elseif slot:IsA(UE.UOverlaySlot) then
+                        -- OverlaySlot 使用 Padding 进行定位
+                        local margin = UE.FMargin()
+                        margin.Top = currentY
+                        slot:SetPadding(margin)
+                        
+                        -- 覆盖默认的 Fill 对齐，防止拉伸
+                        slot:SetVerticalAlignment(UE.EVerticalAlignment.VAlign_Top)
+                        slot:SetHorizontalAlignment(UE.EHorizontalAlignment.HAlign_Center)
+                    end
                 end
                 
                 local height = 0
@@ -340,7 +363,7 @@ function M:ClearCache()
         if pool then
             for _, controller in ipairs(pool) do
                 if controller and controller.Destroy then
-                    controller:Destroy()
+                    pcall(function() controller:Destroy() end)
                 end
             end
         end
@@ -351,6 +374,16 @@ end
 
 --- 销毁 Toast 管理器
 function M:Destroy()
+    -- 强制清理所有定时器，防止定时器在 Toast 销毁后仍然触发
+    for _, info in ipairs(self.toastList) do
+        if info.timer then
+            if info.timer.stop then
+                pcall(function() info.timer:stop() end)
+            end
+            info.timer = nil
+        end
+    end
+    
     self:ClearCache()
     self.toastList = {}
     self.isInitialized = false

@@ -85,21 +85,43 @@ function M:Show(uiName, params)
     if not success then
         Log.Error("UIDialogManager", "Failed to show: " .. uiName .. ", " .. tostring(err))
         table.remove(self.dialogStack)
+        
+        -- 尝试清理状态，避免残留
+        pcall(function() 
+            if controller.Hide then controller:Hide() end
+        end)
+        
         return nil
     end
     
-    self:UpdateDialogZOrder()
+    -- UOverlay 的子元素按添加顺序堆叠，后添加的在上层
+    -- 如果需要将此 Dialog 置顶，需要先移除再添加
+    self:BringDialogToFront(controller)
     return controller
 end
 
---- 更新 Dialog ZOrder（栈顶在最上层）
-function M:UpdateDialogZOrder()
-    for i, info in ipairs(self.dialogStack) do
-        local view = info.controller and info.controller.GetView and info.controller:GetView()
-        if view and view.Slot and view.Slot.SetZOrder then
-            view.Slot:SetZOrder(i)
+--- 将 Dialog 置于最前（通过重新添加到层）
+--- UOverlay 中后添加的元素会显示在上层
+--- @param controller UIControllerBase Dialog 控制器
+function M:BringDialogToFront(controller)
+    if not controller then return end
+    
+    local view = controller.GetView and controller:GetView() or controller.view
+    if not view then return end
+    
+    local layer = UILayerManager:GetLayer(UILayerManager.LayerType.Dialog)
+    if not layer then return end
+    
+    -- 先从层中移除，再重新添加，确保在最上层
+    pcall(function()
+        layer:RemoveChild(view)
+        layer:AddChildToOverlay(view)
+        -- 恢复对齐方式
+        if view.Slot then
+            view.Slot:SetHorizontalAlignment(UE.EHorizontalAlignment.HAlign_Fill)
+            view.Slot:SetVerticalAlignment(UE.EVerticalAlignment.VAlign_Fill)
         end
-    end
+    end)
 end
 
 --- 关闭指定 Dialog
@@ -114,7 +136,7 @@ function M:Close(uiName)
                 info.controller:Hide()
             end
             table.remove(self.dialogStack, i)
-            self:UpdateDialogZOrder()
+            -- UOverlay 按添加顺序堆叠，无需更新 ZOrder
             return true
         end
     end
@@ -242,6 +264,11 @@ end
 --- 卸载（从缓存移除）
 ---@param uiName string
 function M:Unload(uiName)
+    -- 先检查是否在显示中，如果是则先关闭
+    if self:IsShowing(uiName) then
+        self:Close(uiName)
+    end
+    
     local controller = self.dialogCache[uiName]
     if controller then
         if controller.Destroy then
