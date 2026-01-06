@@ -14,7 +14,8 @@ M.LayerType = {
     Dialog = 2,   -- 对话框层
     Lock = 3,     -- 锁定层
     Messagebox = 4,   -- 消息框层
-    Toast = 5     -- 提示层
+    Toast = 5,    -- 提示层
+    Top = 6       -- 最上层
 }
 
 --- UI 层配置
@@ -23,7 +24,8 @@ local LAYER_CONFIG = {
     { name = "DialogLayer", type = M.LayerType.Dialog, zOrder = 10 },
     { name = "LockLayer", type = M.LayerType.Lock, zOrder = 20 },
     { name = "MessageboxLayer", type = M.LayerType.Messagebox, zOrder = 30 },
-    { name = "ToastLayer", type = M.LayerType.Toast, zOrder = 40 }
+    { name = "ToastLayer", type = M.LayerType.Toast, zOrder = 40 },
+    { name = "TopLayer", type = M.LayerType.Top, zOrder = 50 }
 }
 
 --- 初始化 UI 层管理器
@@ -33,7 +35,7 @@ function M:Initialize(gameInst)
         return
     end
     
-    -- 创建 5 个 UI 层
+    -- 创建 6 个 UI 层
     for _, config in ipairs(LAYER_CONFIG) do
         local layer = self:CreateLayer(config)
         self.layers[config.type] = layer
