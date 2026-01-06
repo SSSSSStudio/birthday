@@ -24,15 +24,15 @@ end
 --- 打开状态 UI（State 层级的 UI）
 --- @param uiName string UI 名称
 --- @param params table|nil 传递给 UI 的参数（可选）
+--- @param isCache boolean|nil 是否使用 LRU 缓存（默认为 true）
 --- @return UIControllerBase|nil 控制器实例
-function M.StateOpen(uiName, params)
-    return UIStateManager:OpenUI(uiName, params)
+function M.StateOpen(uiName, params, isCache)
+    return UIStateManager:OpenUI(uiName, params, isCache)
 end
 
 --- 关闭状态 UI（State 层级的 UI）
---- @param uiName string UI 名称
-function M.StateClose(uiName)
-    UIStateManager:CloseUI(uiName)
+function M.StateClose()
+    UIStateManager:CloseCurrentUIAndReopen()
 end
 
 --- 清空状态 UI 缓存

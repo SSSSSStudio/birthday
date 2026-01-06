@@ -3,16 +3,17 @@
 -- View 直接使用 Unlua 覆盖的 UMG，不需要额外的基类
 
 local LuaHelper = require("Utility.LuaHelper")
+local Log = require("Utility.Log")
 
 ---@class UIControllerBase
 local M = LuaHelper.LuaClass()
 
 --- 创建控制器实例
 --- @param view UUserWidget View 实例（Unlua 覆盖的 UMG Widget）
---- @param model table|nil Model 数据（可选）
+--- @param model UIModelBase|table|nil Model 实例或数据（可选）
 function M:__OnNew(view, model)
     self.view = view           -- View 实例
-	self.model = model or {}   -- Model 数据
+	self.model = model         -- Model 实例或数据
 	self.isActive = false      -- 是否激活
 	self.layerType = nil       -- 所属层级
 	self.isInitialized = false  -- 是否已初始化
@@ -20,6 +21,12 @@ function M:__OnNew(view, model)
 	-- 将 Controller 引用设置到 View 上，方便 View 访问 Controller
 	if view then
 		view.Controller = self
+		view.Model = self.model
+	end
+	
+	-- 将 Controller 引用设置到 Model 上，方便 Model 通知 Controller 更新 View
+	if model and model.SetController then
+		model:SetController(self)
 	end
 end
 
@@ -46,7 +53,10 @@ end
 
 --- 初始化 Model 数据（子类可以重写）
 function M:InitializeModel()
-    -- 子类可以重写此方法来初始化 Model 数据
+    -- 如果 Model 有 Initialize 方法，调用它
+    if self.model and self.model.Initialize then
+        self.model:Initialize()
+    end
 end
 
 --- 显示 UI
@@ -114,25 +124,24 @@ function M:Destroy()
         self.view = nil
     end
     
-    -- 清理 Model
-    self.model = nil
+    -- 销毁 Model
+    if self.model then
+        if self.model.Destroy then
+            self.model:Destroy()
+        end
+        self.model = nil
+    end
     
     self.isActive = false
     self.isInitialized = false
 end
 
 --- 更新 Model 数据
---- @param data table 新的数据
+--- @param data table 新的数据 对应UIManager.StateOpen(uiName, params)中的Param
 function M:UpdateModel(data)
-    if not data then
-        return
-    end
-    
-    -- 合并数据
-    for key, value in pairs(data) do
-        self.model[key] = value
-    end
-    
+	if self.model then
+		self.model:UpdateModel(data)
+	end
     -- 更新 View
     self:UpdateView()
 end
@@ -187,7 +196,7 @@ end
 
 --- UI 销毁时调用
 function M:OnDestroy()
-    -- 子类可以重写
+    -- 子类可以重写此
 end
 
 --- UI 每帧更新时调用（可选）
@@ -212,6 +221,11 @@ end
 --- @param buttonName string 按钮名称
 --- @param callback function 回调函数
 function M:BindButtonClick(buttonName, callback)
+	if callback == nil then
+		Log.Error("BindButtonClick: button:"..buttonName.." callback cannot be nil ")
+        return
+    end
+	
     local button = self:GetWidget(buttonName)
     if button and button.OnClicked then
         button.OnClicked:Add(self.view, callback)
@@ -268,5 +282,7 @@ function M:SetWidgetEnabled(widgetName, enabled)
         widget:SetIsEnabled(enabled)
     end
 end
+
+
 
 return M

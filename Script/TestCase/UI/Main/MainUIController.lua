@@ -1,13 +1,14 @@
 -- MainUIController.lua
 -- Main UI 控制器
 local LuaHelper = require("Utility.LuaHelper")
+local EventDispatcher = require("Core.EventDispatcher")
 
 ---@class MainUIController : UIControllerBase
 local M = LuaHelper.LuaClass("UI.Core.UIControllerBase")
 
 --- 创建控制器实例
 --- @param view UUserWidget View 实例
---- @param model table|nil Model 数据（可选）
+--- @param model MainUIModel|nil Model 实例（可选）
 function M:__OnNew(view, model)
     self.Super.__OnNew(self, view, model)
 end
@@ -16,25 +17,53 @@ end
 function M:BindViewEvents()
     -- 绑定按钮点击事件
     self:BindButtonClick("ButtonClose", self.OnButtonCloseClick)
-    self:BindButtonClick("CloseButton", self.OnCloseButtonClick)
-end
-
---- 初始化 Model 数据
-function M:InitializeModel()
-    self.model.title = "Main UI"
-    self.model.count = 0
-end
-
---- 更新 View 显示
-function M:UpdateView()
-    self:SetText("TitleText", self.model.title)
-    self:SetText("CountText", "Count: " .. tostring(self.model.count))
+    self:BindButtonClick("ButtonExp", self.OnButtonExpClick)
+	self:BindButtonClick("ButtonEvent", self.OnButtonEventClick)
+	self:BindButtonClick("ButtonPet", self.OnButtonPetClick)
 end
 
 --- 打开按钮点击事件
 function M:OnButtonCloseClick()
-    print("Open button clicked")
-    self.model.count = self.model.count + 1
+	print("Open button clicked")
+	local UIManager = require("UI.Core.UIManager")
+	UIManager.StateClose("Main")
+end
+
+--- 经验按钮点击事件
+function M:OnButtonExpClick()
+	print("Exp button clicked")
+	EventDispatcher.Dispatch("Character.AddExp",  200)
+end
+
+function M:OnButtonEventClick()
+	print("Event button clicked")
+	EventDispatcher.Dispatch("Main.EventTest", { su=12,gen={1,2,"sugen"} })
+end
+
+function M:OnButtonPetClick()
+    print("Pet button clicked")
+    local UIManager = require("UI.Core.UIManager")
+    UIManager.StateOpen("PetMain")
+end
+
+--- 更新 View 显示
+function M:UpdateView()
+    if not self.model then
+        return
+    end
+    
+    -- 从 Model 获取数据并更新 View
+    self:SetText("TitleText", self.model:Get("title", "Main UI"))
+    self:SetText("CountText", "Count: " .. tostring(self.model:Get("count", 0)))
+    
+    -- 如果有等级和经验相关的控件，也可以更新
+    local level = self.model:Get("level", 1)
+    local expPercent = 0
+    if self.model.GetExpPercent then
+        expPercent = self.model:GetExpPercent()
+    end
+    self:SetText("LevelText", "Level: " .. tostring(level))
+    self:SetText("ExpText", "Exp: " .. string.format("%.1f%%", expPercent))
 end
 
 --- 关闭按钮点击事件

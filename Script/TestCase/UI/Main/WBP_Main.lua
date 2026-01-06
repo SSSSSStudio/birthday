@@ -18,7 +18,8 @@ function M:PreConstruct(IsDesignTime)
 end
 
  function M:Construct()
-	 print("Construct",self.ButtonClose)
+	 print("Construct",self.ButtonClose,self.Controller.UpdateView,self.Model.sugen)
+	 
  end
 
 --function M:Tick(MyGeometry, InDeltaTime)
