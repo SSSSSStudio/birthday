@@ -8,21 +8,11 @@ local UILockManager = require "UI.Core.Private.UILockManager"
 local UIMsgBoxManager = require "UI.Core.Private.UIMsgBoxManager"
 local UIToastManager = require "UI.Core.Private.UIToastManager"
 local UITopManager = require "UI.Core.Private.UITopManager"
-local UIConfig = require "UI.Core.UIConfig"
 
 ---@class UIManager
 local M = {
 	isInitialized = false,
 	gameInstance = nil,
-	-- 层级管理器映射表
-	layerManagers = {
-		[UILayerManager.LayerType.State] = UIStateManager,
-		[UILayerManager.LayerType.Dialog] = UIDialogManager,
-		[UILayerManager.LayerType.Lock] = UILockManager,
-		[UILayerManager.LayerType.Messagebox] = UIMsgBoxManager,
-		[UILayerManager.LayerType.Toast] = UIToastManager,
-		[UILayerManager.LayerType.Top] = UITopManager
-	}
 }
 
 ---初始化UI管理器
@@ -35,6 +25,8 @@ function M.Initialize(gameInst)
 	M.isInitialized = true
 end
 
+-- ========== 主界面，宠物界面等 统一接口 ==========
+
 --- 打开状态 UI（State 层级的 UI）
 --- @param uiName string UI 名称
 --- @param params table|nil 传递给 UI 的参数（可选）
@@ -44,99 +36,35 @@ function M.StateOpen(uiName, params, isCacheCurrent)
     return UIStateManager:OpenUI(uiName, params, isCacheCurrent)
 end
 
----获取层级管理器
----@param layer number 层级类型
----@return table 层级管理器
-local function GetLayerManager(layer)
-	return M.layerManagers[layer] or UIStateManager
+--- 关闭状态 UI（State 层级的 UI）
+function M.StateClose()
+    return UIStateManager:CloseCurrentUIAndReopen()
 end
 
--- ========== 对外统一接口 ==========
+-- ========== 对话框UI ==========
 
----显示UI界面（根据配置的Layer自动选择层级）
+---打开对话框UI
 ---@param uiName string UI名称
----@param ... any 传递给UI的参数
-function M.ShowUI(uiName, ...)
-	local config = GetUIConfig(uiName)
-	if not config then
-		print(string.format("[UIManager] UI '%s' not found", uiName))
-		return
-	end
-
-	local layer = config.Layer or UILayerManager.LayerType.State
-	local manager = GetLayerManager(layer)
-	local params = {...}
-	
-	-- 根据层级调用对应方法
-	if layer == UILayerManager.LayerType.State then
-		return manager:OpenUI(uiName, params[1])
-	elseif layer == UILayerManager.LayerType.Dialog then
-		return manager:OpenDialog(uiName, params[1])
-	elseif layer == UILayerManager.LayerType.Top then
-		return manager:ShowTopUI(uiName, params[1])
-	end
+---@param params table|nil 传递给UI的参数（可选）
+---@return UIControllerBase|nil 控制器实例
+function M.DialogOpen(uiName, params)
+    return UIDialogManager:OpenDialog(uiName, params)
 end
 
----隐藏UI界面（根据配置的Layer自动选择层级）
+---关闭对话框UI
 ---@param uiName string UI名称
-function M.HideUI(uiName)
-	local config = GetUIConfig(uiName)
-	if not config then
-		print(string.format("[UIManager] UI '%s' not found", uiName))
-		return
-	end
-
-	local layer = config.Layer or UILayerManager.LayerType.State
-	local manager = GetLayerManager(layer)
-	
-	-- 根据层级调用对应方法
-	if layer == UILayerManager.LayerType.State then
-		manager:CloseCurrentUIAndReopen()
-	elseif layer == UILayerManager.LayerType.Dialog then
-		manager:CloseDialog(uiName)
-	elseif layer == UILayerManager.LayerType.Top then
-		manager:HideTopUI(uiName)
-	end
+function M.DialogClose(uiName)
+    return UIDialogManager:CloseDialog(uiName)
 end
 
----切换UI（仅State层有效）
----@param uiName string UI名称
----@param ... any 传递给UI的参数
-function M.SwitchUI(uiName, ...)
-	local config = GetUIConfig(uiName)
-	if not config then
-		print(string.format("[UIManager] UI '%s' not found", uiName))
-		return
-	end
-
-	local layer = config.Layer or UILayerManager.LayerType.State
-	if layer ~= UILayerManager.LayerType.State then
-		print(string.format("[UIManager] SwitchUI only for State layer, '%s' is layer %d", uiName, layer))
-		return
-	end
-
-	local params = {...}
-	return UIStateManager:OpenUI(uiName, params[1])
+---关闭顶层Dialog
+function M.CloseTopDialog()
+	UIDialogManager:CloseTopDialog()
 end
 
----检查UI是否显示
----@param uiName string UI名称
----@return boolean 是否显示
-function M.IsUIShowing(uiName)
-	local config = GetUIConfig(uiName)
-	if not config then return false end
-
-	local layer = config.Layer or UILayerManager.LayerType.State
-	
-	if layer == UILayerManager.LayerType.State then
-		return UIStateManager:IsUIShowing(uiName)
-	elseif layer == UILayerManager.LayerType.Dialog then
-		return UIDialogManager:IsDialogShowing(uiName)
-	elseif layer == UILayerManager.LayerType.Top then
-		return UITopManager:IsTopUIShowing(uiName)
-	end
-	
-	return false
+---关闭所有Dialog
+function M.CloseAllDialogs()
+	UIDialogManager:CloseAllDialogs()
 end
 
 -- ========== Toast消息 ==========
@@ -183,16 +111,6 @@ function M.ShowCustomDialog(title, content, confirmText, cancelText, confirmCall
 	UIMsgBoxManager:ShowCustomDialog(title, content, confirmText, cancelText, confirmCallback, cancelCallback)
 end
 
----关闭顶层Dialog
-function M.CloseTopDialog()
-	UIDialogManager:CloseTopDialog()
-end
-
----关闭所有Dialog
-function M.CloseAllDialogs()
-	UIDialogManager:CloseAllDialogs()
-end
-
 -- ========== 锁定界面 ==========
 
 ---显示锁定界面
@@ -212,34 +130,27 @@ function M.IsLocked()
 	return UILockManager:IsLocked()
 end
 
--- ========== 配置管理 ==========
 
----注册UI
+-- ========== 顶层UI ==========
+
+---打开顶层UI
 ---@param uiName string UI名称
----@param config table UI配置
-function M.RegisterUI(uiName, config)
-	UIConfig:RegisterConfig(uiName, config)
+---@param params table|nil 传递给UI的参数（可选）
+---@return UIControllerBase|nil 控制器实例
+function M.TopOpen(uiName, params)
+	return UITopManager:ShowTopUI(uiName, params)
 end
 
----批量注册UI
----@param configs table UI配置表
-function M.RegisterUIBatch(configs)
-	UIConfig:RegisterConfigs(configs)
-end
-
----获取UI配置
+---关闭顶层UI
 ---@param uiName string UI名称
----@return table|nil UI配置
-function M.GetUIConfig(uiName)
-	return UIConfig:GetConfig(uiName)
+function M.TopClose(uiName)
+	return UITopManager:HideTopUI(uiName)
 end
-
--- ========== 系统管理 ==========
 
 ---销毁UI管理器
 function M.Destroy()
 	UILayerManager:Destroy()
-	UIStateManager:ClearCache()
+	UIStateManager:Destroy()
 	UIDialogManager:CloseAllDialogs()
 	UIToastManager:ClearQueue()
 	UITopManager:HideAllTopUI()
