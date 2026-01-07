@@ -34,7 +34,7 @@ end
 function M:OnButtonCloseClick()
 	print("Open button clicked")
 	local UIManager = require("UI.Core.UIManager")
-	UIManager.StateClose()
+	UIManager.State_Close()
 end
 
 --- 经验按钮点击事件
@@ -55,7 +55,7 @@ end
 function M:OnButtonPetClick()
 	print("Pet button clicked")
 	local UIManager = require("UI.Core.UIManager")
-	UIManager.StateOpen("PetMain")
+	UIManager.State_Open("PetMain")
 end
 
 --function M:Tick(MyGeometry, InDeltaTime)

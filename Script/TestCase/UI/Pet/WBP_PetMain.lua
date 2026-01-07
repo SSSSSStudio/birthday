@@ -43,13 +43,13 @@ end
 function M:OnButtonCloseClick()
 	print("PetMain: Close button clicked")
 	local UIManager = require("UI.Core.UIManager")
-	UIManager.StateClose()
+	UIManager.State_Close()
 end
 
 function M:OnButtonMainClick()
 	print("PetMain: Open Main button clicked")
 	local UIManager = require("UI.Core.UIManager")
-	UIManager.StateOpen("Main")
+	UIManager.State_Open("Main")
 end
 
 --修改标题

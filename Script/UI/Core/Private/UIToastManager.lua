@@ -1,63 +1,60 @@
 -- UIToastManager.lua
--- Toast 提示管理器，负责管理 Toast 层级的 UI
--- 支持多个 Toast 同时显示，自动消失
+-- Toast 管理器：支持多个提示同时显示
 
 local UILayerManager = require("UI.Core.Private.UILayerManager")
 local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
 local EventLoop = require("Core.EventLoop")
 
+local DEFAULT_DURATION = 2.0
+local TOAST_SPACING = 10
+local MAX_TOAST_COUNT = 3
+local DEFAULT_TOAST_HEIGHT = 20
+local TOAST_START_Y = 20
+local MAX_POOL_SIZE = 3
+
 ---@class UIToastManager
 local M = {
-    toastCache = {},         -- Toast 对象池（按 uiName 分组的空闲实例列表）
-    toastList = {},          -- 当前显示的 Toast 列表
-    nextToastId = 1,         -- 下一个 Toast ID
-    isInitialized = false,   -- 是否已初始化
+    toastCache = {},
+    toastList = {},
+    toastQueue = {},
+    nextToastId = 1,
+    isInitialized = false,
 }
 
---- Toast 配置常量
-local DEFAULT_DURATION = 2.0  -- 默认显示时长（秒）
-local TOAST_SPACING = 10      -- Toast 之间的间距（像素）
-local MAX_TOAST_COUNT = 3     -- 最大 Toast 堆叠数量
-local DEFAULT_TOAST_HEIGHT = 60  -- 默认 Toast 高度（像素）
-local TOAST_START_Y = 50      -- Toast 起始 Y 坐标（像素）
-local MAX_POOL_SIZE = 5       -- 每种 Toast 最多缓存数量
-
---- 初始化 Toast 管理器
 function M:Initialize()
     if self.isInitialized then return end
     
     self.toastCache = {}
     self.toastList = {}
+    self.toastQueue = {}
     self.nextToastId = 1
     self.isInitialized = true
 end
 
---- 显示 Toast
---- @param uiName string UI 名称（对应 UIConfig 中的键名）
---- @param params table|nil 传递给 UI 的参数（可选）
---- @param duration number|nil 显示时长（秒），默认 2.0 秒
---- @return number toastId Toast ID，用于手动关闭（失败时返回 0）
+---显示 Toast
+---@param uiName string UI 名称
+---@param params table|nil 参数
+---@param duration number|nil 显示时长（秒，默认 2.0）
+---@return number Toast ID（失败返回 0）
 function M:Show(uiName, params, duration)
-    -- 参数类型检查和错误处理统一化
     if type(uiName) ~= "string" or uiName == "" then
-        Log.Error("UIToastManager", "Invalid uiName: expected non-empty string")
+        Log.Error("UIToastManager", "Invalid uiName")
         return 0
     end
     
     if duration ~= nil and type(duration) ~= "number" then
-        Log.Error("UIToastManager", "Invalid duration: expected number")
+        Log.Error("UIToastManager", "Invalid duration")
         return 0
     end
     
     if params ~= nil and type(params) ~= "table" then
-        Log.Error("UIToastManager", "Invalid params: expected table or nil")
+        Log.Error("UIToastManager", "Invalid params")
         return 0
     end
     
     self:Initialize()
 
-    -- 确保 UILayerManager 已初始化
     if UILayerManager.Initialize and not UILayerManager.isInitialized then
         UILayerManager:Initialize()
     end
@@ -68,43 +65,40 @@ function M:Show(uiName, params, duration)
         return 0
     end
 
-    -- 移除多余的 Toast（防止死循环）
-    local maxAttempts = MAX_TOAST_COUNT + 1
-    local attempts = 0
-    while #self.toastList >= MAX_TOAST_COUNT and attempts < maxAttempts do
-        if not self:Close(self.toastList[1].toastId, true) then
-            Log.Error("UIToastManager", "Failed to close oldest toast")
-            break
-        end
-        attempts = attempts + 1
+    -- 达到最大数量，加入等待队列
+    if #self.toastList >= MAX_TOAST_COUNT then
+        local toastId = self.nextToastId
+        self.nextToastId = self.nextToastId + 1
+        
+        table.insert(self.toastQueue, {
+            toastId = toastId,
+            uiName = uiName,
+            params = params,
+            duration = duration or DEFAULT_DURATION,
+        })
+        return toastId
     end
     
-    -- 从对象池获取或创建 Toast
     local pool = self.toastCache[uiName]
     if not pool then
         pool = {}
         self.toastCache[uiName] = pool
     end
     
-    -- 尝试从池中取一个空闲实例
     local controller = table.remove(pool)
     if not controller then
-        -- 池中没有空闲实例，创建新的
         controller = self:CreateToast(uiName, config)
         if not controller then return 0 end
     else
-        -- 复用前重置状态，防止数据污染
         if controller.Reset then
             pcall(function() controller:Reset() end)
         end
     end
     
-    -- 更新参数
     if params and controller.UpdateModel then
         controller:UpdateModel(params)
     end
     
-    -- 显示 Toast
     if not controller.Show then
         Log.Error("UIToastManager", "Controller has no Show method")
         return 0
@@ -113,7 +107,6 @@ function M:Show(uiName, params, duration)
     local layerType = UILayerManager.LayerType and UILayerManager.LayerType.Toast or nil
     controller:Show(layerType)
 
-    -- 创建 Toast 信息
     local toastId = self.nextToastId
     self.nextToastId = self.nextToastId + 1
     
@@ -125,41 +118,43 @@ function M:Show(uiName, params, duration)
     }
     
     table.insert(self.toastList, toastInfo)
-    
-    -- 更新位置并启动定时器
     self:UpdateToastPositions()
     self:StartAutoCloseTimer(toastInfo)
     
     return toastId
 end
 
---- 创建 Toast 实例
---- @param uiName string UI 名称
---- @param config table UI 配置
---- @return UIControllerBase|nil 控制器实例
+---创建 Toast 实例
+---@param uiName string UI 名称
+---@param config table UI 配置
+---@return UIControllerBase|nil
 function M:CreateToast(uiName, config)
-    local ViewClass = config[1]
-    local ControllerClass = config[2]
-    local ModelData = config[3] or {}
+    local ViewClass = UE.UClass.Load(config.ViewPath)
     
-    if not ViewClass or not ControllerClass then
+    if not ViewClass or not config.ControllerClass then
         Log.Error("UIToastManager", "Invalid config: " .. tostring(uiName))
         return nil
     end
     
-    local world = UE.GetWorld()
+    local world = UILayerManager.gameInstance:GetWorld()
     if not world then
         Log.Error("UIToastManager", "Failed to get world")
         return nil
     end
+    
+    local playerController = UE.UGameplayStatics.GetPlayerController(world, 0)
+    if not playerController then
+        Log.Error("UIToastManager", "Failed to get PlayerController")
+        return nil
+    end
 
-    local view = UE.UWidgetBlueprintLibrary.Create(world, ViewClass, nil)
+    local view = UE.UWidgetBlueprintLibrary.Create(world, ViewClass, playerController)
     if not view then
         Log.Error("UIToastManager", "Failed to create View: " .. tostring(uiName))
         return nil
     end
     
-    local controller = ControllerClass.new(view, ModelData)
+    local controller = config.ControllerClass.New(config.ControllerClass, view, config.ModelClass or {})
     if not controller then
         Log.Error("UIToastManager", "Failed to create Controller: " .. tostring(uiName))
         return nil
@@ -172,8 +167,8 @@ function M:CreateToast(uiName, config)
     return controller
 end
 
---- 启动自动关闭定时器
---- @param toastInfo table Toast 信息
+---启动自动关闭定时器
+---@param toastInfo table
 function M:StartAutoCloseTimer(toastInfo)
     local durationMs = math.floor((toastInfo.duration or DEFAULT_DURATION) * 1000)
     local toastId = toastInfo.toastId
@@ -181,20 +176,76 @@ function M:StartAutoCloseTimer(toastInfo)
     toastInfo.timer = EventLoop.Timeout(durationMs, function()
         if self:IsShowing(toastId) then
             self:Close(toastId)
+            -- 关闭后尝试显示队列中的下一个 Toast
+            self:ShowNextFromQueue()
         end
     end, false)
 end
 
---- 关闭指定 Toast
---- @param toastId number Toast ID
---- @param silent boolean|nil 是否静默关闭（不触发重排），用于批量操作
---- @return boolean true 如果成功关闭，false 如果 Toast 不存在
+---从队列显示下一个 Toast
+function M:ShowNextFromQueue()
+    if #self.toastQueue == 0 or #self.toastList >= MAX_TOAST_COUNT then
+        return
+    end
+    
+    local queuedToast = table.remove(self.toastQueue, 1)
+    if not queuedToast then return end
+    
+    local config = UIConfig[queuedToast.uiName]
+    if not config then
+        Log.Error("UIToastManager", "UI config not found for queued toast: " .. tostring(queuedToast.uiName))
+        return
+    end
+    
+    local pool = self.toastCache[queuedToast.uiName]
+    if not pool then
+        pool = {}
+        self.toastCache[queuedToast.uiName] = pool
+    end
+    
+    local controller = table.remove(pool)
+    if not controller then
+        controller = self:CreateToast(queuedToast.uiName, config)
+        if not controller then return end
+    else
+        if controller.Reset then
+            pcall(function() controller:Reset() end)
+        end
+    end
+    
+    if queuedToast.params and controller.UpdateModel then
+        controller:UpdateModel(queuedToast.params)
+    end
+    
+    if not controller.Show then
+        Log.Error("UIToastManager", "Controller has no Show method")
+        return
+    end
+    
+    local layerType = UILayerManager.LayerType and UILayerManager.LayerType.Toast or nil
+    controller:Show(layerType)
+
+    local toastInfo = {
+        toastId = queuedToast.toastId,
+        uiName = queuedToast.uiName,
+        controller = controller,
+        duration = queuedToast.duration,
+    }
+    
+    table.insert(self.toastList, toastInfo)
+    self:UpdateToastPositions()
+    self:StartAutoCloseTimer(toastInfo)
+end
+
+---关闭指定 Toast
+---@param toastId number Toast ID
+---@param silent boolean|nil 是否静默关闭（不触发重排）
+---@return boolean
 function M:Close(toastId, silent)
     if not self.isInitialized then return false end
     
     for i, info in ipairs(self.toastList) do
         if info.toastId == toastId then
-            -- 清理定时器
             if info.timer then
                 if info.timer.stop then
                     pcall(function() info.timer:stop() end)
@@ -202,13 +253,11 @@ function M:Close(toastId, silent)
                 info.timer = nil
             end
             
-            -- 隐藏并放回对象池或销毁
             if info.controller then
                 if info.controller.Hide then
                     pcall(function() info.controller:Hide() end)
                 end
                 
-                -- 确保 controller 要么回池，要么销毁，避免内存泄漏
                 if info.uiName then
                     local pool = self.toastCache[info.uiName]
                     if pool and #pool < MAX_POOL_SIZE then
@@ -217,7 +266,6 @@ function M:Close(toastId, silent)
                         pcall(function() info.controller:Destroy() end)
                     end
                 elseif info.controller.Destroy then
-                    -- uiName 为空时也要销毁，防止内存泄漏
                     pcall(function() info.controller:Destroy() end)
                 end
             end
@@ -234,7 +282,7 @@ function M:Close(toastId, silent)
     return false
 end
 
---- 关闭所有 Toast
+---关闭所有 Toast
 function M:CloseAll()
     if not self.isInitialized then return end
     
@@ -242,10 +290,17 @@ function M:CloseAll()
         self:Close(self.toastList[i].toastId, true)
     end
     
+    self.toastQueue = {}
     self:UpdateToastPositions()
 end
 
---- 更新所有 Toast 的位置（从上到下堆叠）
+---清空等待队列
+function M:ClearQueue()
+    if not self.isInitialized then return end
+    self.toastQueue = {}
+end
+
+---更新所有 Toast 位置
 function M:UpdateToastPositions()
     local currentY = TOAST_START_Y
     
@@ -287,26 +342,29 @@ function M:UpdateToastPositions()
     end
 end
 
---- 获取当前显示的 Toast 数量
---- @return number Toast 数量
+---获取当前显示数量
+---@return number
 function M:GetCount()
     return #self.toastList
 end
 
---- 检查指定 Toast 是否正在显示
---- @param toastId number Toast ID
---- @return boolean true 如果正在显示，false 否则
+---检查是否正在显示或在队列中
+---@param toastId number Toast ID
+---@return boolean
 function M:IsShowing(toastId)
     for _, info in ipairs(self.toastList) do
+        if info.toastId == toastId then return true end
+    end
+    for _, info in ipairs(self.toastQueue) do
         if info.toastId == toastId then return true end
     end
     return false
 end
 
---- 预加载 Toast（提前创建并放入对象池，但不显示）
---- @param uiName string UI 名称
---- @param count number|nil 预加载数量，默认 1
---- @return boolean true 如果成功预加载
+---预加载 Toast
+---@param uiName string UI 名称
+---@param count number|nil 预加载数量（默认 1）
+---@return boolean
 function M:Preload(uiName, count)
     self:Initialize()
     
@@ -324,9 +382,7 @@ function M:Preload(uiName, count)
         self.toastCache[uiName] = pool
     end
     
-    -- 检查池中现有数量，避免重复创建
-    local currentCount = #pool
-    local needCreate = math.max(0, count - currentCount)
+    local needCreate = math.max(0, count - #pool)
     
     for i = 1, needCreate do
         local controller = self:CreateToast(uiName, config)
@@ -341,8 +397,8 @@ function M:Preload(uiName, count)
     return true
 end
 
---- 手动卸载指定 Toast（从对象池中移除并销毁）
---- @param uiName string UI 名称
+---卸载指定 Toast
+---@param uiName string UI 名称
 function M:Unload(uiName)
     local pool = self.toastCache[uiName]
     if pool then
@@ -355,7 +411,7 @@ function M:Unload(uiName)
     end
 end
 
---- 清空对象池
+---清空对象池
 function M:ClearCache()
     self:CloseAll()
     
@@ -372,9 +428,8 @@ function M:ClearCache()
     self.toastCache = {}
 end
 
---- 销毁 Toast 管理器
+---销毁管理器
 function M:Destroy()
-    -- 强制清理所有定时器，防止定时器在 Toast 销毁后仍然触发
     for _, info in ipairs(self.toastList) do
         if info.timer then
             if info.timer.stop then
@@ -386,6 +441,7 @@ function M:Destroy()
     
     self:ClearCache()
     self.toastList = {}
+    self.toastQueue = {}
     self.isInitialized = false
 end
 
