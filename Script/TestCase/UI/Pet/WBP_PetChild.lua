@@ -32,8 +32,4 @@ function M:OnButtonCallFuncMain()
     print("OnButtonCallFuncMain")
 end
 
-
---function M:Tick(MyGeometry, InDeltaTime)
---end
-
 return M

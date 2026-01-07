@@ -35,20 +35,11 @@ function M:Initialize()
     if self.isInitialized then
         return
     end
-    
-    -- 绑定 View 事件
-    --self:BindViewEvents()
-    
+	
     -- 初始化 Model 数据
     self:InitializeModel()
     
     self.isInitialized = true
-end
-
---- 绑定 View 事件（子类必须实现）
-function M:BindViewEvents()
-    -- 子类需要重写此方法来绑定 View 的事件
-    -- 例如：self.view.Button.OnClicked:Add(self, self.OnButtonClick)
 end
 
 --- 初始化 Model 数据（子类可以重写）
@@ -75,8 +66,6 @@ function M:Show(layerType)
     if self.layerType and self.view then
         local UILayerManager = require "UI.Core.Private.UILayerManager"
         UILayerManager:AddToLayer(self.view, self.layerType)
-		-- 绑定 View 事件
-		self:BindViewEvents()
     end
     
     -- 设置可见性
@@ -134,22 +123,6 @@ function M:Destroy()
     
     self.isActive = false
     self.isInitialized = false
-end
-
---- 更新 Model 数据
---- @param data table 新的数据 对应UIManager.StateOpen(uiName, params)中的Param
-function M:UpdateModel(data)
-	if self.model then
-		self.model:UpdateModel(data)
-	end
-    -- 更新 View
-    self:UpdateView()
-end
-
---- 更新 View 显示（子类必须实现）
-function M:UpdateView()
-    -- 子类需要重写此方法来根据 Model 更新 View
-    -- 例如：self.view.TextBlock:SetText(self.model.title)
 end
 
 --- 获取 View 实例

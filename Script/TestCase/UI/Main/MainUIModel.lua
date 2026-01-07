@@ -37,11 +37,6 @@ function M:Initialize()
 	--网络监听 更新数据
 end
 
-function M:UpdateModel(data)
-	-- 子类可以重写此方法来更新数据
-	print("MainUIModel.UpdateModel:",data)
-end
-
 function M:EventTest(data)
     print("MainUIModel.EventTest:")
 	Log.PrintT(data)

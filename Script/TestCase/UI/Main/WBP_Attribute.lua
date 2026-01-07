@@ -9,17 +9,8 @@
 ---@type WBP_Attribute_C
 local M = UnLua.Class()
 
---function M:Initialize(Initializer)
---end
-
---function M:PreConstruct(IsDesignTime)
---end
-
  function M:Construct()
  end
-
---function M:Tick(MyGeometry, InDeltaTime)
---end
 
 --- 更新属性显示
 --- @param AttrData table 属性数据，包含LV、Exp、MP字段
