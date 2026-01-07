@@ -194,6 +194,12 @@ function M.Top_IsShowing(uiName)
 	return UITopManager:IsShowing(uiName)
 end
 
+---获取GameInstance
+------@return GI_G01GameInstance_C
+function M.GetGameInstance()
+    return M.gameInstance
+end
+
 ---销毁UI管理器
 function M.Destroy()
 	UILayerManager:Destroy()

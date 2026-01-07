@@ -60,11 +60,6 @@ function M:OpenUI(uiName, params, isCacheCurrent)
     if not controller then
         return nil
 	end
-
-	-- 更新参数
-	if params and controller.UpdateModel then
-		controller:UpdateModel(params)
-	end
 	
     -- 显示 UI
     if controller.Show then
