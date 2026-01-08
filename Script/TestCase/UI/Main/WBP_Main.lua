@@ -27,6 +27,11 @@ end
 	 self.ButtonLock.OnClicked:Add(self, self.OnButtonLock)
 	 self.ButtonTop.OnClicked:Add(self, self.OnButtonTop)
 	 self.ButtonAllTest.OnClicked:Add(self, self.OnButtonAllTest)
+	 self.ButtonOther.OnClicked:Add(self, self.OnButtonOther)
+	 self.ButtonGuideTest1.OnClicked:Add(self, self.OnButtonGuideTest1)
+	 self.ButtonGuideTest2.OnClicked:Add(self, self.OnButtonGuideTest2)
+	 self.ButtonAddRedPoint.OnClicked:Add(self, self.OnButtonAddRedPoint)
+	 self.ButtonRemoveRedPoint.OnClicked:Add(self, self.OnButtonRemoveRedPoint)
 	 
 	 ---@type WBP_Attribute_C
 	 self.AttrView = self.WBP_Attribute_97;
@@ -105,6 +110,44 @@ function M:OnButtonAllTest()
 	-- 运行UI测试
 	local UIManagerTest = require("TestCase.UI.UIManagerTest")
 	UIManagerTest.TestMultiLayer()
+end
+
+function M:OnButtonOther()
+    print("Other button clicked")
+end
+
+function M:OnButtonGuideTest1()
+	self.CanvasPanel_71:Setvisibility(UE.ESlateVisibility.Visible)
+	local UITool = require("UI.Core.UITool")
+	local NewWidget,Button = UITool.DuplicateWidgetToLayer(self.CanvasPanel_71, "Main", "ButtonToast")
+	Button.OnClicked:Add(self, function() 
+		print("NewWidget clicked")
+		self:OnButtonToast()
+		self.CanvasPanel_71:Setvisibility(UE.ESlateVisibility.Hidden)
+		NewWidget:RemoveFromParent()
+	end)
+end
+
+function M:OnButtonGuideTest2()
+	self.CanvasPanel_71:Setvisibility(UE.ESlateVisibility.Visible)
+	local UITool = require("UI.Core.UITool")
+	local NewWidget,Button = UITool.DuplicateWidgetToLayer(self.CanvasPanel_71, "Main", "ButtonClose")
+	Button.OnClicked:Add(self, function()
+		print("NewWidget clicked")
+		self:OnButtonCloseClick()
+		self.CanvasPanel_71:Setvisibility(UE.ESlateVisibility.Hidden)
+		NewWidget:RemoveFromParent()
+	end)
+end
+
+function M:OnButtonAddRedPoint()
+	local UITool = require("UI.Core.UITool")
+	UITool.AddRedDotToButton(self.ButtonClose)
+end
+
+function M:OnButtonRemoveRedPoint()
+    local UITool = require("UI.Core.UITool")
+    UITool.RemoveRedDotFromButton(self.ButtonClose)
 end
 
 --function M:Tick(MyGeometry, InDeltaTime)
