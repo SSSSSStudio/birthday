@@ -59,8 +59,8 @@ function M:Show(uiName, params)
             table.insert(self.dialogStack, info)
             
             -- 更新数据
-            if params and controller.UpdateModel then
-                controller:UpdateModel(params)
+            if params and controller.model and controller.model.UpdateModel then
+                controller.model:UpdateModel(params)
             end
             
             -- 确保显示并置顶
@@ -81,8 +81,8 @@ function M:Show(uiName, params)
         self.dialogCache[uiName] = controller
     end
     
-    if params and controller.UpdateModel then
-        controller:UpdateModel(params)
+    if params and controller.model and controller.model.UpdateModel then
+        controller.model:UpdateModel(params)
     end
     
     table.insert(self.dialogStack, {

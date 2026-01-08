@@ -205,9 +205,12 @@ function M.Destroy()
 	UILayerManager:Destroy()
 	UIStateManager:Destroy()
 	UIDialogManager:Destroy()
-	UIToastManager:ClearQueue()
+	UIToastManager:Destroy()
+	UIMsgBoxManager:Destroy()
+	UILockManager:Destroy()
 	UITopManager:Destroy()
 	M.isInitialized = false
+	M.gameInstance = nil
 end
 
 return M

@@ -33,8 +33,12 @@ function M:OpenUI(uiName, params, isCacheCurrent)
         self:Initialize()
     end
 	
+	-- 如果重复打开同一界面，更新参数并返回当前 controller
 	if self.currentUI == uiName then
-		return
+		if params and self.currentController and self.currentController.model and self.currentController.model.UpdateModel then
+			self.currentController.model:UpdateModel(params)
+		end
+		return self.currentController
     end
 
 	-- 默认使用缓存
@@ -55,19 +59,24 @@ function M:OpenUI(uiName, params, isCacheCurrent)
         return nil
 	end
 
-    -- 如果当前有 UI，先关闭它
+	-- 从历史栈中移除即将打开的 UI（避免重复）
+	self.uiRecordStack:Remove(uiName)
+
+    -- 如果当前有 UI，缓存并关闭它
     if self.currentUI and isCacheCurrent then
 		self.uiRecordStack:Push(self.currentUI)
         self:CloseCurrentUI()
     end
 	
+	-- 传递参数给 Model
+	if params and controller.model and controller.model.UpdateModel then
+		controller.model:UpdateModel(params)
+	end
+	
     -- 显示 UI
     if controller.Show then
         controller:Show(UILayerManager.LayerType.State)
     end
-
-	-- 移除当前 UI
-	self.uiRecordStack:Remove(uiName)
     -- 更新当前 UI
     self.currentUI = uiName
 	self.currentController = controller
