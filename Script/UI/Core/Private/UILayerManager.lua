@@ -4,6 +4,7 @@
 ---@class UILayerManager
 local M = {
 	layers = {},
+	layersRef = {},
 	isInitialized = false,
 	gameInstance = nil
 }
@@ -39,6 +40,7 @@ function M:Initialize(gameInst)
     for _, config in ipairs(LAYER_CONFIG) do
         local layer = self:CreateLayer(config)
         self.layers[config.type] = layer
+		self.layersRef[config.type] = UnLua.Ref(layer)
     end
     
     self.isInitialized = true
@@ -121,10 +123,14 @@ function M:Destroy()
         if layer then
             layer:RemoveFromParent()
             self.layers[layerType] = nil
+			self.layersRef[layerType] = nil
         end
     end
-    
+	
+	self.layers = {}
+	self.layersRef = {}
     self.isInitialized = false
+	gameInstance = nil
 end
 
 return M

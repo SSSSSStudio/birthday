@@ -21,6 +21,13 @@ end
 	 self.ButtonEvent.OnClicked:Add(self, self.OnButtonEventClick)
 	 self.ButtonPet.OnClicked:Add(self, self.OnButtonPetClick)
 	 
+	 self.ButtonDialog.OnClicked:Add(self, self.OnButtonDialog)
+	 self.ButtonToast.OnClicked:Add(self, self.OnButtonToast)
+	 self.ButtonMsgBox.OnClicked:Add(self, self.OnButtonMsgBox)
+	 self.ButtonLock.OnClicked:Add(self, self.OnButtonLock)
+	 self.ButtonTop.OnClicked:Add(self, self.OnButtonTop)
+	 self.ButtonAllTest.OnClicked:Add(self, self.OnButtonAllTest)
+	 
 	 ---@type WBP_Attribute_C
 	 self.AttrView = self.WBP_Attribute_97;
 	 self.AttrView.Title:SetText("主角属性")
@@ -56,6 +63,48 @@ function M:OnButtonPetClick()
 	print("Pet button clicked")
 	local UIManager = require("UI.Core.UIManager")
 	UIManager.State_Open("PetMain")
+end
+
+function M:OnButtonDialog()
+    print("ReceiveBeginPlay")
+	local UIManager = require("UI.Core.UIManager")
+	UIManager.Dialog_Open("Activity", {title = "活动"})
+end
+
+function M:OnButtonToast()
+    print("Toast button clicked")
+    local UIManager = require("UI.Core.UIManager")
+    UIManager.Toast_Open("六层级测试：所有层级都已打开", 3.0)
+end
+
+function M:OnButtonMsgBox()
+    print("MsgBox button clicked")
+    local UIManager = require("UI.Core.UIManager")
+    UIManager.MsgBox_OpenAlert("提示", "这是一个六层级测试\n所有UI层都已显示")
+end
+
+function M:OnButtonLock()
+    print("Lock button clicked")
+    local UIManager = require("UI.Core.UIManager")
+    UIManager.Lock_OpenWithTimeout("加载中，5秒后自动关闭...", 5)
+end
+
+function M:OnButtonTop()
+    print("Top button clicked")
+    local UIManager = require("UI.Core.UIManager")
+    UIManager.Top_Open("GM")
+end
+
+function M.TestTopClose()
+    local UIManager = require("UI.Core.UIManager")
+    UIManager.Top_Open("GM")
+    UIManager.Top_Close("GM")
+end
+
+function M:OnButtonAllTest()
+	-- 运行UI测试
+	local UIManagerTest = require("TestCase.UI.UIManagerTest")
+	UIManagerTest.TestMultiLayer()
 end
 
 --function M:Tick(MyGeometry, InDeltaTime)

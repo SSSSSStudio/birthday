@@ -20,7 +20,9 @@ public:
 	virtual void Shutdown() override;
 
 	static bool Tick(float DeltaTime);
-
+	
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Init"))
+	void OnViewportCreated();
 private:
 	FTSTicker::FDelegateHandle TickDelegateHandle;
 };
