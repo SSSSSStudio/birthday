@@ -17,17 +17,14 @@ end
 
 --- 更新 View 显示
 function M:UpdateView()
-	if not self.model then
-		self:SetText("Textblock_Tips", "加载中...")
-		return
-	end
-	
-	-- 检查 model 是否有 Get 方法
-	if self.model.Get then
-		self:SetText("Textblock_Tips", self.model:Get("message", "加载中..."))
-	else
-		self:SetText("Textblock_Tips", "加载中...")
-	end
+    -- 使用 View 脚本接口，不再直接操作控件
+    if self.view and self.view.SetMessage then
+        local msg = "加载中..."
+        if self.model and self.model.Get then
+            msg = self.model:Get("message", "加载中...")
+        end
+        self.view:SetMessage(msg)
+    end
 end
 
 --- UI 显示时调用

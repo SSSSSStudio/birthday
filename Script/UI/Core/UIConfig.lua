@@ -9,6 +9,7 @@ local M = {
 	Toast = {
 		Name = "Toast",
 		ViewPath = "/Script/UMGEditor.WidgetBlueprint'/Game/Test/UITest/WBP_Toast.WBP_Toast_C'",
+		ViewClass = require("TestCase.UI.Toast.WBP_Toast"),
 		ControllerClass = require("TestCase.UI.Toast.ToastController")
 	},
 	
@@ -51,6 +52,7 @@ local M = {
 	Lock = {
 		Name = "Lock",
 		ViewPath = "/Script/UMGEditor.WidgetBlueprint'/Game/Test/UITest/WBP_Lock.WBP_Lock_C'",
+		ViewClass = require("TestCase.UI.Lock.WBP_Lock"),
 		ControllerClass = require("TestCase.UI.Lock.LockController")
 	},
 	

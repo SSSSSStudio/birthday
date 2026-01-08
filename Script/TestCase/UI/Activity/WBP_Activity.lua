@@ -15,4 +15,12 @@ function M:OnButtonCloseClick()
     UIManager.Dialog_Close("Activity")
 end
 
+---设置活动内容
+---@param content string
+function M:SetActivityContent(content)
+    if self.TextBlock_Content then
+        self.TextBlock_Content:SetText(content)
+    end
+end
+
 return M

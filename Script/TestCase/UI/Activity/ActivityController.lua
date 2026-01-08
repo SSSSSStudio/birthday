@@ -14,17 +14,18 @@ end
 
 ---更新 View 显示
 function M:UpdateView()
-    if not self.model then
-        self:SetText("TextBlock_Content", "这是一个Activity测试界面")
-        return
+    local content = "这是一个Activity测试界面"
+    if self.model then
+        -- 从 Model 获取数据并更新 View
+        local activityName = self.model:Get("activityName", "活动")
+        local isActive = self.model:Get("isActive", false)
+        local status = isActive and "进行中" or "未开始"
+        content = string.format("%s - %s", activityName, status)
     end
     
-    -- 从 Model 获取数据并更新 View
-    local activityName = self.model:Get("activityName", "活动")
-    local isActive = self.model:Get("isActive", false)
-    local status = isActive and "进行中" or "未开始"
-    
-    self:SetText("TextBlock_Content", string.format("%s - %s", activityName, status))
+    if self.view and self.view.SetActivityContent then
+        self.view:SetActivityContent(content)
+    end
 end
 
 ---UI 显示时调用

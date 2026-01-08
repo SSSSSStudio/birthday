@@ -32,7 +32,9 @@ end
 
 --- 更新 View 显示
 function M:UpdateView()
-    self:SetText("TextBlock_Content", self.message)
+    if self.view and self.view.SetContent then
+        self.view:SetContent(self.message)
+    end
 end
 
 --- 重置状态（对象池复用前调用）
