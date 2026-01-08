@@ -46,23 +46,43 @@ function M:Show(uiName, params)
         return nil
     end
     
+    -- 1. 检查是否已经在显示栈中
+    for i, info in ipairs(self.dialogStack) do
+        if info.uiName == uiName then
+            -- 已经在显示，将其移到栈顶
+            local controller = info.controller
+            
+            -- 从当前位置移除
+            table.remove(self.dialogStack, i)
+            
+            -- 添加到栈顶
+            table.insert(self.dialogStack, info)
+            
+            -- 更新数据
+            if params and controller.UpdateModel then
+                controller:UpdateModel(params)
+            end
+            
+            -- 确保显示并置顶
+            self:BringDialogToFront(controller)
+            
+            return controller
+        end
+    end
+
+    -- 2. 检查缓存中是否有实例
     local controller = self.dialogCache[uiName]
+    
+    -- 3. 如果没有缓存，创建新实例
     if not controller then
         controller = self:CreateDialog(uiName, config)
         if not controller then return nil end
+        -- 加入缓存
         self.dialogCache[uiName] = controller
     end
     
     if params and controller.UpdateModel then
         controller:UpdateModel(params)
-    end
-    
-    -- 避免重复
-    for i, info in ipairs(self.dialogStack) do
-        if info.uiName == uiName then
-            table.remove(self.dialogStack, i)
-            break
-        end
     end
     
     table.insert(self.dialogStack, {
@@ -120,9 +140,17 @@ function M:Close(uiName)
     
     for i, info in ipairs(self.dialogStack) do
         if info.uiName == uiName then
-            if info.controller and info.controller.Hide then
-                info.controller:Hide()
+            if info.controller then
+                if info.controller.Hide then
+                    info.controller:Hide()
+                end
+                -- 销毁实例
+                if info.controller.Destroy then
+                    info.controller:Destroy()
+                end
             end
+            -- 从缓存移除
+            self.dialogCache[uiName] = nil
             table.remove(self.dialogStack, i)
             return true
         end
@@ -141,11 +169,19 @@ end
 function M:CloseAll()
     for i = #self.dialogStack, 1, -1 do
         local info = self.dialogStack[i]
-        if info.controller and info.controller.Hide then
-            info.controller:Hide()
+        if info.controller then
+            if info.controller.Hide then
+                info.controller:Hide()
+            end
+            -- 销毁实例
+            if info.controller.Destroy then
+                info.controller:Destroy()
+            end
         end
     end
     self.dialogStack = {}
+    -- 清空缓存
+    self.dialogCache = {}
 end
 
 ---创建 Dialog

@@ -46,25 +46,38 @@ function M:Show(uiName, params)
         return nil
     end
     
-    -- 已显示则更新参数并置顶
+    -- 1. 检查是否已经在显示列表中
     for i, info in ipairs(self.topList) do
         if info.uiName == uiName then
-            if params and info.controller.UpdateModel then
-                info.controller:UpdateModel(params)
+            -- 已经在显示，将其移到栈顶
+            local controller = info.controller
+            
+            -- 从当前位置移除
+            table.remove(self.topList, i)
+            
+            -- 添加到列表末尾（栈顶）
+            table.insert(self.topList, info)
+            
+            -- 更新数据
+            if params and controller.UpdateModel then
+                controller:UpdateModel(params)
             end
             
-            self:BringTopToFront(info.controller)
-            table.remove(self.topList, i)
-            table.insert(self.topList, info)
-            return info.controller
+            -- 确保显示并置顶
+            self:BringTopToFront(controller)
+            
+            return controller
         end
     end
     
-    -- 获取或创建 Controller
+    -- 2. 检查缓存中是否有实例
     local controller = self.topCache[uiName]
+    
+    -- 3. 如果没有缓存，创建新实例
     if not controller then
         controller = self:CreateTop(uiName, config)
         if not controller then return nil end
+        -- 加入缓存
         self.topCache[uiName] = controller
     end
     
@@ -92,6 +105,7 @@ function M:Show(uiName, params)
         return nil
     end
     
+    self:BringTopToFront(controller)
     return controller
 end
 
@@ -130,24 +144,33 @@ function M:Close(uiName)
     
     for i, info in ipairs(self.topList) do
         if info.uiName == uiName then
-            if info.controller and info.controller.Hide then
-                info.controller:Hide()
-            end
-            
-            local view = info.controller and (info.controller.GetView and info.controller:GetView() or info.controller.view)
-            if view then
-                local layer = UILayerManager:GetLayer(UILayerManager.LayerType.Top)
-                if layer then
-                    pcall(function()
-                        if view.RemoveFromParent then
-                            view:RemoveFromParent()
-                        else
-                            layer:RemoveChild(view)
-                        end
-                    end)
+            if info.controller then
+                if info.controller.Hide then
+                    info.controller:Hide()
+                end
+                
+                local view = info.controller.GetView and info.controller:GetView() or info.controller.view
+                if view then
+                    local layer = UILayerManager:GetLayer(UILayerManager.LayerType.Top)
+                    if layer then
+                        pcall(function()
+                            if view.RemoveFromParent then
+                                view:RemoveFromParent()
+                            else
+                                layer:RemoveChild(view)
+                            end
+                        end)
+                    end
+                end
+                
+                -- 销毁实例
+                if info.controller.Destroy then
+                    info.controller:Destroy()
                 end
             end
             
+            -- 从缓存移除
+            self.topCache[uiName] = nil
             table.remove(self.topList, i)
             return true
         end

@@ -204,9 +204,9 @@ end
 function M.Destroy()
 	UILayerManager:Destroy()
 	UIStateManager:Destroy()
-	UIDialogManager:CloseAllDialogs()
+	UIDialogManager:Destroy()
 	UIToastManager:ClearQueue()
-	UITopManager:CloseAll()
+	UITopManager:Destroy()
 	M.isInitialized = false
 end
 

@@ -70,17 +70,16 @@ function M:ShowWithTimeout(message, timeout)
         return true
     end
     
+    -- 每次都创建新实例
+    local config = UIConfig[self.defaultLockUI]
+    if not config then
+        Log.Error("UILockManager", "UI config not found: " .. tostring(self.defaultLockUI))
+        return false
+    end
+    
+    self.lockController = self:CreateLock(self.defaultLockUI, config)
     if not self.lockController then
-        local config = UIConfig[self.defaultLockUI]
-        if not config then
-            Log.Error("UILockManager", "UI config not found: " .. tostring(self.defaultLockUI))
-            return false
-        end
-        
-        self.lockController = self:CreateLock(self.defaultLockUI, config)
-        if not self.lockController then
-            return false
-        end
+        return false
     end
     
     if message and self.lockController.UpdateModel then
@@ -146,20 +145,22 @@ function M:Hide()
     
     self:ClearTimer()
     
-    if self.lockController and self.lockController.Hide then
-        local ok, err = pcall(function()
-            self.lockController:Hide()
-        end)
-        
-        if not ok then
-            Log.Error("UILockManager", "Failed to hide lock: " .. tostring(err))
-            if self.lockController.Destroy then
-                pcall(function() self.lockController:Destroy() end)
+    if self.lockController then
+        if self.lockController.Hide then
+            local ok, err = pcall(function()
+                self.lockController:Hide()
+            end)
+            
+            if not ok then
+                Log.Error("UILockManager", "Failed to hide lock: " .. tostring(err))
             end
-            self.lockController = nil
-            self.showing = false
-            return false
         end
+        
+        -- 销毁实例
+        if self.lockController.Destroy then
+            pcall(function() self.lockController:Destroy() end)
+        end
+        self.lockController = nil
     end
     
     self.showing = false

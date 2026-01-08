@@ -42,12 +42,6 @@ function M:OpenUI(uiName, params, isCacheCurrent)
 		isCacheCurrent = true
 	end
     
-    -- 如果当前有 UI，先关闭它
-    if self.currentUI and isCacheCurrent then
-		self.uiRecordStack:Push(self.currentUI)
-        self:CloseCurrentUI()
-    end
-    
     -- 检查配置是否存在
     local config = UIConfig[uiName]
     if not config then
@@ -60,6 +54,12 @@ function M:OpenUI(uiName, params, isCacheCurrent)
     if not controller then
         return nil
 	end
+
+    -- 如果当前有 UI，先关闭它
+    if self.currentUI and isCacheCurrent then
+		self.uiRecordStack:Push(self.currentUI)
+        self:CloseCurrentUI()
+    end
 	
     -- 显示 UI
     if controller.Show then
@@ -184,11 +184,6 @@ end
 
 --- 销毁 UI 状态管理器
 function M:Destroy()
-    -- 销毁层管理器
-    if UILayerManager.Destroy then
-        UILayerManager:Destroy()
-    end
-    
     self.isInitialized = false
 	self.currentUI = nil
 	self.currentController = nil
