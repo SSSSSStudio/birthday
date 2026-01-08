@@ -7,10 +7,10 @@ local M = UnLua.Class()
 
 ---构造函数
 function M:Construct()
-    -- 如果有入场动画，可以在这里播放
-    -- if self.Anim_Show then
-    --     self:PlayAnimation(self.Anim_Show)
-    -- end
+    -- 播放入场动画
+    if self.Anim_In then
+        self:PlayAnimation(self.Anim_In)
+    end
 end
 
 ---设置提示内容（供 Controller 调用）
