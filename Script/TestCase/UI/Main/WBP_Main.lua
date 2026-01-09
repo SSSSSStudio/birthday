@@ -77,16 +77,18 @@ function M:OnButtonDialog()
 	UIManager.Dialog_Open("Activity", {title = "活动"})
 end
 
+local index = 0
 function M:OnButtonToast()
     print("Toast button clicked")
     local UIManager = require("UI.Core.UIManager")
-    UIManager.Toast_Open("六层级测试：所有层级都已打开", 3.0)
+	index = index + 1
+    UIManager.Toast_Open("这是一条飘字,可设置类容和持续时间 +"..index+1, 3.0)
 end
 
 function M:OnButtonMsgBox()
     print("MsgBox button clicked")
     local UIManager = require("UI.Core.UIManager")
-    UIManager.MsgBox_OpenAlert("提示", "这是一个六层级测试\n所有UI层都已显示")
+	UIManager.MsgBox_OpenAlert("提示", "这是一个消息框\n能修改标题和类容")
 end
 
 function M:OnButtonLock()
