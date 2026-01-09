@@ -14,4 +14,5 @@ class AG01PlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
+	virtual void BeginPlay() override;
 };

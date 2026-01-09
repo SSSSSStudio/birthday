@@ -11,7 +11,8 @@ function M:ReceiveInit()
 	EventLoop.Startup()
 end
 
-function M:OnViewportCreated()
+function M:OnPreControllerBeginPlay()
+	UIManager.Destroy()
 	UIManager.Initialize(self)
 end
 

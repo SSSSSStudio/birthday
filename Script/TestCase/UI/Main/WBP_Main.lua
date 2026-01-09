@@ -32,6 +32,7 @@ end
 	 self.ButtonGuideTest2.OnClicked:Add(self, self.OnButtonGuideTest2)
 	 self.ButtonAddRedPoint.OnClicked:Add(self, self.OnButtonAddRedPoint)
 	 self.ButtonRemoveRedPoint.OnClicked:Add(self, self.OnButtonRemoveRedPoint)
+	 self.ButtonChangeMap.OnClicked:Add(self, self.OnButtonChangeMap)
 	 
 	 ---@type WBP_Attribute_C
 	 self.AttrView = self.WBP_Attribute_97;
@@ -148,6 +149,13 @@ end
 function M:OnButtonRemoveRedPoint()
     local UITool = require("UI.Core.UITool")
     UITool.RemoveRedDotFromButton(self.ButtonClose)
+	--local UIManager = require("UI.Core.UIManager")
+	--UE.UGameplayStatics.OpenLevel(UIManager.GetGameInstance(), "/Game/Test/UITest/UIMap2")
+end
+
+function M:OnButtonChangeMap()
+	local UIManager = require("UI.Core.UIManager")
+	UE.UGameplayStatics.OpenLevel(UIManager.GetGameInstance(), "/Game/Test/UITest/UIMap2")
 end
 
 --function M:Tick(MyGeometry, InDeltaTime)

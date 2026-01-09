@@ -18,7 +18,7 @@ local M = UnLua.Class()
  function M:ReceiveBeginPlay()
 	 self.bShowMouseCursor = true
 	 UE.UWidgetBlueprintLibrary.SetInputMode_GameAndUIEx(self, nil, UE.EMouseLockMode.DoNotLock)
-	 
+	 print("[PC_UI_C] ReceiveBeginPlay ====================================")
 	 UIManager.State_Open("Main")
  end
 

@@ -11,8 +11,7 @@ void UG01GameInstance::Init()
 	Super::Init();
 	
 	TickDelegateHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&UG01GameInstance::Tick));
-	
-	UGameViewportClient::OnViewportCreated().AddUObject(this, &UG01GameInstance::OnViewportCreated);
+	PreControllerBeginPlay.AddUObject(this, &UG01GameInstance::OnPreControllerBeginPlay);
 }
 
 void UG01GameInstance::Shutdown()
@@ -30,8 +29,3 @@ bool UG01GameInstance::Tick(float DeltaTime)
 	}
 	return true;
 }
-
-// void UG01GameInstance::OnViewportCreated()
-// {
-// 	UE_LOG(LogTemp, Warning, TEXT("OnViewportCreated"));
-// }

@@ -50,8 +50,6 @@ end
 --- @param config table 层配置
 --- @return UCanvasPanel UI 层
 function M:CreateLayer(config)
-	
-	--local wClass = UE.UClass.Load("/Script/UMGEditor.WidgetBlueprint'/Game/UI/WBP_Main.WBP_Main_C'")
 	---@type UOverlay
     local layer = NewObject(UE.UOverlay,self.gameInstance)
     -- 设置 ZOrder
@@ -61,17 +59,15 @@ function M:CreateLayer(config)
 	---@type UGameViewportSubsystem
 	local GameViewportSubsystem = UE.USubsystemBlueprintLibrary.GetEngineSubsystem(UE.UGameViewportSubsystem)
 	GameViewportSubsystem:AddWidget(layer, Slot)
-    --layer:SetRenderOpacity(1.0)
-	--layer:AddToViewport(config.zOrder)
 	layer:SetVisibility(UE.ESlateVisibility.SelfHitTestInvisible)
     return layer
 end
 
 --- 获取指定类型的层
 --- @param layerType integer 层级类型
---- @return UCanvasPanel|nil UI 层
+--- @return UOverlay|nil UI 层
 function M:GetLayer(layerType)
-    return self.layers[layerType]
+    return self.layers[layerType];
 end
 
 --- 将 UI 添加到指定层
@@ -130,7 +126,7 @@ function M:Destroy()
 	self.layers = {}
 	self.layersRef = {}
     self.isInitialized = false
-	gameInstance = nil
+	self.gameInstance = nil
 end
 
 return M

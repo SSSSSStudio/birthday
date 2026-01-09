@@ -22,7 +22,10 @@ public:
 	static bool Tick(float DeltaTime);
 	
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Init"))
-	void OnViewportCreated();
+    void OnPreControllerBeginPlay();
+	
+	DECLARE_MULTICAST_DELEGATE(FOnPreControllerBeginPlay);
+	FOnPreControllerBeginPlay PreControllerBeginPlay;
 private:
 	FTSTicker::FDelegateHandle TickDelegateHandle;
 };
