@@ -408,10 +408,11 @@ function M.AddRedDotToButton(buttonWidget, redDotSize)
     -- 设置红点样式
     local redBrush = UE.FSlateBrush()
 	redBrush.DrawAs = UE.ESlateBrushDrawType.RoundedBox
-	--redBrush.ImageSize = UE.FVector2f(10, 10) 有bug 吧 设置无效
+	-- redBrush.ImageSize = UE.FVector2f(10, 10) 有bug 吧 设置无效
 	redDotImage:SetBrush(redBrush)
 	redDotImage:SetColorAndOpacity(UE.FLinearColor(1.0, 0.0, 0.0, 1.0))
-	redDotImage:SetDesiredSizeOverride(UE.FVector2D(redDotSize, redDotSize))
+	redDotImage:SetRenderScale(UE.FVector2D(redDotSize/32, redDotSize/32.0))
+	-- redDotImage:SetDesiredSizeOverride(UE.FVector2D(redDotSize, redDotSize))
     -- 将红点添加到 Overlay
     overlay:AddChildToOverlay(redDotImage)
     
