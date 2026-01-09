@@ -415,7 +415,7 @@ static int32_t laes_decrypt(lua_State *L)
 	}
 
 	crypt_aes_cbc_decrypt(szKey,pBuffer,sz,pDecryptBuffer);
-	lua_pushstring(L, (const char *)pDecryptBuffer);
+	lua_pushlstring(L, (const char *)pDecryptBuffer, sz);
 	return 1;
 }
 
