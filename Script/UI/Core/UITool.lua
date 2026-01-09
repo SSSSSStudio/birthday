@@ -411,7 +411,7 @@ function M.AddRedDotToButton(buttonWidget, redDotSize)
 	--redBrush.ImageSize = UE.FVector2f(10, 10) 有bug 吧 设置无效
 	redDotImage:SetBrush(redBrush)
 	redDotImage:SetColorAndOpacity(UE.FLinearColor(1.0, 0.0, 0.0, 1.0))
-	redDotImage:SetRenderScale(UE.FVector2D(redDotSize/32, redDotSize/32.0))
+	redDotImage:SetDesiredSizeOverride(UE.FVector2D(redDotSize, redDotSize))
     -- 将红点添加到 Overlay
     overlay:AddChildToOverlay(redDotImage)
     
@@ -422,7 +422,10 @@ function M.AddRedDotToButton(buttonWidget, redDotSize)
 		DotSlot:SetHorizontalAlignment(UE.EHorizontalAlignment.HAlign_Right)
 		DotSlot:SetVerticalAlignment(UE.EVerticalAlignment.VAlign_Top)
         -- 设置红点在右上角（偏移量为负，使其部分超出边界）
-		DotSlot:SetPadding(UE.FMargin(0,-20,-10,0)) -- UnLua有bug 设置无效
+		local margin = UE.FMargin()
+		margin.Right = -20
+		margin.Top = -10
+		DotSlot:SetPadding(margin)
     end
     
     -- 标记该 Button 已经添加过红点，记录红点控件和 Overlay
