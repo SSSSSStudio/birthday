@@ -14,6 +14,11 @@ end
 
 ---@param s string
 ---@return string
+function lcrypt.sha256(s)
+end
+
+---@param s string
+---@return string
 function lcrypt.md5(s)
 end
 
