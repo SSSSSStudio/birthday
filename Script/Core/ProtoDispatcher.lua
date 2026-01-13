@@ -23,7 +23,7 @@ end
 ---@param fileList string[]
 function M.ImportProtoFile(fileList)
 	for _, name in ipairs(fileList) do
-		assert(lpbc.import(name))
+		assert(lpbc.import(name), "import proto file failed:" .. name)
 	end
 end
 

@@ -5,8 +5,6 @@
 ---
 ----@type ltw2_event
 local levent = require("ltw2.event")
-----@type ltw2_core
-local lcore = require("ltw2.core")
 
 ---@class Channel
 local M = {}
@@ -53,15 +51,15 @@ function M.Connect(addr, timeoutMs, bStream, func)
 		end)
     end
 	
-    return self
+    return setmetatable(self,{__index = M})
 end
 
----@param func function(self:Channel)
+---@param func function()
 function M.SetDisconnectCallback(self,func)
 	self.disconnectCB = func
 end
 
----@param func function(self:Channel,dataCache:ltw2_ringbuf)
+---@param func function(data:string)
 function M.SetMessageCallback(self,func)
     self.messageCB = func
 end
@@ -77,7 +75,8 @@ function M.Bind(self, bKeepAlive, bTcpNoDelay)
 		
 	conn:set_disconnect_callback(function()
 		if self.disconnectCB then
-			self.disconnectCB(self)
+			self.disconnectCB()
+			self.disconnectCB = nil
 		end
 	end)
 	
@@ -86,13 +85,11 @@ function M.Bind(self, bKeepAlive, bTcpNoDelay)
     end)
 	
 	conn:set_receive_callback(function(data)
-		self.dataCache:write(data)
 		if self.messageCB then
-            self.messageCB(self,self.dataCache)
+            self.messageCB(data)
         end
     end)
 
-	self.dataCache = lcore.ringbuf_new(256)
 	return conn:bind(bKeepAlive, bTcpNoDelay)
 end
 
