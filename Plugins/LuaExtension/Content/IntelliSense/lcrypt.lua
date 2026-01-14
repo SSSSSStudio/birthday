@@ -14,6 +14,11 @@ end
 
 ---@param s string
 ---@return string
+function lcrypt.sha256(s)
+end
+
+---@param s string
+---@return string
 function lcrypt.md5(s)
 end
 
@@ -70,10 +75,12 @@ end
 function lcrypt.srp_create_session_key_server(verifier,serverPrivKey,serverPubKey,clientPubKey)
 end
 
+---@param user string
+---@param password string
 ---@param salt string
 ---@param clientPrivKey string
 ---@param clientPubKey string
 ---@param serverPubKey string
 ---@return string sessionKey
-function lcrypt.srp_create_session_key_client(salt,clientPrivKey,clientPubKey,serverPubKey)
+function lcrypt.srp_create_session_key_client(user,password,salt,clientPrivKey,clientPubKey,serverPubKey)
 end
