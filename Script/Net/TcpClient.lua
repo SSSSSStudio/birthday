@@ -16,6 +16,9 @@ local EventLoop = require("Core.EventLoop")
 local NetPack = require("Net.NetPack")
 ---@type ProtoDispatcher
 local ProtoDispatcher = require("Core.ProtoDispatcher")
+---@type EventDispatcher
+local EventDispatcher = require("Core.EventDispatcher")
+
 ---@type LuaHelper
 local LuaHelper = require("Utility.LuaHelper")
 
@@ -36,6 +39,16 @@ local function SendHandShakeMsg(self, name, proto)
 	return self.channel:Send(msg)
 end
 
+local function SendPack(self,name,proto)
+	local data = NetPack.Pack(name, proto)
+	if not data then
+		return
+	end
+	local s = lcrypt.aes_encrypt(self.key, data)
+	local length = #s
+	local msg = string.pack(">I4", length) .. s
+	return self.channel:Send(msg)
+end
 
 local function OnMessage(self, data)
 	if self.status == CONNECTED or self.status == CONNECTING_HANDSHAKE then
@@ -54,7 +67,7 @@ local function OnMessage(self, data)
 		local packMsg = lcrypt.aes_decrypt(self.key, dataMsg)
 		self.msgCache = self.msgCache:sub(length + 5)
 		local name, msg = NetPack.Unpack(packMsg)
-        if not name or not msg then
+        if not name then
             return
         end
         ProtoDispatcher.DispatchMessage(name, msg)
@@ -84,7 +97,10 @@ local function OnHandShakeMessage(self, data)
 	end
 end
 
-local function OnACHandShakeBuf(self,proto)
+local function OnGCSceneInfoBuf(self,proto)
+	if self.status ~= CONNECTING_HANDSHAKE then
+		return
+	end
 	self.status = CONNECTED
 	if self.heartTimeout then
 		self.heartTimeout:stop()
@@ -94,12 +110,27 @@ local function OnACHandShakeBuf(self,proto)
 		if self.status ~= CONNECTED then
 			return
 		end
-		
+
 		local CGPingBuf = {
-            timestamp = EventLoop.ClockMonotonic(),
-        }
+			timestamp = EventLoop.ClockMonotonic(),
+		}
 		self:Send("CGPingBuf", CGPingBuf)
 	end, true)
+	EventDispatcher.Dispatch("AccountLoginSuccess", self)
+end
+
+local function OnACHandShakeBuf(self,proto)
+	if self.status ~= CONNECTING_HANDSHAKE then
+		return
+	end
+	
+	local CAPlayerCookieLoginBuf = {
+		timestamp = EventLoop.ClockMonotonic(),
+		tokenValue = self.userName,
+		serverId = 1001,
+		terminalInfos = { auth = "guest" } ,
+	}
+	SendPack(self,"CAPlayerCookieLoginBuf", CAPlayerCookieLoginBuf)
 end
 
 local function OnACPublicKeyExchangeBuf(self, proto)
@@ -109,7 +140,6 @@ local function OnACPublicKeyExchangeBuf(self, proto)
 		local sessionKey = lcrypt.srp_create_session_key_client(self.userName,self.password,self.salt,localPrivKey,localPubKey,remotePubKey)
 		local key = lcrypt.sha256(sessionKey)
 		self.key = string.sub(key, 1, 16)
-		self.userName = nil
 		self.password = nil
 		self.salt = nil
 		local handler = LuaHelper.Handler(self, OnMessage)
@@ -122,7 +152,6 @@ local function OnACPublicKeyExchangeBuf(self, proto)
         SendHandShakeMsg(self, "CAPublicKeyExchangeBuf", CAPublicKeyExchangeBuf)
     end
 end
-
 
 local function HandShake(self)
 	self.status = CONNECTING_HANDSHAKE
@@ -167,10 +196,15 @@ function M:__init()
 
 	ProtoDispatcher.AddDispatch("ACPublicKeyExchangeBuf", self, OnACPublicKeyExchangeBuf)
 	ProtoDispatcher.AddDispatch("ACHandShakeBuf", self, OnACHandShakeBuf)
+	ProtoDispatcher.AddDispatch("GCSceneInfoBuf", self, OnGCSceneInfoBuf)
+
+	
 end
 
 function M:__gc()
+	ProtoDispatcher.RemoveDispatch("ACPublicKeyExchangeBuf", self)
 	ProtoDispatcher.RemoveDispatch("ACHandShakeBuf", self)
+	ProtoDispatcher.RemoveDispatch("GCSceneInfoBuf", self)
 	self:Close()
 end
 
@@ -218,14 +252,7 @@ function M:Send(name, proto)
 	if self.status ~= CONNECTED then
         return
     end
-	local data = NetPack.Pack(name, proto)
-	if not data then
-		return
-	end
-	local s = lcrypt.aes_encrypt(self.key, data)
-	local length = #s
-	local msg = string.pack(">I4", length) .. s
-	return self.channel:Send(msg)
+	return SendPack(self,name, proto)
 end
 
 ---@param timeoutMs integer
