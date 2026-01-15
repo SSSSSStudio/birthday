@@ -1,35 +1,26 @@
 -- UIToastManager.lua
 -- Toast 管理器：支持多个提示同时显示
-
-local UILayerManager = require("UI.Core.Private.UILayerManager")
 local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
 local EventLoop = require("Core.EventLoop")
+local Interface = require("Utility.Interface")
+local LayerType = require("UI.Core.Private.LayerType")
 
-local DEFAULT_DURATION = 2.0
-local TOAST_SPACING = 10
-local MAX_TOAST_COUNT = 3
-local DEFAULT_TOAST_HEIGHT = 20
-local TOAST_START_Y = 20
-local MAX_POOL_SIZE = 3
+local DEFAULT_DURATION<const> = 2.0
+local TOAST_SPACING<const> = 10
+local MAX_TOAST_COUNT<const> = 3
+local DEFAULT_TOAST_HEIGHT<const> = 20
+local TOAST_START_Y<const> = 20
+local MAX_POOL_SIZE<const> = 3
 
 ---@class UIToastManager
-local M = {
-    toastCache = {},
-    toastList = {},
-    toastQueue = {},
-    nextToastId = 1,
-    isInitialized = false,
-}
+local M = Interface("UIToastManager")
 
-function M:Initialize()
-    if self.isInitialized then return end
-    
-    self.toastCache = {}
-    self.toastList = {}
-    self.toastQueue = {}
-    self.nextToastId = 1
-    self.isInitialized = true
+function M:__init()
+	self.toastCache = {}
+	self.toastList = {}
+	self.toastQueue = {}
+	self.nextToastId = 1
 end
 
 ---显示 Toast
@@ -51,12 +42,6 @@ function M:Show(uiName, params, duration)
     if params ~= nil and type(params) ~= "table" then
         Log.Error("UIToastManager", "Invalid params")
         return 0
-    end
-    
-    self:Initialize()
-
-    if UILayerManager.Initialize and not UILayerManager.isInitialized then
-        UILayerManager:Initialize()
     end
     
     local config = UIConfig[uiName]
@@ -104,7 +89,7 @@ function M:Show(uiName, params, duration)
         return 0
     end
     
-    local layerType = UILayerManager.LayerType and UILayerManager.LayerType.Toast or nil
+    local layerType = LayerType.Toast
     controller:Show(layerType)
 
     local toastId = self.nextToastId
@@ -135,24 +120,13 @@ function M:CreateToast(uiName, config)
         Log.Error("UIToastManager", "Invalid config: " .. tostring(uiName))
         return nil
     end
-    
-    local world = UILayerManager.gameInstance:GetWorld()
-    if not world then
-        Log.Error("UIToastManager", "Failed to get world")
-        return nil
-    end
-    
-    local playerController = UE.UGameplayStatics.GetPlayerController(world, 0)
-    if not playerController then
-        Log.Error("UIToastManager", "Failed to get PlayerController")
-        return nil
-    end
 
-    local view = UE.UWidgetBlueprintLibrary.Create(world, ViewClass, playerController)
-    if not view then
-        Log.Error("UIToastManager", "Failed to create View: " .. tostring(uiName))
-        return nil
-    end
+	-- 创建 View 实例
+	local view = NewObject(ViewClass)
+	if not view then
+		error("Failed to create View for: " .. tostring(uiName))
+		return nil
+	end
     
     local controller = config.ControllerClass.New(config.ControllerClass, view, config.ModelClass or {})
     if not controller then
@@ -222,7 +196,7 @@ function M:ShowNextFromQueue()
         return
     end
     
-    local layerType = UILayerManager.LayerType and UILayerManager.LayerType.Toast or nil
+    local layerType = LayerType.Toast
     controller:Show(layerType)
 
     local toastInfo = {
@@ -242,8 +216,6 @@ end
 ---@param silent boolean|nil 是否静默关闭（不触发重排）
 ---@return boolean
 function M:Close(toastId, silent)
-    if not self.isInitialized then return false end
-    
     for i, info in ipairs(self.toastList) do
         if info.toastId == toastId then
             if info.timer then
@@ -284,8 +256,6 @@ end
 
 ---关闭所有 Toast
 function M:CloseAll()
-    if not self.isInitialized then return end
-    
     for i = #self.toastList, 1, -1 do
         self:Close(self.toastList[i].toastId, true)
     end
@@ -296,7 +266,6 @@ end
 
 ---清空等待队列
 function M:ClearQueue()
-    if not self.isInitialized then return end
     self.toastQueue = {}
 end
 
@@ -366,8 +335,6 @@ end
 ---@param count number|nil 预加载数量（默认 1）
 ---@return boolean
 function M:Preload(uiName, count)
-    self:Initialize()
-    
     count = math.max(1, math.min(count or 1, MAX_POOL_SIZE))
     
     local config = UIConfig[uiName]
@@ -442,7 +409,6 @@ function M:Destroy()
     self:ClearCache()
     self.toastList = {}
     self.toastQueue = {}
-    self.isInitialized = false
 end
 
 return M

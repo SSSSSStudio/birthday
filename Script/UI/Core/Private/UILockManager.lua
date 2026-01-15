@@ -1,29 +1,21 @@
 -- UILockManager.lua
 -- Lock 层管理器：显示加载动画、转菊花等锁定界面
 
-local UILayerManager = require("UI.Core.Private.UILayerManager")
 local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
 local EventLoop = require("Core.EventLoop")
-
-local DEFAULT_TIMEOUT = 30
+local Interface = require("Utility.Interface")
+local LayerType = require("UI.Core.Private.LayerType")
+local DEFAULT_TIMEOUT<const> = 30
 
 ---@class UILockManager
-local M = {
-    lockController = nil,
-    lockTimer = nil,
-    showing = false,
-    isInitialized = false,
-    defaultLockUI = "Lock"
-}
+local M = Interface("UILockManager")
 
-function M:Initialize()
-    if self.isInitialized then return end
-    
-    self.lockController = nil
-    self.lockTimer = nil
-    self.showing = false
-    self.isInitialized = true
+function M:__init()
+	self.lockController = nil
+	self.lockTimer = nil
+	self.showing = false
+	self.defaultLockUI = "Lock"
 end
 
 ---显示 Lock（手动关闭）
@@ -47,13 +39,6 @@ function M:ShowWithTimeout(message, timeout)
         Log.Error("UILockManager", "Invalid timeout: expected number or nil")
         return false
     end
-    
-    self:Initialize()
-    
-    if UILayerManager.Initialize and not UILayerManager.isInitialized then
-        UILayerManager:Initialize()
-    end
-    
     -- 已显示时只更新消息和定时器
     if self.showing then
         if message and self.lockController and self.lockController.UpdateModel then
@@ -86,14 +71,13 @@ function M:ShowWithTimeout(message, timeout)
         self.lockController:UpdateModel({ message = message })
     end
     
-    local layerType = UILayerManager.LayerType and UILayerManager.LayerType.Lock or nil
     if not self.lockController.Show then
         Log.Error("UILockManager", "Controller has no Show method")
         return false
     end
     
     local success, err = pcall(function()
-        self.lockController:Show(layerType)
+        self.lockController:Show(LayerType.Lock)
     end)
     
     if not success then
@@ -197,12 +181,7 @@ function M:CreateLock(uiName, config)
         Log.Error("UILockManager", "Invalid config: " .. tostring(uiName))
         return nil
     end
-    
-    local world = UILayerManager.gameInstance and UILayerManager.gameInstance:GetWorld()
-    if not world then
-        Log.Error("UILockManager", "Failed to get world")
-        return nil
-    end
+	
 
     local ViewClass = UE.UClass.Load(config.ViewPath)
     if not ViewClass then
@@ -210,11 +189,12 @@ function M:CreateLock(uiName, config)
         return nil
     end
 
-    local view = UE.UWidgetBlueprintLibrary.Create(world, ViewClass, nil)
-    if not view then
-        Log.Error("UILockManager", "Failed to create View: " .. tostring(uiName))
-        return nil
-    end
+	-- 创建 View 实例
+	local view = NewObject(ViewClass)
+	if not view then
+		error("Failed to create View for: " .. tostring(uiName))
+		return nil
+	end
     
     local model = config.ModelClass and config.ModelClass.New(config.ModelClass) or nil
     local controller = config.ControllerClass.New(config.ControllerClass, view, model)
@@ -251,7 +231,6 @@ function M:Destroy()
     end
     
     self.showing = false
-    self.isInitialized = false
 end
 
 return M

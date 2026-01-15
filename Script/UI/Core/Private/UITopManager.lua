@@ -4,19 +4,15 @@
 local UILayerManager = require("UI.Core.Private.UILayerManager")
 local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
+local Interface = require("Utility.Interface")
+local LayerType = require("UI.Core.Private.LayerType")
 
 ---@class UITopManager
-local M = {
-    topCache = {},
-    topList = {},
-    isInitialized = false
-}
+local M = Interface("UITopManager")
 
-function M:Initialize()
-    if self.isInitialized then return end
-    self.topCache = {}
-    self.topList = {}
-    self.isInitialized = true
+function M:__init()
+	self.topCache = {}
+	self.topList = {}
 end
 
 ---显示 Top UI
@@ -32,12 +28,6 @@ function M:Show(uiName, params)
     if params ~= nil and type(params) ~= "table" then
         Log.Error("UITopManager", "Invalid params type: " .. type(params))
         return nil
-    end
-    
-    self:Initialize()
-    
-    if not UILayerManager.isInitialized then
-        UILayerManager:Initialize()
     end
     
     local config = UIConfig[uiName]
@@ -92,7 +82,7 @@ function M:Show(uiName, params)
     
     local success, err = pcall(function()
         if controller.Show then
-            controller:Show(UILayerManager.LayerType.Top)
+            controller:Show(LayerType.Top)
         end
     end)
     
@@ -117,7 +107,7 @@ function M:BringTopToFront(controller)
     local view = controller.GetView and controller:GetView() or controller.view
     if not view then return end
     
-    local layer = UILayerManager:GetLayer(UILayerManager.LayerType.Top)
+    local layer = UILayerManager.Get().GetLayer(LayerType.Top)
     if not layer then return end
     
     pcall(function()
@@ -140,8 +130,6 @@ end
 ---@param uiName string
 ---@return boolean
 function M:Close(uiName)
-    if not self.isInitialized then return false end
-    
     for i, info in ipairs(self.topList) do
         if info.uiName == uiName then
             if info.controller then
@@ -151,7 +139,7 @@ function M:Close(uiName)
                 
                 local view = info.controller.GetView and info.controller:GetView() or info.controller.view
                 if view then
-                    local layer = UILayerManager:GetLayer(UILayerManager.LayerType.Top)
+                    local layer = UILayerManager.Get().GetLayer(LayerType.Top)
                     if layer then
                         pcall(function()
                             if view.RemoveFromParent then
@@ -201,12 +189,6 @@ function M:CreateTop(uiName, config)
         Log.Error("UITopManager", "Invalid config: " .. uiName)
         return nil
     end
-    
-    local world = UILayerManager.gameInstance and UILayerManager.gameInstance:GetWorld()
-    if not world then
-        Log.Error("UITopManager", "Failed to get world")
-        return nil
-    end
 
     local ViewClass = UE.UClass.Load(config.ViewPath)
     if not ViewClass then
@@ -214,11 +196,12 @@ function M:CreateTop(uiName, config)
         return nil
     end
 
-    local view = UE.UWidgetBlueprintLibrary.Create(world, ViewClass, nil)
-    if not view then
-        Log.Error("UITopManager", "Failed to create view: " .. uiName)
-        return nil
-    end
+	-- 创建 View 实例
+	local view = NewObject(ViewClass)
+	if not view then
+		error("Failed to create View for: " .. tostring(uiName))
+		return nil
+	end
     
     local model = config.ModelClass and config.ModelClass.New(config.ModelClass) or nil
     local controller = config.ControllerClass.New(config.ControllerClass, view, model)
@@ -278,12 +261,6 @@ end
 ---@param uiName string
 ---@return UIControllerBase|nil
 function M:Preload(uiName)
-    self:Initialize()
-    
-    if not UILayerManager.isInitialized then
-        UILayerManager:Initialize()
-    end
-    
     if self.topCache[uiName] then
         return self.topCache[uiName]
     end
@@ -332,7 +309,6 @@ end
 function M:Destroy()
     self:ClearCache()
     self.topList = {}
-    self.isInitialized = false
 end
 
 return M

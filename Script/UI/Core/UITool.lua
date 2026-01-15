@@ -1,7 +1,4 @@
 local UIManager = require "UI.Core.UIManager"
-local UIStateManager = require "UI.Core.Private.UIStateManager"
-local UIDialogManager = require "UI.Core.Private.UIDialogManager"
-local UITopManager = require "UI.Core.Private.UITopManager"
 local Log = require "Utility.Log"
 
 ---@class UITool
@@ -25,20 +22,13 @@ function M.GetWidget(widgetName, controlName)
     end
     
     local controller = nil
-    
-    -- 1. 尝试从 State 层获取
-    if UIStateManager.currentController and UIStateManager.currentUI == widgetName then
-        controller = UIStateManager.currentController
-    end
-    
-    -- 2. 尝试从 Dialog 层获取
-    if not controller then
-        controller = UIDialogManager:GetController(widgetName)
-    end
-    
-    -- 3. 尝试从 Top 层获取
-    if not controller then
-        controller = UITopManager:GetController(widgetName)
+	controller = UIManager.State_GetController()
+	if controller == nil then
+		controller = UIManager.Dialog_GetController(widgetName)
+	end
+	
+	if controller == nil then
+        controller = UIManager.Top_GetController(widgetName)
     end
     
     -- 如果找到 Controller，通过 GetWidget 获取控件
@@ -73,7 +63,7 @@ function M.DuplicateWidgetRecursive(originalWidget)
     end
     
     -- 获取 World
-    local world = UIManager.GetGameInstance():GetWorld()
+    local world = require("Core.UEHelper").GetGameInstance():GetWorld()
     if not world then
         Log.Error("UITool", "Failed to get world")
         return nil
@@ -188,7 +178,7 @@ function M.DuplicateWidgetInSizeBox(widget)
     end
     
     -- 获取 World
-    local world = UIManager.GetGameInstance():GetWorld()
+    local world = require("Core.UEHelper").GetGameInstance():GetWorld()
     if not world then
         Log.Error("UITool", "Failed to get world")
         return nil
@@ -240,7 +230,7 @@ function M.GetWidgetScreenGeometry(widget)
     -- 获取屏幕位置
 	local PixelPosition = UE.FVector2D(0,0)
 	local ViewportPosition = UE.FVector2D(0,0)
-	UE.USlateBlueprintLibrary.LocalToViewport(UIManager.GetGameInstance(), geometry,UE.FVector2D(0,0),PixelPosition, ViewportPosition)
+	UE.USlateBlueprintLibrary.LocalToViewport(require("Core.UEHelper").GetGameInstance(), geometry,UE.FVector2D(0,0),PixelPosition, ViewportPosition)
 	
     -- 返回位置和大小信息
     return ViewportPosition, localSize
@@ -353,7 +343,7 @@ function M.AddRedDotToButton(buttonWidget, redDotSize)
     redDotSize = redDotSize or 10
     
     -- 获取 World
-    local world = UIManager.GetGameInstance():GetWorld()
+    local world = require("Core.UEHelper").GetGameInstance():GetWorld()
     if not world then
         Log.Error("UITool", "Failed to get world")
         return nil

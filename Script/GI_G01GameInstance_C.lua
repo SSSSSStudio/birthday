@@ -39,10 +39,11 @@ end
 
 function M:OnPreControllerBeginPlay()
 	UIManager.Destroy()
-	UIManager.Initialize(self)
+	UIManager.Initialize()
 end
 
 function M:ReceiveShutdown()
+	UIManager.Destroy()
 	ProtoDispatcher.Cleanup()
 	EventLoop.Shutdown();
 	UEHelper.Shutdown()

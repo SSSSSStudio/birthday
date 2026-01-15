@@ -157,7 +157,7 @@ end
 
 function M:OnButtonChangeMap()
 	local UIManager = require("UI.Core.UIManager")
-	UE.UGameplayStatics.OpenLevel(UIManager.GetGameInstance(), "/Game/Test/UITest/UIMap2")
+	UE.UGameplayStatics.OpenLevel(require("Core.UEHelper").GetGameInstance(), "/Game/Test/UITest/UIMap2")
 end
 
 --function M:Tick(MyGeometry, InDeltaTime)

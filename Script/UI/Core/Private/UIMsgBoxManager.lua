@@ -1,34 +1,27 @@
 -- UIMsgBoxManager.lua
 -- 消息框管理器：管理 Messagebox 层级的 UI，支持多个消息框堆叠
 
-local UILayerManager = require("UI.Core.Private.UILayerManager")
 local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
 local EventLoop = require("Core.EventLoop")
+local Interface = require("Utility.Interface")
+local LayerType = require("UI.Core.Private.LayerType")
 
-local DEFAULT_CONFIRM_TEXT = "确定"
-local DEFAULT_CANCEL_TEXT = "取消"
-local MAX_MSGBOX_ID = 999999
+local DEFAULT_CONFIRM_TEXT<const> = "确定"
+local DEFAULT_CANCEL_TEXT<const> = "取消"
+local MAX_MSGBOX_ID<const> = 999999
 
 ---@class UIMsgBoxManager
-local M = {
-    msgBoxStack = {},
-    nextMsgBoxId = 1,
-    isInitialized = false,
-    processingCallbacks = {}
-}
+local M = Interface("UIMsgBoxManager")
 
-M.MsgBoxType = {
-    Alert = 1,
-    Confirm = 2
-}
-
-function M:Initialize()
-    if self.isInitialized then return end
-    self.msgBoxStack = {}
-    self.nextMsgBoxId = 1
-    self.processingCallbacks = {}
-    self.isInitialized = true
+function M:__init()
+	self.msgBoxStack = {}
+	self.nextMsgBoxId = 1
+	self.processingCallbacks = {}
+	self.MsgBoxType = {
+		Alert = 1,
+		Confirm = 2
+	}
 end
 
 ---显示消息框
@@ -45,12 +38,6 @@ function M:Show(uiName, params, confirmCallback, cancelCallback)
     if params ~= nil and type(params) ~= "table" then
         Log.Error("UIMsgBoxManager", "Invalid params type: " .. type(params))
         return 0
-    end
-    
-    self:Initialize()
-    
-    if not UILayerManager.isInitialized then
-        UILayerManager:Initialize()
     end
     
     local config = UIConfig[uiName]
@@ -89,7 +76,7 @@ function M:Show(uiName, params, confirmCallback, cancelCallback)
     
     local success, err = pcall(function()
         if controller.Show then
-            controller:Show(UILayerManager.LayerType.Messagebox)
+            controller:Show(LayerType.Messagebox)
         end
     end)
     
@@ -108,7 +95,7 @@ function M:ShowAlert(uiName, title, content, confirmCallback, confirmText)
     return self:Show(uiName, {
         title = title,
         content = content,
-        type = M.MsgBoxType.Alert,
+        type = self.MsgBoxType.Alert,
         confirmText = confirmText
     }, confirmCallback, nil)
 end
@@ -118,7 +105,7 @@ function M:ShowConfirm(uiName, title, content, confirmCallback, cancelCallback, 
     return self:Show(uiName, {
         title = title,
         content = content,
-        type = M.MsgBoxType.Confirm,
+        type = self.MsgBoxType.Confirm,
         confirmText = confirmText,
         cancelText = cancelText
     }, confirmCallback, cancelCallback)
@@ -130,7 +117,7 @@ function M:ShowCustom(uiName, title, content, confirmText, cancelText, confirmCa
         title = title,
         content = content,
         confirmText = confirmText,
-        type = cancelText and M.MsgBoxType.Confirm or M.MsgBoxType.Alert,
+        type = cancelText and self.MsgBoxType.Confirm or self.MsgBoxType.Alert,
         cancelText = cancelText
     }
     return self:Show(uiName, params, confirmCallback, cancelCallback)
@@ -149,10 +136,10 @@ function M:PrepareParams(params)
     finalParams.cancelText = finalParams.cancelText or DEFAULT_CANCEL_TEXT
     
     local msgType = finalParams.type
-    if msgType == M.MsgBoxType.Alert then
+    if msgType == self.MsgBoxType.Alert then
         finalParams.showConfirmButton = finalParams.showConfirmButton ~= false
         finalParams.showCancelButton = false
-    elseif msgType == M.MsgBoxType.Confirm then
+    elseif msgType == self.MsgBoxType.Confirm then
         finalParams.showConfirmButton = finalParams.showConfirmButton ~= false
         finalParams.showCancelButton = finalParams.showCancelButton ~= false
     else
@@ -202,11 +189,6 @@ end
 
 ---关闭指定消息框
 function M:Close(msgBoxId)
-    if not self.isInitialized then 
-        Log.Warning("UIMsgBoxManager", "Close failed: not initialized")
-        return false 
-    end
-    
     for i, info in ipairs(self.msgBoxStack) do
         if info.msgBoxId == msgBoxId then
             table.remove(self.msgBoxStack, i)
@@ -268,24 +250,14 @@ function M:CreateMsgBox(uiName, config)
         Log.Error("UIMsgBoxManager", "Invalid config: " .. uiName)
         return nil, nil
     end
-    
-    local world = UILayerManager.gameInstance:GetWorld()
-    if not world then
-        Log.Error("UIMsgBoxManager", "Failed to get world")
-        return nil, nil
-    end
-    
-    local playerController = UE.UGameplayStatics.GetPlayerController(world, 0)
-    if not playerController then
-        Log.Error("UIMsgBoxManager", "Failed to get PlayerController")
-        return nil, nil
-    end
 
-    local view = UE.UWidgetBlueprintLibrary.Create(world, ViewClass, playerController)
-    if not view then
-        Log.Error("UIMsgBoxManager", "Failed to create view: " .. uiName)
-        return nil, nil
-    end
+
+	-- 创建 View 实例
+	local view = NewObject(ViewClass)
+	if not view then
+		error("Failed to create View for: " .. tostring(uiName))
+		return nil
+	end
     
     local controller = config.ControllerClass.New(config.ControllerClass, view, config.ModelClass or {})
     if not controller then
@@ -348,7 +320,6 @@ function M:Destroy()
     self.msgBoxStack = {}
     self.nextMsgBoxId = 1
     self.processingCallbacks = {}
-    self.isInitialized = false
 end
 
 return M

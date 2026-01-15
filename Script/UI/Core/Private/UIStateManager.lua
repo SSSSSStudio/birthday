@@ -1,26 +1,18 @@
 -- UIStateManager.lua
 -- UI 状态管理器，负责根据配置切换界面，并使用 LRU 缓存管理界面实例
 local Stack = require("UI.Core.Private.Stack")
-local UILayerManager = require("UI.Core.Private.UILayerManager")
 local UIConfig = require("UI.Core.UIConfig")
+local Interface = require("Utility.Interface")
+local LayerType = require("UI.Core.Private.LayerType")
 
 ---@class UIStateManager
-local M = {
-    uiRecordStack = nil, -- UI 名称缓存
-    currentUI = nil,         -- 当前显示的 UI
-	currentController = nil,  -- 当前显示的 UI 控制器
-    isInitialized = false    -- 是否已初始化
-}
+local M = Interface("UIStateManager")
 
---- 初始化 UI 状态管理器
 --- @param cacheCapacity integer 缓存容量（默认 10）
-function M:Initialize(cacheCapacity)
-    if self.isInitialized then
-        return
-    end
-    
-    self.uiRecordStack = Stack(cacheCapacity or 10,false)
-    self.isInitialized = true
+function M:__init(cacheCapacity)
+	self.currentUI = nil         -- 当前显示的 UI
+	self.currentController = nil  -- 当前显示的 UI 控制器
+	self.uiRecordStack = Stack(cacheCapacity or 10,false)
 end
 
 --- 打开指定 UI（如果当前有 UI，先关闭它）
@@ -29,10 +21,6 @@ end
 --- @param isCacheCurrent boolean|nil 是否使用 LRU 缓存（默认为 true）
 --- @return UIControllerBase|nil 控制器实例
 function M:OpenUI(uiName, params, isCacheCurrent)
-    if not self.isInitialized then
-        self:Initialize()
-    end
-	
 	-- 如果重复打开同一界面，更新参数并返回当前 controller
 	if self.currentUI == uiName then
 		if params and self.currentController and self.currentController.model and self.currentController.model.UpdateModel then
@@ -75,7 +63,7 @@ function M:OpenUI(uiName, params, isCacheCurrent)
 	
     -- 显示 UI
     if controller.Show then
-        controller:Show(UILayerManager.LayerType.State)
+        controller:Show(LayerType.State)
     end
     -- 更新当前 UI
     self.currentUI = uiName
@@ -193,7 +181,6 @@ end
 
 --- 销毁 UI 状态管理器
 function M:Destroy()
-    self.isInitialized = false
 	self.currentUI = nil
 	self.currentController = nil
 	self.uiRecordStack = nil

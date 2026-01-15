@@ -65,7 +65,7 @@ function M:Show(layerType)
     -- 添加到层级
     if self.layerType and self.view then
         local UILayerManager = require "UI.Core.Private.UILayerManager"
-        UILayerManager:AddToLayer(self.view, self.layerType)
+        UILayerManager.AddToLayer(self.view, self.layerType)
     end
     
     -- 设置可见性
@@ -104,7 +104,7 @@ function M:Destroy()
     -- 从层级移除
     if self.layerType and self.view then
         local UILayerManager = require "UI.Core.Private.UILayerManager"
-        UILayerManager:RemoveFromLayer(self.view, self.layerType)
+        UILayerManager.RemoveFromLayer(self.view, self.layerType)
     end
     
     -- 清理 View

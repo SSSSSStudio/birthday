@@ -1,22 +1,17 @@
 -- UIDialogManager.lua
 -- Dialog 层管理器：支持多层堆叠
 
-local UILayerManager = require("UI.Core.Private.UILayerManager")
 local UIConfig = require("UI.Core.UIConfig")
 local Log = require("Utility.Log")
+local Interface = require("Utility.Interface")
+local LayerType = require("UI.Core.Private.LayerType")
 
 ---@class UIDialogManager
-local M = {
-    dialogCache = {},
-    dialogStack = {},
-    isInitialized = false
-}
+local M = Interface("UIDialogManager")
 
-function M:Initialize()
-    if self.isInitialized then return end
-    self.dialogCache = {}
-    self.dialogStack = {}
-    self.isInitialized = true
+function M:__init()
+	self.dialogCache = {}
+	self.dialogStack = {}
 end
 
 ---显示 Dialog
@@ -33,13 +28,6 @@ function M:Show(uiName, params)
         Log.Error("UIDialogManager", "Invalid params type: " .. type(params))
         return nil
     end
-    
-    self:Initialize()
-    
-    if not UILayerManager.isInitialized then
-        UILayerManager:Initialize()
-    end
-    
     local config = UIConfig[uiName]
     if not config then
         Log.Error("UIDialogManager", "UI config not found: " .. uiName)
@@ -92,7 +80,7 @@ function M:Show(uiName, params)
     
     local success, err = pcall(function()
         if controller.Show then
-            controller:Show(UILayerManager.LayerType.Dialog)
+            controller:Show(LayerType.Dialog)
         end
     end)
     
@@ -117,7 +105,7 @@ function M:BringDialogToFront(controller)
     local view = controller.GetView and controller:GetView() or controller.view
     if not view then return end
     
-    local layer = UILayerManager:GetLayer(UILayerManager.LayerType.Dialog)
+    local layer = require("UI.Core.Private.UILayerManager").Get().GetLayer(LayerType.Dialog)
     if not layer then return end
     
     -- 先从层中移除，再重新添加，确保在最上层
@@ -136,8 +124,6 @@ end
 ---@param uiName string
 ---@return boolean
 function M:Close(uiName)
-    if not self.isInitialized then return false end
-    
     for i, info in ipairs(self.dialogStack) do
         if info.uiName == uiName then
             if info.controller then
@@ -206,18 +192,14 @@ function M:CreateDialog(uiName, config)
         Log.Error("UIDialogManager", "Invalid config: " .. uiName)
         return nil
     end
-    
-    local world = UILayerManager.gameInstance and UILayerManager.gameInstance:GetWorld()
-    if not world then
-        Log.Error("UIDialogManager", "Failed to get world")
-        return nil
-    end
-
-    local success, view = pcall(function()
-        return UE.UWidgetBlueprintLibrary.Create(world, ViewClass, nil)
-    end)
-    
-    if not success or not view then
+	
+	local view = NewObject(ViewClass)
+	if not view then
+		error("Failed to create View for: " .. tostring(uiName))
+		return nil
+	end
+	
+    if not view then
         Log.Error("UIDialogManager", "Failed to create view: " .. uiName .. ", " .. tostring(view))
         return nil
     end
@@ -293,8 +275,6 @@ end
 ---@param uiName string
 ---@return UIControllerBase|nil
 function M:Preload(uiName)
-    self:Initialize()
-    
     if self.dialogCache[uiName] then
         return self.dialogCache[uiName]
     end
@@ -343,7 +323,6 @@ end
 function M:Destroy()
     self:ClearCache()
     self.dialogStack = {}
-    self.isInitialized = false
 end
 
 return M
