@@ -6,55 +6,81 @@ local EventLoop = require("Core.EventLoop")
 
 ---@type ProtoDispatcher
 local ProtoDispatcher = require("Core.ProtoDispatcher")
----@type NetPack
+--[[---@type NetPack
 local NetPack = require("Net.NetPack")
 ---@type TcpClient
-local TcpClient = require("Net.TcpClient")
+local TcpClient = require("Net.TcpClient")]]
 ---@type UIManager
-local UIManager = require("UI.Core.UIManager")
+local UIManager = require("UI.UIManager")
+
+---@type UIConfigSystem
+local UIConfigSystem = require("UI.UIConfigSystem")
 
 ---@type UEHelper
 local UEHelper = require("Core.UEHelper")
 
+--[[
 local protoFileList = {
 	"common_message_desc.proto",
 	"base_message_desc.proto",
 	"agent_message_desc.proto",
 	"player_message_desc.proto",
 }
+]]
 
 ---@type GI_G01GameInstance_C
 local M = UnLua.Class()
+
+function M:ReceiveBeginPlay()
+    print("ReceiveBeginPlay")
+end
 
 function M:ReceiveInit()
 	LuaHelper.DisableGlobalVariable()
 	EventLoop.Startup()
 	UEHelper.Initialize(self)
-	
+
+	UIManager.RegisterDefaultConfig()
+
 	--网络协议环境
 	--ProtoDispatcher.Init("Config/ProtoFiles")
 	--ProtoDispatcher.ImportProtoFile(protoFileList)
 	--NetPack.Init("Config/ProtoFiles/message_id.json")
+	UE.UKismetSystemLibrary.K2_SetTimerForNextTickDelegate({ self, self.OnInitialized})
+end
+
+function M:OnInitialized()
+    print("OnInitialized")
+end
+
+function M:OnAssetSubsystemInitialized()
+	print("OnAssetSubsystemInitialized")
+	UIConfigSystem.Preload()
 end
 
 function M:OnPreControllerBeginPlay()
-	UIManager.Destroy()
+	print("OnPreControllerBeginPlay")
 	UIManager.Initialize()
 end
 
+function M:OnPostControllerEndPlay()
+end
+
+
 function M:ReceiveShutdown()
 	UIManager.Destroy()
+	UIConfigSystem.Destroy()
 	ProtoDispatcher.Cleanup()
 	EventLoop.Shutdown();
 	UEHelper.Shutdown()
 end
 
-function M:NetTest()
+--[[function M:NetTest()
 	self.tcpClient = TcpClient()
 	self.tcpClient:SetDisconnectCallback(function()
 		print("disconnect")
 	end)
 	self.tcpClient:Connect("test1","123456","30.245.44.40:18888")
-end
+end]]
 
 return M

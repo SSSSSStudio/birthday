@@ -8,10 +8,12 @@
 
 void UG01GameInstance::Init()
 {
-	Super::Init();
-	
+	AssetSubsystemInitialized.AddUObject(this, &UG01GameInstance::OnAssetSubsystemInitialized);
 	TickDelegateHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&UG01GameInstance::Tick));
 	PreControllerBeginPlay.AddUObject(this, &UG01GameInstance::OnPreControllerBeginPlay);
+	PostControllerEndPlay.AddUObject(this, &UG01GameInstance::OnPostControllerEndPlay);
+	Super::Init();
+	
 }
 
 void UG01GameInstance::Shutdown()

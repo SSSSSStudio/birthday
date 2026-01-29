@@ -15,4 +15,6 @@ class AG01PlayerController : public APlayerController
 	GENERATED_BODY()
 	
 	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

@@ -10,6 +10,7 @@ local M = {}
 ---@type GI_G01GameInstance_C
 local gameInstance = nil
 
+---@param gameInst GI_G01GameInstance_C
 function M.Initialize(gameInst)
 	gameInstance = gameInst
 end
@@ -18,11 +19,20 @@ function M.Shutdown()
     gameInstance = nil
 end
 
+---@return GI_G01GameInstance_C
 function M.GetGameInstance()
     return gameInstance
 end
+
+---@return UWorld
 function M.GetWorld()
 	return gameInstance:GetWorld()
+end
+
+---@param subsystemClass USubsystem
+---@return USubsystem
+function M.GetGameInstanceSubsystem(subsystemClass)
+	return UE.USubsystemBlueprintLibrary.GetGameInstanceSubsystem(gameInstance, subsystemClass)
 end
 
 return M

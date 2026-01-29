@@ -12,3 +12,12 @@ void AG01PlayerController::BeginPlay()
     }
 	Super::BeginPlay();
 }
+
+void AG01PlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+    UG01GameInstance* GameInstance = Cast<UG01GameInstance>(GetGameInstance());
+	if (GameInstance)    {
+		GameInstance->PostControllerEndPlay.Broadcast();
+	}
+}

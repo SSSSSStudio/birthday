@@ -18,8 +18,8 @@ function M:__init()
 end
 
 ---@param signal string
----@param func function(observer:table, ...:any)
----@param observer table
+---@param func function(...:any)
+---@param observer table @[optional]
 function M:Register(signal, func, observer)
 	assert(signal and type(signal) == "string", "signal is not a string")
 	assert(func and type(func) == "function", "func is not a function")
@@ -32,7 +32,7 @@ function M:Register(signal, func, observer)
 end
 
 ---@param signal string
----@param func function(observer:table, ...:any)
+---@param func function(...:any)
 function M:Deregister(signal, func)
 	assert(signal and type(signal) == "string", "signal is not a string")
 	local container = self.container
@@ -70,6 +70,10 @@ function M:Notify(signal, ...)
 			LuaHelper.XpCall(v[1], v[2], ...)
 		end
 	end
+end
+
+function M:RemoveAll()
+    self.container = {}
 end
 
 return M

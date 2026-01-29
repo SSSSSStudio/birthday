@@ -21,11 +21,24 @@ public:
 
 	static bool Tick(float DeltaTime);
 	
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Init"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnPreControllerBeginPlay"))
     void OnPreControllerBeginPlay();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnPostControllerEndPlay"))
+    void OnPostControllerEndPlay();
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnAssetSubsystemInitialized"))
+	void OnAssetSubsystemInitialized();
 	
 	DECLARE_MULTICAST_DELEGATE(FOnPreControllerBeginPlay);
 	FOnPreControllerBeginPlay PreControllerBeginPlay;
+
+	DECLARE_MULTICAST_DELEGATE(FOnPostControllerEndPlay);
+	FOnPostControllerEndPlay PostControllerEndPlay;
+
+	DECLARE_MULTICAST_DELEGATE(FOnAssetSubsystemInitialized);
+	FOnAssetSubsystemInitialized AssetSubsystemInitialized;
+	
 private:
 	FTSTicker::FDelegateHandle TickDelegateHandle;
 };

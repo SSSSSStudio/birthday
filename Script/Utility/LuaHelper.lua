@@ -25,7 +25,6 @@ end
 
 -- 创建一个新的类，可以继承自另一个类
 ---@param super_name string @[optional]
----@vararg any @[optional]
 ---@return LuaClass
 function M.LuaClass(super_name)
 	
@@ -84,6 +83,7 @@ function M.LuaClass(super_name)
 
 	---@generic T
 	---@param self T
+	---@param ... any @[optional]
 	---@return T
 	function new_class.New(self, ...)
 		local o = {

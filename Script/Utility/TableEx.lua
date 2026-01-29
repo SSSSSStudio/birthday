@@ -34,7 +34,7 @@ end
 
 -- 获取表的长度（键的数量）
 ---@param t table
----@return number integer
+---@return integer
 function M.Length(t)
 	local count = 0
 	for _ in pairs(t) do
@@ -83,15 +83,6 @@ function M.Map(t, func)
 	end
 end
 
--- 遍历表并对每个元素执行指定函数
----@param t table
----@param func function(v:any,k:any)
-function M.Walk(t, func)
-	for key, value in pairs(t) do
-		func(value, key)
-	end
-end
-
 -- 根据条件过滤表中的元素
 ---@param t table
 ---@param func function(v:any,k:any):boolean
@@ -127,6 +118,7 @@ end
 -- 根据条件筛选表中的元素
 ---@param t table
 ---@param func function(v:any,k:any):boolean
+---@param isAll boolean
 function M.GetFilter(t, func, isAll)
 	if not isAll then
         for key, value in pairs(t) do
@@ -147,9 +139,8 @@ function M.GetFilter(t, func, isAll)
 end
 
 -- 根据条件筛选数组中的元素
----@generic T
----@param array T[]
----@param func function(v:T):boolean
+---@param array table
+---@param func function(v:any):boolean
 ---@param isAll boolean
 function M.GetFilterArray(array, func, isAll)
 	if not isAll then
@@ -171,13 +162,10 @@ function M.GetFilterArray(array, func, isAll)
 	return result, indices
 end
 
--- 移除数组中满足条件的元素
----@generic T
----@param array T[]
+-- 移除数组中满足条件的所有元素
+---@param array table
 ---@param func function(v:T):boolean
 function M.ArrayRemove(array, func)
-	assert(array and func)
-
 	local length = #array
 	local readIndex = 1
 	local writeIndex = 1
@@ -192,43 +180,133 @@ function M.ArrayRemove(array, func)
 	end
 end
 
+-- 移除数组中的指定元素
+---@param array table
+---@param item any
+---@return boolean true 如果移除成功，false 如果元素不存在
+function M.ArrayRemoveItem(array, item)
+    for index, v in ipairs(array) do
+        if v == item then
+            table.remove(array, index)
+            return true
+        end
+    end
+	return false
+end
+
 -- 遍历数组并对每个元素执行指定函数
----@generic T
----@param array T[]
----@param func function(v:T,k:integer)
+---@param array table
+---@param func function(v:any,k:integer)
 function M.ArrayForeach(array, func)
 	for index, value in ipairs(array) do
-		func(value, index)
+		func(value,index)
 	end
 end
 
 -- 返回数组中的下一个元素，循环使用
----@generic T
----@param array T[]
+---@param array table
 ---@param index integer
----@return T 
+---@return any
 function M.ArrayNext(array, index)
 	if index >= #array then
 		index = 1
 	else
 		index = index + 1
 	end
-
 	return array[index]
 end
 
 -- 在数组中查找特定值的位置
----@generic T
----@param array T[]
----@param value T
+---@param array table
+---@param item any
 ---@param begin integer
-function M.ArrayIndexOf(array, value, begin)
+---@return integer
+function M.ArrayIndexOf(array, item, begin)
 	for index = begin or 1, #array do
-		if array[index] == value then
+		if array[index] == item then
 			return index 
 		end
 	end
 	return nil
+end
+
+--- 转换为数组（从栈顶到栈底）
+---@param stack table
+---@return table 数组
+function M.StackToArray(stack)
+    local result = {}
+    for i = #stack, 1, -1 do
+        result[#result + 1] = stack[i]
+    end
+    return result
+end
+
+-- 遍历堆栈中的所有元素（从栈顶到栈底）
+---@param stack table
+---@param func function(v:T)
+function M.StackForeach(stack, func)
+	for i = #stack, 1, -1 do
+		func(stack[i])
+	end
+end
+
+--- 将堆栈中的指定元素移动到顶部
+---@param stack table
+---@param item any
+---@return boolean true 如果移动成功，false 如果元素不存在
+function M.StackMoveToTop(stack, item)
+    for i = #stack, 1, -1 do
+        if stack[i] == item then
+            table.remove(stack, i)
+			stack[#stack + 1] = item
+            return true
+        end
+    end
+    return false
+end
+
+--- 弹出堆栈顶部的元素
+---@param stack table
+---@return any|nil 弹出的元素，如果堆栈为空则返回 nil
+function M.StackPop(stack)
+    if #stack == 0 then
+        return nil
+    end
+	local count = #stack
+	local item = stack[count]
+	stack[count] = nil
+    return item
+end
+
+--- 查看堆栈顶部的元素（不弹出）
+---@param stack table
+---@return any|nil 堆栈顶部的元素，如果堆栈为空则返回 nil
+function M.StackPeek(stack)
+    if #stack == 0 then
+        return nil
+    end
+    return stack[#stack]
+end
+
+--- 压入元素到堆栈顶部
+---@param stack table
+---@param item any 要压入的元素
+function M.StackPush(stack, item)
+	stack[#stack + 1] = item
+end
+
+-- 移除堆栈中的指定元素
+---@param stack table
+---@param item any
+---@return boolean true 如果移除成功，false 如果元素不存在
+function M.StackRemoveItem(stack, item)
+	for i = #stack, 1, -1 do
+        if stack[i] == item then
+            table.remove(stack, i)
+            return true
+        end
+    end
+    return false
 end
 
 return M
