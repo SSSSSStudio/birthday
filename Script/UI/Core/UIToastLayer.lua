@@ -47,7 +47,7 @@ local function ShowToast(self,name,model,content,duration)
 
 	local nameId = GenerateNameId(self,name)
 
-	local view = UE.NewObject(viewClass,UEHelper.GetGameInstance())
+	local view = UE.UWidgetBlueprintLibrary.Create(UEHelper.GetWorld(),viewClass)
 	UILayerSystem.AddToLayer(view, "Toast")
 	local controller = config.controllerClass:New(nameId,view,model,content,duration)
 	self.nameAndController[nameId] = controller

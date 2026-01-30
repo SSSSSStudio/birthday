@@ -55,8 +55,7 @@ function M:Open(name, model)
 		Log.Error("Failed to load View class for: " .. name)
 		return nil
 	end
-
-	local view = UE.NewObject(viewClass,UEHelper.GetGameInstance())
+	local view = UE.UWidgetBlueprintLibrary.Create(UEHelper.GetWorld(),viewClass)
 	UILayerSystem.AddToLayer(view, "Top")
 	controller = config.controllerClass:New(name,view,model)
 	self.nameAndController[name] = controller

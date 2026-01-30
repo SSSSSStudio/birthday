@@ -54,8 +54,8 @@ function M:Open(name, model, title, content, bConfirm)
 	end
 
 	local nameId = GenerateNameId(self,name)
-	
-	local view = UE.NewObject(viewClass,UEHelper.GetGameInstance())
+
+	local view = UE.UWidgetBlueprintLibrary.Create(UEHelper.GetWorld(),viewClass)
 	UILayerSystem.AddToLayer(view, "MsgBox")
 	local controller = config.controllerClass:New(nameId,view,model,title,content,bConfirm and CONFIRM_STYLE or ALERT_STYLE)
 	self.nameAndController[nameId] = controller

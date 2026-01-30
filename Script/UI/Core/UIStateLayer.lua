@@ -70,7 +70,7 @@ function M:Open(name, model, bCacheCurrent)
 		return nil
 	end
 
-	local view = UE.NewObject(viewClass,UEHelper.GetGameInstance())
+	local view = UE.UWidgetBlueprintLibrary.Create(UEHelper.GetWorld(),viewClass)
 	UILayerSystem.AddToLayer(view, "State")
 	controller = config.controllerClass:New(name,view,model)
 	self.nameAndController[name] = controller

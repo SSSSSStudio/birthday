@@ -44,7 +44,7 @@ function M:Open(name, model, message, timeout)
 		return nil
 	end
 
-	local view = UE.NewObject(viewClass,UEHelper.GetGameInstance())
+	local view = UE.UWidgetBlueprintLibrary.Create(UEHelper.GetWorld(),viewClass)
 	UILayerSystem.AddToLayer(view, "Lock")
 	self.lockController = config.controllerClass:New(name,view,model,message)
 

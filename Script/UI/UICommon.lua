@@ -14,7 +14,7 @@ function M.CreateMaskUWidget()
 	if not viewClass then
 		return nil
 	end
-	return UE.NewObject(viewClass,UEHelper.GetGameInstance())
+	return UE.UWidgetBlueprintLibrary.Create(UEHelper.GetWorld(),viewClass)
 end
 
 ---@param widget UWidget

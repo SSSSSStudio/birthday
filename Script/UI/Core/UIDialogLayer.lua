@@ -56,7 +56,7 @@ function M:Open(name, model)
 		return nil
 	end
 
-	local view = UE.NewObject(viewClass,UEHelper.GetGameInstance())
+	local view = UE.UWidgetBlueprintLibrary.Create(UEHelper.GetWorld(),viewClass)
 	UILayerSystem.AddToLayer(view, "Dialog")
 	view.Slot:SetZOrder(#self.controllerStack)
 	controller = config.controllerClass:New(name,view,model)
