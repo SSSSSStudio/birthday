@@ -10,26 +10,34 @@ local index = 0
 local M = LuaHelper.LuaClass("UI.UIControllerBase")
 
 --- 创建控制器实例
+--- @param name string UI名称
 --- @param view UUserWidget View 实例
 --- @param model MainUIModel|nil Model 实例（可选）
 function M:__OnNew(name, view, model)
+    -- 正确调用父类构造函数
     self.Super.__OnNew(self, name, view, model)
-	self.view:SubscribeEvent("OnButtonCloseClick", self.OnButtonCloseClick, self)
-	self.view:SubscribeEvent("OnButtonExpClick", self.OnButtonExpClick, self)
-	self.view:SubscribeEvent("OnButtonEventClick", self.OnButtonEventClick, self)
-	self.view:SubscribeEvent("OnButtonPetClick", self.OnButtonPetClick, self)
-	self.view:SubscribeEvent("OnButtonDialog", self.OnButtonDialog, self)
-	self.view:SubscribeEvent("OnButtonToast", self.OnButtonToast, self)
-	self.view:SubscribeEvent("OnButtonMsgBox", self.OnButtonMsgBox, self)
-	
-	self.view:SubscribeEvent("OnButtonLock", self.OnButtonLock, self)
-	self.view:SubscribeEvent("OnButtonTop", self.OnButtonTop, self)
+    
+    -- 确保view已正确初始化后再订阅事件
+    if self.view then
+        self.view:SubscribeEvent("OnButtonCloseClick", self.OnButtonCloseClick, self)
+        self.view:SubscribeEvent("OnButtonExpClick", self.OnButtonExpClick, self)
+        self.view:SubscribeEvent("OnButtonEventClick", self.OnButtonEventClick, self)
+        self.view:SubscribeEvent("OnButtonPetClick", self.OnButtonPetClick, self)
+        self.view:SubscribeEvent("OnButtonDialog", self.OnButtonDialog, self)
+        self.view:SubscribeEvent("OnButtonToast", self.OnButtonToast, self)
+        self.view:SubscribeEvent("OnButtonMsgBox", self.OnButtonMsgBox, self)
+        
+        self.view:SubscribeEvent("OnButtonLock", self.OnButtonLock, self)
+        self.view:SubscribeEvent("OnButtonTop", self.OnButtonTop, self)
 
-	self.view:SubscribeEvent("OnButtonAllTest", self.OnButtonAllTest, self)
-	self.view:SubscribeEvent("OnButtonOther", self.OnButtonOther, self)
-	self.view:SubscribeEvent("OnButtonGuideTest1", self.OnButtonGuideTest1, self)
-	self.view:SubscribeEvent("OnButtonGuideTest2", self.OnButtonGuideTest2, self)
-	self.view:SubscribeEvent("OnButtonChangeMap", self.OnButtonChangeMap, self)
+        self.view:SubscribeEvent("OnButtonAllTest", self.OnButtonAllTest, self)
+        self.view:SubscribeEvent("OnButtonOther", self.OnButtonOther, self)
+        self.view:SubscribeEvent("OnButtonGuideTest1", self.OnButtonGuideTest1, self)
+        self.view:SubscribeEvent("OnButtonGuideTest2", self.OnButtonGuideTest2, self)
+        self.view:SubscribeEvent("OnButtonChangeMap", self.OnButtonChangeMap, self)
+    else
+        print("Error: view is nil in MainUIController.__OnNew")
+    end
 end
 
 function M:OnInitModel(model)
@@ -143,8 +151,6 @@ function M:OnButtonAllTest()
 	UIManager.State_Open("PetMain",self.model:GetPetMainData())
 end
 
-
-
 function M:OnButtonGuideTest1()
 	self.view:OpenGuideToast()
 end
@@ -154,8 +160,7 @@ function M:OnButtonGuideTest2()
 end
 
 function M:OnButtonChangeMap()
-	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Test/UIExample/l_UIMap2")
+	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Test/UITest/UIMap2")
 end
-
 
 return M

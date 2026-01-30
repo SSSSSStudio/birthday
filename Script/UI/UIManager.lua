@@ -32,9 +32,9 @@ local M = {
 }
 
 function M.RegisterDefaultConfig()
-	UIConfigSystem.Register(DEFAULT_MSG_BOX_NAME, "UI.Widges.MessageBox.MsgBoxController","/Game/UI/Widges/MessageBox/WBP_MessageBox.WBP_MessageBox_C", true)
-	UIConfigSystem.Register(DEFAULT_TOAST_NAME, "UI.Widges.Toast.ToastController","/Game/UI/Widges/Toast/WBP_Toast.WBP_Toast_C", true)
-	UIConfigSystem.Register(DEFAULT_LOCK_NAME, "UI.Widges.Lock.LockController","/Game/UI/Widges/Lock/WBP_Lock.WBP_Lock_C", true)
+	UIConfigSystem.Register(DEFAULT_MSG_BOX_NAME, "UI.Widgets.MessageBox.MsgBoxController","/Game/Test/UITest/WBP_MessageBox.WBP_MessageBox_C", true)
+	UIConfigSystem.Register(DEFAULT_TOAST_NAME, "UI.Widgets.Toast.ToastController","/Game/Test/UITest/WBP_Toast.WBP_Toast_C", true)
+	UIConfigSystem.Register(DEFAULT_LOCK_NAME, "UI.Widgets.Lock.LockController","/Game/Test/UITest/WBP_Lock.WBP_Lock_C", true)
 end
 
 function M.Initialize()
