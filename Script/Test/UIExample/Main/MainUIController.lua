@@ -160,7 +160,7 @@ function M:OnButtonGuideTest2()
 end
 
 function M:OnButtonChangeMap()
-	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Test/UITest/UIMap2")
+	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Test/UIExample/L_UIMap2")
 end
 
 return M
