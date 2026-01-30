@@ -25,7 +25,6 @@ function M.Register(name, controllerPath, viewPath, bPreload)
 	assert(viewPath and type(viewPath) == "string", "viewPath must be string")
 	
 	if configs[name] then
-		Log.Error("UIConfigSystem", "UIConfig already exists: " .. name)
 		return
 	end
 	
