@@ -5,27 +5,13 @@
 
 local TestFramework = require("TestCase.FrameworkTest.init")
 
--- Mock Interface 模块
-package.loaded["Utility.Interface"] = function(name)
-    local class = {}
-    class.__index = class
-    
-    function class.New(self, ...)
-        local instance = setmetatable({}, self)
-        if instance.__init then
-            instance:__init(...)
-        end
-        return instance
-    end
-    
-    return class
-end
+-- Mock Interface 模块已移除，直接使用 Utility.Interface
 
 local Delegate = require("Core.Delegate")
 
 -- 测试初始化
 local function testInit()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     
     TestFramework.assertNotNil(delegate, "Delegate should be created")
     TestFramework.assertNil(delegate.obj, "Delegate obj should be nil initially")
@@ -34,7 +20,7 @@ end
 
 -- 测试 Bind 函数
 local function testBind()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     
     local function testFunc()
         return "test"
@@ -52,7 +38,7 @@ end
 
 -- 测试 BindObject 函数
 local function testBindObject()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     local testObj = {value = 100}
     
     local function testMethod(obj, arg)
@@ -68,7 +54,7 @@ end
 
 -- 测试 Unbind 函数
 local function testUnbind()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     
     local function testFunc()
         return "test"
@@ -83,7 +69,7 @@ end
 
 -- 测试 Execute 函数
 local function testExecute()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     local executeCount = 0
     
     local function testFunc(arg1, arg2)
@@ -104,7 +90,7 @@ end
 
 -- 测试 ExecuteWithObject 函数
 local function testExecuteWithObject()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     local testObj = {value = 50}
     
     local function testMethod(obj, arg)
@@ -121,7 +107,7 @@ end
 
 -- 测试 IsValid 函数
 local function testIsValid()
-    local delegate = Delegate:New()
+    local delegate = Delegate()
     
     -- 未绑定时
     TestFramework.assertFalse(delegate:IsValid(), "IsValid should return false when not bound")

@@ -6,6 +6,15 @@ local TestFramework = require("TestCase.UnluaTest.init")
 local MsgPackFile = require("Utility.MsgPackFile")
 
 local function testRead()
+    -- Prepare data
+    local testData = {
+        key = "value", 
+        number = 42,
+        table2 = {key = "su", number = 41}
+    }
+    local writeResult = MsgPackFile.Write("Test/TestCaseData/Read.msg", testData)
+    TestFramework.assertTrue(writeResult, "MsgPackFile.Write should succeed")
+
     -- Test reading from content directory
     local result = MsgPackFile.Read("Test/TestCaseData/Read.msg")
     TestFramework.assertNotNil(result, "MsgPackFile.Read should return data")
@@ -40,6 +49,15 @@ local function testWrite()
 end
 
 local function testReadToSandbox()
+    -- Prepare data
+    local testData = {
+        key = "value", 
+        number = 42,
+        table2 = {key = "su", number = 41}
+    }
+    local writeResult = MsgPackFile.WriteToSandbox("Read.msg", testData)
+    TestFramework.assertTrue(writeResult, "MsgPackFile.WriteToSandbox should succeed")
+
     -- Test reading from sandbox directory
     local result = MsgPackFile.ReadFromSandbox("Read.msg")
     TestFramework.assertNotNil(result, "MsgPackFile.ReadFromSandbox should return data")

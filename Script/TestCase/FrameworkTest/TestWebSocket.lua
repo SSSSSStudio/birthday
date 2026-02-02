@@ -4,21 +4,7 @@
 
 local TestFramework = require("TestCase.FrameworkTest.init")
 
--- Mock Interface 模块
-package.loaded["Utility.Interface"] = function(name)
-    local class = {}
-    class.__index = class
-    
-    function class.New(self, ...)
-        local instance = setmetatable({}, self)
-        if instance.__init then
-            instance:__init(...)
-        end
-        return instance
-    end
-    
-    return class
-end
+-- Mock Interface 模块已移除，直接使用 Utility.Interface
 
 -- Mock UE 和 UnLua 环境
 if not UE then
@@ -84,7 +70,7 @@ local WebSocket = require("Core.WebSocket")
 -- 测试初始化
 local function testInit()
     TestFramework.assertNoError(function()
-        local ws = WebSocket:New()
+        local ws = WebSocket()
         TestFramework.assertNotNil(ws, "WebSocket should be created")
     end, "WebSocket creation should not throw exception")
 end
@@ -101,7 +87,7 @@ end
 -- 异步测试 Connect
 local function testConnectAsync(done)
     print("   [Test] Testing WebSocket Connect Async...")
-    local ws = WebSocket:New()
+    local ws = WebSocket()
     
     -- 设置连接回调
     local isConnected = false
@@ -131,7 +117,7 @@ end
 -- 测试 Close 函数
 local function testClose()
     TestFramework.assertNoError(function()
-        local ws = WebSocket:New()
+        local ws = WebSocket()
         ws:Close()
     end, "Close should not throw exception")
 end
