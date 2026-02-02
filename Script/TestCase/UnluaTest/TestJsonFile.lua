@@ -38,9 +38,16 @@ local function testWrite()
 end
 
 local function testReadFromSandbox()
+
+    -- Prepare data
+    local testData = {key = "value", number = 42}
+    local writeResult = JsonFile.WriteToSandbox("UGC_SG.json", testData)
+    TestFramework.assertTrue(writeResult, "JsonFile.WriteToSandbox should succeed")
+
     -- Test reading from sandbox directory
     local result = JsonFile.ReadFromSandbox("UGC_SG.json")
     TestFramework.assertNotNil(result, "JsonFile.ReadFromSandbox should return data")
+    TestFramework.assertEquals(result.number, 42, "JsonFile.ReadFromSandbox should return correct data")
     
     -- Test with invalid filename
     local success, errorMsg = pcall(function() JsonFile.ReadFromSandbox(nil) end)

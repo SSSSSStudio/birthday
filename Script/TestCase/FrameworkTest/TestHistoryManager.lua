@@ -13,7 +13,7 @@ local HistoryManager = require("Core.HistoryManager")
 -- 测试初始化
 local function testInit()
     TestFramework.assertNoError(function()
-        local manager = HistoryManager:New()
+        local manager = HistoryManager()
         TestFramework.assertNotNil(manager, "HistoryManager should be created")
     end, "HistoryManager creation should not throw exception")
 end
@@ -21,7 +21,7 @@ end
 -- 测试 AddHistory 函数
 local function testAddHistory()
     TestFramework.assertNoError(function()
-        local manager = HistoryManager:New()
+        local manager = HistoryManager()
         
         -- 创建一个历史记录对象
         local history = {
@@ -40,7 +40,7 @@ end
 -- 测试 Undo 函数
 local function testUndo()
     TestFramework.assertNoError(function()
-        local manager = HistoryManager:New()
+        local manager = HistoryManager()
         
         local history = {
             Undo = function(self) end,
@@ -55,7 +55,7 @@ end
 -- 测试 Redo 函数
 local function testRedo()
     TestFramework.assertNoError(function()
-        local manager = HistoryManager:New()
+        local manager = HistoryManager()
         
         local history = {
             Undo = function(self) end,
@@ -71,7 +71,7 @@ end
 -- 测试 Clear 函数
 local function testClear()
     TestFramework.assertNoError(function()
-        local manager = HistoryManager:New()
+        local manager = HistoryManager()
         
         local history = {
             Undo = function(self) end,

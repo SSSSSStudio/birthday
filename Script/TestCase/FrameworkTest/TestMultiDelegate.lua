@@ -12,7 +12,7 @@ local MultiDelegate = require("Core.MultiDelegate")
 
 -- 测试初始化
 local function testInit()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     TestFramework.assertNotNil(multiDelegate, "MultiDelegate should be created")
     -- MultiDelegate 使用 listenerSet 和 listenerList 而非 delegates
@@ -22,7 +22,7 @@ end
 
 -- 测试 Add 函数
 local function testAdd()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local count = 0
     
     local function handler1()
@@ -41,7 +41,7 @@ end
 
 -- 测试 AddObject 函数
 local function testAddObject()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local testObj = {value = 0}
     
     local function handler(obj)
@@ -55,7 +55,7 @@ end
 
 -- 测试 Remove 函数
 local function testRemove()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     local function handler()
         return "test"
@@ -69,7 +69,7 @@ end
 
 -- 测试 Broadcast 函数
 local function testBroadcast()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local count = 0
     
     local function handler1(value)
@@ -89,7 +89,7 @@ end
 
 -- 测试重复添加同一个处理器
 local function testAddDuplicate()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local count = 0
     
     local function handler()
@@ -111,7 +111,7 @@ end
 
 -- 测试移除不存在的处理器
 local function testRemoveNonExistent()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     local function handler()
         return "test"
@@ -124,7 +124,7 @@ end
 
 -- 测试空广播
 local function testBroadcastEmpty()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     -- 空的 MultiDelegate 广播应该返回 false
     local result = multiDelegate:Broadcast()
@@ -133,7 +133,7 @@ end
 
 -- 测试处理器中抛出错误
 local function testBroadcastWithError()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local count = 0
     
     local function handler1()
@@ -163,7 +163,7 @@ end
 
 -- 测试对象方法的调用顺序
 local function testAddObjectOrder()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     local results = {}
     
     local obj1 = {
@@ -191,7 +191,7 @@ end
 
 -- 测试参数验证
 local function testParameterValidation()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     -- 测试 Add 参数验证
     TestFramework.assertError(function()
@@ -223,7 +223,7 @@ end
 
 -- 测试 RemoveAll 函数
 local function testRemoveAll()
-    local multiDelegate = MultiDelegate:New()
+    local multiDelegate = MultiDelegate()
     
     local function handler()
         return "test"

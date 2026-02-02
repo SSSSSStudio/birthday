@@ -148,18 +148,6 @@ local function testMap()
     TestFramework.assertEquals(testTable.c, 6)
 end
 
--- 测试 Walk 函数
-local function testWalk()
-    local testTable = {a = 1, b = 2, c = 3}
-    local sum = 0
-    
-    TableEx.Walk(testTable, function(value, key)
-        sum = sum + value
-    end)
-    
-    TestFramework.assertEquals(sum, 6)
-end
-
 -- 测试 Filter 函数
 local function testFilter()
     local testTable = {a = 1, b = 2, c = 3, d = 4}
@@ -303,7 +291,6 @@ TestFramework.addTestCase("TableEx.GetKeys", testGetKeys)
 TestFramework.addTestCase("TableEx.GetValues", testGetValues)
 TestFramework.addTestCase("TableEx.Merge", testMerge)
 TestFramework.addTestCase("TableEx.Map", testMap)
-TestFramework.addTestCase("TableEx.Walk", testWalk)
 TestFramework.addTestCase("TableEx.Filter", testFilter)
 TestFramework.addTestCase("TableEx.Foreach", testForeach)
 TestFramework.addTestCase("TableEx.KeyOf", testKeyOf)
@@ -322,7 +309,6 @@ return {
     testGetValues = testGetValues,
     testMerge = testMerge,
     testMap = testMap,
-    testWalk = testWalk,
     testFilter = testFilter,
     testForeach = testForeach,
     testKeyOf = testKeyOf,

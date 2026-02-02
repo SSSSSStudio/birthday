@@ -5,27 +5,13 @@
 
 local TestFramework = require("TestCase.FrameworkTest.init")
 
--- Mock Interface 模块
-package.loaded["Utility.Interface"] = function(name)
-    local class = {}
-    class.__index = class
-    
-    function class.New(self, ...)
-        local instance = setmetatable({}, self)
-        if instance.__init then
-            instance:__init(...)
-        end
-        return instance
-    end
-    
-    return class
-end
+-- Mock Interface 模块已移除，直接使用 Utility.Interface
 
 local Observable = require("Core.Observable")
 
 -- 测试初始化
 local function testInit()
-    local observable = Observable:New()
+    local observable = Observable()
     
     TestFramework.assertNotNil(observable, "Observable should be created")
     -- Observable 使用 container 而非 observers
@@ -34,7 +20,7 @@ end
 
 -- 测试 Register 函数
 local function testRegister()
-    local observable = Observable:New()
+    local observable = Observable()
     local count = 0
     
     local function observer(data)
@@ -49,7 +35,7 @@ end
 
 -- 测试 Deregister 函数
 local function testDeregister()
-    local observable = Observable:New()
+    local observable = Observable()
     
     local function observer(data)
         return data
@@ -67,7 +53,7 @@ end
 -- 实际：Observable.lua 第 30 行存在 bug (list[#list] = v 应该是 list[#list + 1] = v)
 --       导致每次注册都会覆盖最后一个元素，而不是追加新元素
 local function testNotify()
-    local observable = Observable:New()
+    local observable = Observable()
     local called = false
     local receivedData = nil
     
@@ -87,7 +73,7 @@ end
 
 -- 测试 Deregister 清除所有监听器
 local function testDeregisterAll()
-    local observable = Observable:New()
+    local observable = Observable()
     
     local function observer(data)
         return data
