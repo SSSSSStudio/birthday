@@ -42,7 +42,7 @@ end
 --- 打开按钮点击事件
 function M:OnButtonCloseClick()
 	print("Open button clicked")
-	UIManager.State_CloseAndReopen()
+	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Maps/L_DevelopEntry")
 end
 
 --- 经验按钮点击事件

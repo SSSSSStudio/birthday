@@ -30,7 +30,7 @@ function M.Register(name, controllerPath, viewPath, bPreload)
 	
 	local controllerClass = require(controllerPath)
 	if not controllerClass then
-        Log.Error("UIConfigSystem", "Failed to load controller class for: " .. name)
+        Log.Error("UIConfigSystem", "Failed to load controller class for: " .. controllerPath)
         return
     end
 	

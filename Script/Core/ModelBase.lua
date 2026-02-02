@@ -45,6 +45,16 @@ function M:RemoveAllEvent()
 end
 
 --- @param signal string
+function M:UnsubscribeEvent(signal)
+    self.subject:Deregister(signal)
+end
+
+--- @param observer table
+function M:RemoveObserverEvent(observer)
+	self.subject:RemoveObserver(observer)
+end
+
+--- @param signal string
 --- @vararg any
 function M:TriggerEvent(signal, ...)
 	self.subject:Notify(signal, ...)

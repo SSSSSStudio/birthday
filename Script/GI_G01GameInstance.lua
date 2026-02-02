@@ -42,6 +42,7 @@ function M:ReceiveInit()
 
 	UIManager.RegisterDefaultConfig()
 
+	
 	--网络协议环境
 	--ProtoDispatcher.Init("Config/ProtoFiles")
 	--ProtoDispatcher.ImportProtoFile(protoFileList)
