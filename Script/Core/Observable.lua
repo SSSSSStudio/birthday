@@ -47,9 +47,7 @@ function M:Deregister(signal, func)
 	end
 
 	TableEx.ArrayRemove(array, function(v)
-		if v[1] == func then
-			return true
-		end
+		return v[1] == func
 	end)
 end
 
@@ -69,6 +67,15 @@ function M:Notify(signal, ...)
 		else
 			LuaHelper.XpCall(v[1], v[2], ...)
 		end
+	end
+end
+
+---@param observer table
+function M:RemoveObserver(observer)
+	for _, array in pairs(self.container) do
+		TableEx.ArrayRemove(array, function(v)
+			return v[2] == observer
+		end)
 	end
 end
 

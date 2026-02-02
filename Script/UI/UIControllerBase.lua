@@ -27,7 +27,7 @@ function M:Destroy()
 		self.view = nil
 	end
 	if self.model then
-		self.model:RemoveAllEvent()
+		self.model:RemoveObserverEvent(self)
 		self.model = nil
 	end
 	self.bIsVisible = false
