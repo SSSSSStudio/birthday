@@ -6,7 +6,7 @@
 
 local LuaHelper = require("Utility.LuaHelper")
 local UIManager = require("UI.UIManager")
-
+local UEHelper = require("Core.UEHelper")
 
 ---@class DevelopMainController : UIControllerBase
 local M = LuaHelper.LuaClass("UI.UIControllerBase")
@@ -30,10 +30,12 @@ end
 
 function M:OnHomeClick()
 	print("OnHomeClick")
+	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Development/Maps/Home/l_HomeEntry")
 end
 
 function M:OnCombatClick()
 	print("OnCombatClick")
+	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Development/Maps/Combat/l_CombatEntry")
 end
 
 return M

@@ -19,6 +19,8 @@ local UIConfigSystem = require("UI.UIConfigSystem")
 ---@type UEHelper
 local UEHelper = require("Core.UEHelper")
 
+---@type SimulationServer
+local SimulationServer = require("Development.SimulationServer")
 --[[
 local protoFileList = {
 	"common_message_desc.proto",
@@ -42,6 +44,7 @@ function M:ReceiveInit()
 
 	UIManager.RegisterDefaultConfig()
 
+	SimulationServer.Initialize()
 	
 	--网络协议环境
 	--ProtoDispatcher.Init("Config/ProtoFiles")
@@ -69,6 +72,8 @@ end
 
 
 function M:ReceiveShutdown()
+	SimulationServer.Shutdown()
+	
 	UIManager.Destroy()
 	UIConfigSystem.Destroy()
 	ProtoDispatcher.Cleanup()

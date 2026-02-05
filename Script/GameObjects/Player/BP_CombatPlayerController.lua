@@ -6,7 +6,12 @@
 -- @DATE ${date} ${time}
 --
 
----@type GM_DevelopGameMode_C
+---@type UIManager
+local UIManager = require("UI.UIManager")
+---@type EventDispatcher
+local EventDispatcher = require("Core.EventDispatcher")
+
+---@type BP_CombatPlayerController_C
 local M = UnLua.Class()
 
 -- function M:Initialize(Initializer)
@@ -14,12 +19,22 @@ local M = UnLua.Class()
 
 -- function M:UserConstructionScript()
 -- end
+
  function M:ReceiveBeginPlay()
-	 print("[GM_DevelopGameMode_C] ReceiveBeginPlay ====================================")
+	 print("[Combat] ReceiveBeginPlay ====================================")
+	 EventDispatcher.AddEvent("ACEnterCombat", self.EnterCombat, self)
+	 
+	 
+	 
+	 EventDispatcher.Dispatch("CAEnterCombat")
  end
 
  function M:ReceiveEndPlay()
-	 print("[GM_DevelopGameMode_C] ReceiveEndPlay ====================================")
+	 UIManager.CloseAll()
+ end
+
+ function M:EnterCombat(data)
+     print("[Combat] EnterCombat ====================================")
  end
 
 -- function M:ReceiveTick(DeltaSeconds)

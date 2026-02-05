@@ -7,6 +7,10 @@
 --
 ---@type UIManager
 local UIManager = require("UI.UIManager")
+
+---@type UIConfigSystem
+local UIConfigSystem = require("UI.UIConfigSystem")
+
 ---@type BP_DevelopPlayerController_C
 local M = UnLua.Class()
 
@@ -20,6 +24,10 @@ local M = UnLua.Class()
 	 print("[PC_UI_C] ReceiveBeginPlay ====================================")
 	 self.bShowMouseCursor = true
 	 UE.UWidgetBlueprintLibrary.SetInputMode_GameAndUIEx(self, nil, UE.EMouseLockMode.DoNotLock)
+
+	 UIConfigSystem.Register("DevelopMain","UI.Develop.DevelopMainController","/Game/UI/Develop/WBP_DevelopMain.WBP_DevelopMain_C")
+	 UIConfigSystem.Register("TestMain","Test.UI.TestMainController","/Game/Test/UI/WBP_TestMain.WBP_TestMain_C")
+
 	 UIManager.State_Open("DevelopMain", nil)
  end
 

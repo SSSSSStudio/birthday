@@ -6,7 +6,7 @@
 -- @DATE ${date} ${time}
 --
 
----@type GM_DevelopGameMode_C
+---@type GM_CombatGameMode_C
 local M = UnLua.Class()
 
 -- function M:Initialize(Initializer)
@@ -14,13 +14,12 @@ local M = UnLua.Class()
 
 -- function M:UserConstructionScript()
 -- end
- function M:ReceiveBeginPlay()
-	 print("[GM_DevelopGameMode_C] ReceiveBeginPlay ====================================")
- end
 
- function M:ReceiveEndPlay()
-	 print("[GM_DevelopGameMode_C] ReceiveEndPlay ====================================")
- end
+-- function M:ReceiveBeginPlay()
+-- end
+
+-- function M:ReceiveEndPlay()
+-- end
 
 -- function M:ReceiveTick(DeltaSeconds)
 -- end
