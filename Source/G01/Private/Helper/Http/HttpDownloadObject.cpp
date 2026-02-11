@@ -53,7 +53,7 @@ void UHttpDownloadObject::OnHttpRequestCompleted(FHttpRequestPtr Request, FHttpR
 			{
 				FString ResponseStr = "true";
 				int32 RespomseCode = Response->GetResponseCode();
-				OnCompletedimplementation(ResponseStr, RespomseCode);
+				OnCompleted(ResponseStr, RespomseCode);
 			}
 		}
 	}
@@ -61,7 +61,7 @@ void UHttpDownloadObject::OnHttpRequestCompleted(FHttpRequestPtr Request, FHttpR
 	{
 		FString ResponseStr = "false";
 		int32 RespomseCode = -1;
-		OnCompletedimplementation(ResponseStr, RespomseCode);
+		OnCompleted(ResponseStr, RespomseCode);
 	}
 	RemoveFromRoot();
 }

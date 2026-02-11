@@ -84,7 +84,7 @@ void UHttpUploadObject::OnHttpRequestCompleted(FHttpRequestPtr Request, FHttpRes
 	{
 		FString ResponseStr = Response->GetContentAsString();
 		int32 RespomseCode = Response->GetResponseCode();
-		OnCompletedimplementation(ResponseStr, RespomseCode);
+		OnCompleted(ResponseStr, RespomseCode);
 		//删除文件
 		if (FilePath.Len() > 0)
 		{

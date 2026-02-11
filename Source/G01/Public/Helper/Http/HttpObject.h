@@ -128,11 +128,8 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
 	void Request();
 
-	UPROPERTY(BlueprintAssignable)
-	FHttpResultDelegate OnCompleted;
-
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnCompletedimplementation(const FString& Result, int32 Code);
+	void OnCompleted(const FString& Result, int32 Code);
 
 	virtual FString GetModuleName_Implementation() const override
 	{

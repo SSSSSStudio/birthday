@@ -14,5 +14,8 @@ class G01_API AG01GameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 public:
-	void () override;
+	virtual void StartPlay() override;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnStartPlay();
 };

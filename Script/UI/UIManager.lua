@@ -1,4 +1,4 @@
-local UIConfigSystem = require "UI.UIConfigSystem"
+local UIConfigSystem = require "UI.Core.UIConfigSystem"
 local UILayerSystem = require "UI.Core.UILayerSystem"
 
 local UIStateLayer = require "UI.Core.UIStateLayer"
@@ -31,17 +31,12 @@ local bInitialized = false
 local M = {
 }
 
-function M.RegisterDefaultConfig()
-	UIConfigSystem.Register(DEFAULT_MSG_BOX_NAME, "UI.Widgets.MessageBox.MsgBoxController","/Game/UI/Widgets/MessageBox/WBP_MessageBox.WBP_MessageBox_C", true)
-	UIConfigSystem.Register(DEFAULT_TOAST_NAME, "UI.Widgets.Toast.ToastController","/Game/UI/Widgets/Toast/WBP_Toast.WBP_Toast_C", true)
-	UIConfigSystem.Register(DEFAULT_LOCK_NAME, "UI.Widgets.Lock.LockController","/Game/UI/Widgets/Lock/WBP_Lock.WBP_Lock_C", true)
-end
-
 function M.Initialize()
 	if bInitialized then
         return
     end
 	bInitialized = true
+
 	UILayerSystem.Initialize()
 	stateLayer = UIStateLayer()
 	dialogLayer = UIDialogLayer()
@@ -49,6 +44,12 @@ function M.Initialize()
 	msgBoxLayer = UIMsgBoxLayer()
 	toastLayer = UIToastLayer()
 	topLayer = UITopLayer()
+
+	UIConfigSystem.Register(DEFAULT_MSG_BOX_NAME, "UI.Widgets.MessageBox.MsgBoxController","/Game/UI/Widgets/MessageBox/WBP_MessageBox.WBP_MessageBox_C", true)
+	UIConfigSystem.Register(DEFAULT_TOAST_NAME, "UI.Widgets.Toast.ToastController","/Game/UI/Widgets/Toast/WBP_Toast.WBP_Toast_C", true)
+	UIConfigSystem.Register(DEFAULT_LOCK_NAME, "UI.Widgets.Lock.LockController","/Game/UI/Widgets/Lock/WBP_Lock.WBP_Lock_C", true)
+	
+	UIConfigSystem.Start()
 end
 
 function M.Destroy()
@@ -81,6 +82,7 @@ function M.Destroy()
 		dialogLayer = nil
     end
 	UILayerSystem.Destroy()
+	UIConfigSystem.Destroy()
 end
 
 function M.CloseAll()
@@ -188,14 +190,14 @@ end
 ---@param model ModelBase
 ---@param title string
 ---@param content string
----@return UIMsgBoxController
+---@return MsgBoxController
 function M.MsgBox_OpenAlert(model, title, content)
 	return msgBoxLayer:OpenAlert(DEFAULT_MSG_BOX_NAME, model, title, content)
 end
 ---@param model ModelBase
 ---@param title string
 ---@param content string
----@return UIMsgBoxController
+---@return MsgBoxController
 function M.MsgBox_OpenConfirm(model, title, content)
     return msgBoxLayer:OpenConfirm(DEFAULT_MSG_BOX_NAME, model, title, content)
 end
@@ -205,7 +207,7 @@ end
 ---@param title string
 ---@param content string
 ---@param bConfirm boolean
----@return UIMsgBoxController
+---@return MsgBoxController
 function M.MsgBox_OpenCustom(name, model, title, content, bConfirm)
 	name  = name or DEFAULT_MSG_BOX_NAME
     return msgBoxLayer:Open(name, model, title, content, bConfirm)

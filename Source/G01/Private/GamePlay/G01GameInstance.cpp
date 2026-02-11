@@ -8,12 +8,8 @@
 
 void UG01GameInstance::Init()
 {
-	AssetSubsystemInitialized.AddUObject(this, &UG01GameInstance::OnAssetSubsystemInitialized);
 	TickDelegateHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&UG01GameInstance::Tick));
-	PreControllerBeginPlay.AddUObject(this, &UG01GameInstance::OnPreControllerBeginPlay);
-	PostControllerEndPlay.AddUObject(this, &UG01GameInstance::OnPostControllerEndPlay);
 	Super::Init();
-	
 }
 
 void UG01GameInstance::Shutdown()
@@ -30,4 +26,9 @@ bool UG01GameInstance::Tick(float DeltaTime)
 		FLuaProjectLibraryModule::Tick(L,DeltaTime);
 	}
 	return true;
+}
+
+void UG01GameInstance::OnStart()
+{
+	OnStartPlay();
 }

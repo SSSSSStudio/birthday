@@ -20,7 +20,7 @@ function M:UnRegisterCompleteCallback()
     self.responseCallback = nil
 end
 
-function M:OnCompletedimplementation(result, code)
+function M:OnCompleted(result, code)
 	if not self.responseCallback then
         return
     end

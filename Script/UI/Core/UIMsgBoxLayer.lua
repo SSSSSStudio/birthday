@@ -6,7 +6,7 @@ local Log = require("Utility.Log")
 ---@type UILayerSystem
 local UILayerSystem = require "UI.Core.UILayerSystem"
 ---@type UIConfigSystem
-local UIConfigSystem = require("UI.UIConfigSystem")
+local UIConfigSystem = require("UI.Core.UIConfigSystem")
 
 local ALERT_STYLE<const> = 1
 local CONFIRM_STYLE<const> = 2

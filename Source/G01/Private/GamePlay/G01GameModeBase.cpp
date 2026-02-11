@@ -2,3 +2,10 @@
 
 
 #include "GamePlay/G01GameModeBase.h"
+
+void AG01GameModeBase::StartPlay()
+{
+	Super::StartPlay();
+	OnStartPlay();
+}
+

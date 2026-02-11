@@ -10,7 +10,7 @@ local EventLoop = require("Core.EventLoop")
 ---@type UILayerSystem
 local UILayerSystem = require "UI.Core.UILayerSystem"
 ---@type UIConfigSystem
-local UIConfigSystem = require("UI.UIConfigSystem")
+local UIConfigSystem = require("UI.Core.UIConfigSystem")
 
 local DEFAULT_TIMEOUT<const> = 30
 

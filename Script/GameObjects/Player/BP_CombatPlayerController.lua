@@ -8,8 +8,7 @@
 
 ---@type UIManager
 local UIManager = require("UI.UIManager")
----@type EventDispatcher
-local EventDispatcher = require("Core.EventDispatcher")
+
 
 ---@type BP_CombatPlayerController_C
 local M = UnLua.Class()
@@ -21,21 +20,13 @@ local M = UnLua.Class()
 -- end
 
  function M:ReceiveBeginPlay()
-	 print("[Combat] ReceiveBeginPlay ====================================")
-	 EventDispatcher.AddEvent("ACEnterCombat", self.EnterCombat, self)
-	 
-	 
-	 
-	 EventDispatcher.Dispatch("CAEnterCombat")
+	
  end
 
  function M:ReceiveEndPlay()
 	 UIManager.CloseAll()
  end
 
- function M:EnterCombat(data)
-     print("[Combat] EnterCombat ====================================")
- end
 
 -- function M:ReceiveTick(DeltaSeconds)
 -- end

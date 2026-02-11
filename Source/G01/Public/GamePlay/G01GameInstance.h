@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UnLuaInterface.h"
 #include "Engine/GameInstance.h"
 #include "G01GameInstance.generated.h"
 
@@ -18,27 +17,16 @@ class G01_API UG01GameInstance : public UGameInstance
 public:
 	virtual void Init() override;
 	virtual void Shutdown() override;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnStartPlay();
 
+protected:
+	virtual void OnStart() override;
+	
+private:
 	static bool Tick(float DeltaTime);
-	
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnPreControllerBeginPlay"))
-    void OnPreControllerBeginPlay();
 
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnPostControllerEndPlay"))
-    void OnPostControllerEndPlay();
-
-	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnAssetSubsystemInitialized"))
-	void OnAssetSubsystemInitialized();
-	
-	DECLARE_MULTICAST_DELEGATE(FOnPreControllerBeginPlay);
-	FOnPreControllerBeginPlay PreControllerBeginPlay;
-
-	DECLARE_MULTICAST_DELEGATE(FOnPostControllerEndPlay);
-	FOnPostControllerEndPlay PostControllerEndPlay;
-
-	DECLARE_MULTICAST_DELEGATE(FOnAssetSubsystemInitialized);
-	FOnAssetSubsystemInitialized AssetSubsystemInitialized;
-	
 private:
 	FTSTicker::FDelegateHandle TickDelegateHandle;
 };

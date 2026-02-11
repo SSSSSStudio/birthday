@@ -8,8 +8,7 @@
 
 ---@type UIManager
 local UIManager = require("UI.UIManager")
----@type EventDispatcher
-local EventDispatcher = require("Core.EventDispatcher")
+
 
 ---@type BP_HomePlayerController_C
 local M = UnLua.Class()
@@ -21,12 +20,7 @@ local M = UnLua.Class()
 -- end
 
  function M:ReceiveBeginPlay()
-	 print("[Home] ReceiveBeginPlay ====================================")
-	 EventDispatcher.AddEvent("ACEnterHome", self.EnterHome, self)
-	 
-	 
-	 
-	 EventDispatcher.Dispatch("CAEnterHome")
+	 print("[HomePlayController] ReceiveBeginPlay ====================================")
  end
 
  function M:ReceiveEndPlay()
@@ -34,9 +28,6 @@ local M = UnLua.Class()
  end
 
 
- function M:EnterHome(data)
-     print("[Home] EnterHome ====================================")
- end
 
 -- function M:ReceiveTick(DeltaSeconds)
 -- end

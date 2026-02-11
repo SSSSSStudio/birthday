@@ -11,7 +11,7 @@ local layers = {}
 local layersRef = {}
 
 local function CreateLayer(name, zOrder)
-	local layerClass = nil
+	local layerClass
 	if name == "Dialog" or name == "Top" then
 		layerClass = UE.UCanvasPanel
     else
@@ -72,6 +72,5 @@ function M.AddToLayer(userWidget, layerName)
 		end
     end
 end
-
 
 return M

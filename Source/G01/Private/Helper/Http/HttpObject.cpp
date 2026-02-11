@@ -44,7 +44,7 @@ void UHttpObject::OnHttpRequestCompleted(FHttpRequestPtr Request, FHttpResponseP
 	{
 		FString ResponseStr = Response->GetContentAsString();
 		int32 RespomseCode = Response->GetResponseCode();
-		OnCompletedimplementation(ResponseStr, RespomseCode);
+		OnCompleted(ResponseStr, RespomseCode);
 	}
 	else
 	{

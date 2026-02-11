@@ -7,10 +7,6 @@
 void UAssetSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	UG01GameInstance* GameInstance = Cast<UG01GameInstance>(GetGameInstance());
-	if (GameInstance)    {
-		GameInstance->AssetSubsystemInitialized.Broadcast();
-	}
 }
 
 void UAssetSubsystem::Deinitialize()
