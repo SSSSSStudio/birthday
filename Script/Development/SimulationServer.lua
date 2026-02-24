@@ -24,7 +24,6 @@ end
 
 ---Home
 local function EnterHomeEditMode()
-	print("EnterHomeEditMode")
 	local enterHomeEditMode = {
 		furnitureBag = {
 			{
@@ -37,7 +36,6 @@ local function EnterHomeEditMode()
 end
 
 local function LeaveHomeEditMode(furnitureBag, placement)
-	print("LeaveHomeEditMode")
 	local leaveHomeEditMode = {
 		code = 1,
 	}
@@ -45,7 +43,6 @@ local function LeaveHomeEditMode(furnitureBag, placement)
 end
 
 local function LeaveHome()
-	print("LeaveHome")
 	EventDispatcher.RemoveEvent("CAEnterHomeEditMode")
 	EventDispatcher.RemoveEvent("CALeaveHomeEditMode")
 	EventDispatcher.RemoveEvent("CALeaveHome")
@@ -87,10 +84,19 @@ local function EnterHome()
 	EventDispatcher.Dispatch("ACEnterHome",enterHome)
 end
 
+local function FinishCombat(data)
+	EventDispatcher.RemoveEvent("CAFinishCombat")
+
+	local finishCombat = {
+		code = 1,
+	}
+	EventDispatcher.Dispatch("ACFinishCombat",finishCombat)
+end
 
 ---Combat
 local function EnterCombat()
-	print("EnterCombat")
+	RegisterEvent("CAFinishCombat",FinishCombat)
+	
 	EventDispatcher.Dispatch("ACEnterCombat")
 end
 
@@ -110,6 +116,5 @@ function M.Shutdown()
     EventDispatcher.RemoveEvent("CAEnterHome")
     EventDispatcher.RemoveEvent("CAEnterCombat")
 end
-
 
 return M

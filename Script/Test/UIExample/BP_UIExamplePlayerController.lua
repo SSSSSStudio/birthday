@@ -22,7 +22,6 @@ function M:ReceiveBeginPlay()
 	UE.UWidgetBlueprintLibrary.SetInputMode_GameAndUIEx(self, nil, UE.EMouseLockMode.DoNotLock)
 	print("[PC_UI_C] ReceiveBeginPlay ====================================")
 
-	UIManager.Initialize()
 
 	UIManager.RegisterConfig("Activity","Test.UIExample.Activity.ActivityController","/Game/Test/UIExample/WBP_Activity.WBP_Activity_C")
 	UIManager.RegisterConfig("Bag","Test.UIExample.Bag.BagController","/Game/Test/UIExample/WBP_Bag.WBP_Bag_C")
@@ -30,6 +29,8 @@ function M:ReceiveBeginPlay()
 	UIManager.RegisterConfig("Main","Test.UIExample.Main.MainUIController","/Game/Test/UIExample/Main/WBP_Main.WBP_Main_C")
 	UIManager.RegisterConfig("PetMain","Test.UIExample.Pet.PetMainController","/Game/Test/UIExample/Pet/WBP_PetMain.WBP_PetMain_C")
 
+	UIManager.Start()
+	
 	self.main = MainUIModel:New()
 	UIManager.State_Open("Main", self.main)
 end

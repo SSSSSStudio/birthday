@@ -35,7 +35,7 @@ end
 ---@class UILayerSystem
 local M = {}
 
-function M.Initialize()
+function M.Start()
 	for name, zOrder in pairs(layerConfig) do
         layers[name] = CreateLayer(name,zOrder)
     end

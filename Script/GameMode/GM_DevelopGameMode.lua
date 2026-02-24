@@ -26,7 +26,9 @@ local M = UnLua.Class()
 function M:ReceiveBeginPlay()
 	print("[GM_DevelopGameMode_C] ReceiveBeginPlay ====================================")
 	SimulationServer.Initialize()
-	UIManager.Initialize()
+	UIManager.RegisterConfig("DevelopMain","UI.Develop.DevelopMainController","/Game/UI/Develop/WBP_DevelopMain.WBP_DevelopMain_C")
+	UIManager.RegisterConfig("TestMain","Test.UI.TestMainController","/Game/Test/UI/WBP_TestMain.WBP_TestMain_C")
+	UIManager.Start()
 end
 
 function M:ReceiveEndPlay()

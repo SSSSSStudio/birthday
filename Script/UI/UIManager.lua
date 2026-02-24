@@ -26,6 +26,7 @@ local toastLayer = nil
 local topLayer = nil
 
 local bInitialized = false
+local bStarted = false
 
 ---@class UIManager
 local M = {
@@ -37,7 +38,6 @@ function M.Initialize()
     end
 	bInitialized = true
 
-	UILayerSystem.Initialize()
 	stateLayer = UIStateLayer()
 	dialogLayer = UIDialogLayer()
 	lockLayer = UILockLayer()
@@ -49,7 +49,6 @@ function M.Initialize()
 	UIConfigSystem.Register(DEFAULT_TOAST_NAME, "UI.Widgets.Toast.ToastController","/Game/UI/Widgets/Toast/WBP_Toast.WBP_Toast_C", true)
 	UIConfigSystem.Register(DEFAULT_LOCK_NAME, "UI.Widgets.Lock.LockController","/Game/UI/Widgets/Lock/WBP_Lock.WBP_Lock_C", true)
 	
-	UIConfigSystem.Start()
 end
 
 function M.Destroy()
@@ -85,17 +84,6 @@ function M.Destroy()
 	UIConfigSystem.Destroy()
 end
 
-function M.CloseAll()
-	if not bInitialized then
-		return
-	end
-    M.State_CloseAll()
-    M.Dialog_CloseAll()
-	M.Lock_Close()
-	M.MsgBox_CloseAll()
-	M.Toast_CloseAll()
-end
-
 ---@param name string
 ---@param controllerPath string
 ---@param viewPath string
@@ -103,11 +91,37 @@ function M.RegisterConfig(name, controllerPath, viewPath, bPreload)
 	UIConfigSystem.Register(name, controllerPath, viewPath, bPreload)
 end
 
+function M.Start()
+	if not bInitialized then
+		M.Initialize()
+	end
+	if bStarted then
+        return
+    end
+	UILayerSystem.Start()
+	UIConfigSystem.Start()
+    bStarted = true
+end
+
+function M.CloseAll()
+	if not bStarted then
+		return
+	end
+	M.State_CloseAll()
+	M.Dialog_CloseAll()
+	M.Lock_Close()
+	M.MsgBox_CloseAll()
+	M.Toast_CloseAll()
+end
+
 ---@param name string
 ---@param model ModelBase
 ---@param bCacheCurrent boolean|nil
 ---@return UIControllerBase
 function M.State_Open(name, model, bCacheCurrent)
+	if not bStarted then
+		return
+	end
 	return stateLayer:Open(name, model, bCacheCurrent)
 end
 
@@ -129,6 +143,9 @@ end
 ---@param model ModelBase
 ---@return UIControllerBase
 function M.Dialog_Open(name, model)
+	if not bStarted then
+        return
+    end
     return dialogLayer:Open(name, model)
 end
 
@@ -161,6 +178,9 @@ end
 ---@param model ModelBase
 ---@return LockController
 function M.Lock_Open(model, message)
+	if not bStarted then
+        return nil
+    end
 	return lockLayer:Open(DEFAULT_LOCK_NAME, model, message, 0)
 end
 
@@ -170,10 +190,16 @@ end
 ---@param timeout integer|nil 超时时间（秒），nil=默认30秒，0=不超时
 ---@return LockController
 function M.Lock_OpenWithTimeout(model, message, timeout)
+	if not bStarted then
+        return nil
+    end
 	return lockLayer:Open(DEFAULT_LOCK_NAME, model, message, timeout)
 end
 
 function M.Lock_OpenCustom(name, model, message, timeout)
+	if not bStarted then
+        return nil
+    end
 	name = name or DEFAULT_LOCK_NAME
     return lockLayer:Open(name, model, message, timeout)
 end
@@ -192,6 +218,9 @@ end
 ---@param content string
 ---@return MsgBoxController
 function M.MsgBox_OpenAlert(model, title, content)
+	if not bStarted then
+        return nil
+    end
 	return msgBoxLayer:OpenAlert(DEFAULT_MSG_BOX_NAME, model, title, content)
 end
 ---@param model ModelBase
@@ -199,6 +228,9 @@ end
 ---@param content string
 ---@return MsgBoxController
 function M.MsgBox_OpenConfirm(model, title, content)
+	if not bStarted then
+        return nil
+    end
     return msgBoxLayer:OpenConfirm(DEFAULT_MSG_BOX_NAME, model, title, content)
 end
 
@@ -209,6 +241,9 @@ end
 ---@param bConfirm boolean
 ---@return MsgBoxController
 function M.MsgBox_OpenCustom(name, model, title, content, bConfirm)
+	if not bStarted then
+        return nil
+    end
 	name  = name or DEFAULT_MSG_BOX_NAME
     return msgBoxLayer:Open(name, model, title, content, bConfirm)
 end
@@ -219,7 +254,7 @@ function M.MsgBox_Close(name)
 end
 
 function M.MsgBox_CloseAll()
-   msgBoxLayer:CloseAll()
+	msgBoxLayer:CloseAll()
 end
 
 ---@param count integer
@@ -238,6 +273,9 @@ function M.Toast_OpenCustom(name, model, content, duration)
 end
 
 function M.Toast_Open(model, content, duration)
+	if not bStarted then
+        return nil
+    end
 	return toastLayer:Open(DEFAULT_TOAST_NAME, model, content, duration)
 end
 
@@ -256,6 +294,9 @@ end
 ---@param model ModelBase
 ---@return UIControllerBase
 function M.Top_Open(name, model)
+	if not bStarted then
+        return nil
+    end
 	return topLayer:Open(name, model)
 end
 

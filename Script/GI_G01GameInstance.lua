@@ -32,6 +32,7 @@ function M:ReceiveInit()
 	LuaHelper.DisableGlobalVariable()
 	EventLoop.Startup()
 	UEHelper.Initialize(self)
+	UIManager.Initialize()
 
 	--网络协议环境
 	--ProtoDispatcher.Init("Config/ProtoFiles")

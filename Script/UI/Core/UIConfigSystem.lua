@@ -10,7 +10,7 @@ local UEHelper = require( "Core.UEHelper")
 
 local configs = {}
 local preloadedWidgets = {}
-local bIsInitialized = false
+local bStarted = false
 
 ---@class UIConfigSystem
 local M = {}
@@ -39,7 +39,7 @@ function M.Register(name, controllerPath, viewPath, bPreload)
  		viewPath = viewPath,
 		bPreload = bPreload
     }
-	if bIsInitialized and bPreload then
+	if bStarted and bPreload then
 		local subsystem = UEHelper.GetGameInstanceSubsystem(UE.UAssetSubsystem)
 		subsystem:RequestAsyncLoadAsset(viewPath)
         preloadedWidgets[#preloadedWidgets + 1] = viewPath
@@ -48,7 +48,7 @@ end
 
 
 function M.Start()
-	if bIsInitialized then
+	if bStarted then
         return
     end
     local subsystem = UEHelper.GetGameInstanceSubsystem(UE.UAssetSubsystem)
@@ -58,14 +58,14 @@ function M.Start()
             preloadedWidgets[#preloadedWidgets + 1] = config.viewPath
         end
     end
-	bIsInitialized = true
+	bStarted = true
 end
 
 function M.Destroy()
-	if not bIsInitialized then
+	if not bStarted then
 		return
 	end
-	bIsInitialized = false
+	bStarted = false
 	local subsystem = UEHelper.GetGameInstanceSubsystem(UE.UAssetSubsystem)
 	for i = 1, #preloadedWidgets do
 		subsystem:ClearCachedAsset(preloadedWidgets[i])
