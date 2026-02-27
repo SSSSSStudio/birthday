@@ -29,6 +29,7 @@ local testModules = {
     "TestCase.UnluaTest.TestEventLoop",
     "TestCase.UnluaTest.TestHistoryManager",
     "TestCase.UnluaTest.TestProtoDispatcher",
+    "TestCase.UnluaTest.TestFixed",
 }
 
 -- 运行测试套件

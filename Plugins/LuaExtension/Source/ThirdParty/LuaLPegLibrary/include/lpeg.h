@@ -6,8 +6,14 @@
 	#define LPEG_API extern
 #endif
 
+#ifdef __cplusplus
 extern "C" {
-	struct lua_State;
+#endif
 
-	LPEG_API int luaopen_lpeg(struct lua_State *L);
+struct lua_State;
+
+LPEG_API int luaopen_lpeg(struct lua_State *L);
+
+#ifdef __cplusplus
 }
+#endif

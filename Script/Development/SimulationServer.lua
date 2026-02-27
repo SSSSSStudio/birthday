@@ -49,7 +49,7 @@ local function LeaveHome()
 	local leaveHome = {
 		code = 1,
 	}
-	EventDispatcher.Dispatch("ACEnterHome",leaveHome)
+	EventDispatcher.Dispatch("ACLeaveHome",leaveHome)
 end
 
 
@@ -109,7 +109,6 @@ function M.Initialize()
 
 ---Combat
     RegisterEvent("CAEnterCombat",EnterCombat)
-	
 end
 
 function M.Shutdown()

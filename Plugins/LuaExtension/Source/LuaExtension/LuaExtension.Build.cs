@@ -61,7 +61,7 @@ public class LuaExtension : ModuleRules
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaMsgpackLibrary", "bin/Win64"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaHParserLibrary", "bin/Win64"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaPbcLibrary", "bin/Win64"));
-			
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaFixedLibrary", "bin/Win64"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
@@ -75,7 +75,7 @@ public class LuaExtension : ModuleRules
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaMsgpackLibrary", "bin/Linux"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaHParserLibrary", "bin/Linux"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaPbcLibrary", "bin/Linux"));
-			
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaFixedLibrary", "bin/Linux"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
@@ -89,7 +89,7 @@ public class LuaExtension : ModuleRules
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaMsgpackLibrary", "bin/Mac"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaHParserLibrary", "bin/Mac"));
 			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaPbcLibrary", "bin/Mac"));
-			
+			DependDll(Path.Combine(ModuleDirectory, "../", "../", "Source/ThirdParty/", "LuaFixedLibrary", "bin/Mac"));
 		}
 	}
 	
