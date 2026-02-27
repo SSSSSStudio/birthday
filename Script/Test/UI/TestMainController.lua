@@ -25,7 +25,7 @@ function M:OnUIExample()
 end
 
 function M:OnRunLuaTestCase()
-	require("TestCase.UnluaTest.RunAllTests")
+	require("Test.LuaFrameworkTest.FullTestCase.RunAllTests")
 end
 
 function M:OnClose()
