@@ -5,6 +5,9 @@
 ---
 
 local RandomGenerator = require("Core.RandomGenerator")
+local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
+local CombatEvent = require("GamePlay.Combat.GameLogic.CombatEvent")
+local CombatManager = require("GamePlay.Combat.GameLogic.CombatManager")
 
 ---@class CombatSystem
 local M = {}
@@ -12,38 +15,66 @@ local M = {}
 ---@type RandomGenerator
 local randomGenerator
 
-local playerObjs = {}
-local enemyObjs = {}
+---@type CombatManager
+local combatManager
 
+
+--- 初始化战斗系统
 function M.Initialize()
 end
 
+--- 反初始化战斗系统
 function M.Deinitialize()
+	
 end
 
-function M.RegisterPlayerObj(id,level,...)
-	--该函数用于注册玩家对象
+--- 开始战斗
+---@param randomSeed number 随机种子
+---@param operate table 操作配置
+function M.BeginPlay(randomSeed,players, operate)
+    print("[CombatSystem] BeginPlay ====================================")
+	
+	combatManager = CombatManager:New(players,operate)
+	
+    --- 初始化随机数生成器
+    randomGenerator = RandomGenerator(randomSeed)
+    
+    --- 更新 CombatManager 的 randomGenerator 和 config
+    if combatManager then
+        combatManager.randomGenerator = randomGenerator
+        combatManager.config = operate or {}
+    end
+    
+    --- 调用 CombatManager 开始战斗流程
+    combatManager:StartBattle(function(result)
+        M.EndPlay(result)
+    end)
 end
 
-function M.RegisterEnemyObj(id,level,...)
-	--该函数用于注册敌人对象
+--- 结束战斗
+---@param result number 战斗结果
+function M.EndPlay(result)
+    print("[CombatSystem] EndPlay ====================================")
+    
+    --- 更新战斗结果
+    if combatManager then
+        combatManager:SetBattleState(CombatState.BattleState.BattleEnd)
+    end
+    
+    --- 发布战斗结束事件
+    local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BattleEnd)
+    eventData.battleState = combatManager and combatManager:GetBattleState() or CombatState.BattleState.BattleEnd
+    eventData.value = result
+    CombatEvent.Publish(CombatEvent.EventType.BattleEnd, eventData)
+    
+    print("[CombatSystem] Battle ended with result:", result)
 end
 
-function M.BeginPlay(randomSeed)
-	-- 初始化随机数生成器
-	randomGenerator = RandomGenerator(randomSeed)
-	--该函数用于开始战斗
-end
 
-function M.EndPlay()
-	--该函数用于结束战斗
-	playerObjs = {}
-    enemyObjs = {}
-	randomGenerator = nil
-end
 
+--- 随机数接口
 function M.Random()
-	return randomGenerator:Next()
+    return randomGenerator:Next()
 end
 
 function M.RandomFloat()
