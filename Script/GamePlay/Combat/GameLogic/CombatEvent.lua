@@ -49,6 +49,8 @@ M.EventType = {
     OpenSkillCheck = 70,         -- 开场技能检测
     ActionValueCalc = 71,        -- 行动值计算
     BattleEndCheck = 72,         -- 战斗是否结束判断
+	
+	ManualSkillInput = 80,            -- 手动技能输入
 }
 
 --- 事件处理器表

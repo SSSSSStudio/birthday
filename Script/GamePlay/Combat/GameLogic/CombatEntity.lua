@@ -13,13 +13,14 @@ local CombatProp = require("GamePlay.Combat.GameLogic.CombatProp")
 ---@class CombatEntity
 local M = LuaHelper.LuaClass()
 
-function M:__OnNew(manager,id, entityType, prop)
+function M:__OnNew(manager,id,position, entityType, prop)
     self.id = id
 	self.combatManager = manager
     self.entityType = entityType or CombatState.EntityType.Player
 	self.baseProp =  CombatProp:New(prop or {})
 	self.extendProp = CombatProp:New({})
     self.prop = CombatProp:New({})
+	self.position = position or 0
     self.buffs = {}
     self.skills = {}
     self.position = prop.position or 0
@@ -107,6 +108,14 @@ end
 ---@return table
 function M:GetAllSkills()
     return self.skills
+end
+
+--- 自动选择一个技能
+function M:GetAutoSkill()
+	for _,skill in pairs(self.skills) do
+		--临时放第一个
+		return skill
+    end
 end
 
 --- 计算行动值增长

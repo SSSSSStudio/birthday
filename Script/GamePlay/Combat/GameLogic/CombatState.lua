@@ -66,5 +66,15 @@ M.ActionType = {
     Skill = 1,          -- 技能行为
     Buff = 2,           -- Buff行为
 }
+--- 自动技能类型
+M.AutoSkillType = {
+	Self = 1, -- 自己
+	SelfTeam = 2,-- 自己队伍
+    TargetTeam = 3,-- 目标队伍
+	SelfNearest = 4, -- 自己最近
+	TargetNearest = 5, -- 目标最近
+	SelfLowHealth = 6, -- 自己 lowest health
+    TargetLowHealth = 7,-- 目标 lowest health
+}
 
 return M

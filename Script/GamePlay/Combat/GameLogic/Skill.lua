@@ -17,6 +17,7 @@ function M:__OnNew(skillData)
     self.id = skillData.id or 0
     self.name = skillData.name or "UnknownSkill"
     self.skillType = skillData.skillType or CombatState.ActionType.Skill
+	self.autoSkillType = skillData.autoSkillType
     self.damageMultiplier = Fix.new(skillData.damageMultiplier or 1.0)
     self.targetType = skillData.targetType or "single" -- single, multiple, all
     self.coolDown = skillData.coolDown or 0
@@ -39,38 +40,11 @@ function M:CalcDamage(attacker, target)
     return damage
 end
 
---- 获取技能目标
----@param attacker CombatEntity 攻击者
----@param allEntities table 所有实体
----@return table 目标列表
-function M:GetTargets(attacker, allEntities)
-    local targets = {}
-    
-    if self.targetType == "single" then
-        -- 单体目标：选择第一个敌方目标
-        for _, entity in ipairs(allEntities) do
-            if entity:IsAlive() and entity.entityType ~= attacker.entityType then
-                table.insert(targets, entity)
-                break
-            end
-        end
-    elseif self.targetType == "multiple" then
-        -- 多体目标：选择所有敌方目标
-        for _, entity in ipairs(allEntities) do
-            if entity:IsAlive() and entity.entityType ~= attacker.entityType then
-                table.insert(targets, entity)
-            end
-        end
-    elseif self.targetType == "all" then
-        -- 全体目标：所有实体（包括友方）
-        for _, entity in ipairs(allEntities) do
-            if entity:IsAlive() then
-                table.insert(targets, entity)
-            end
-        end
-    end
-    
-    return targets
+--- 获取技能类型
+--- @return 
+---
+function M:AutoSkillType()
+	return self.autoSkillType
 end
 
 --- 检查技能是否可用
