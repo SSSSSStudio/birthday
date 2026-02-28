@@ -302,6 +302,7 @@ function M:OnDealDamage(actor)
     for _, target in ipairs(targets) do
         if target:IsAlive() then
             -- 计算伤害
+			skill:ApplyBufferEffect(actor, target,skill)
             local damage = Formula:CalcDamage(actor, target,skill)
 			
             -- 应用伤害
@@ -396,6 +397,9 @@ end
 ---@param actor CombatEntity
 function M:CheckTurnEndPhase(actor)
     -- 检测回合结束时的Buff、被动技能等
+	for _,entity in pairs(self.roundManager:GetAllEntities()) do
+        entity:DecrementBuffDuration()
+    end
 end
 
 --- 获取攻击目标
