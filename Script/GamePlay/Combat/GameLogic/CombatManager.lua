@@ -28,10 +28,11 @@ function M:__OnNew(players,operate)
     self.battleState = CombatState.BattleState.Idle
     self.battleResult = CombatState.BattleResult.None
     self.config = {}
-	self.inputManager = CombatInput:New(self)
+	self.inputManager = CombatInput:New(InputMode.Auto, operate)
 	self.isPaused = false
 	self.currentActor = nil
-
+	self:InitPlayers(players)
+	
 	print("[CombatSystem] Initialized, version:", BATTLE_VERSION)
 end
 

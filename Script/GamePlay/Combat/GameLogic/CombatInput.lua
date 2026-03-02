@@ -9,7 +9,10 @@ M.InputMode = {
 }
 
 function M:__OnNew(mode, inputData)
-	self.mode= mode or M.InputMode.Manual
+	self.mode= mode
+	if inputData ~= nil then
+		self.mode = self.InputMode.Verify
+	end 
 	self.inputData = inputData
 	self.skillId = 0
 	self.targetIds = {}
@@ -22,6 +25,7 @@ end
 
 function M:__OnDestroy()
     CombatEvent:Unsubscribe(CombatEvent.EventType.ManualSkillInput, self.ManualSkillInput, self)
+	CombatEvent:Unsubscribe(CombatEvent.EventType.ActionStart, self.ActionStart, self)
 end
 
 --- 获取输入模式
