@@ -4,11 +4,14 @@
 --- DateTime: 2026/2/27
 ---
 
-
 local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
+local Observable = require("Core.Observable")
 
 ---@class CombatEvent
 local M = {}
+
+--- 创建全局 Observable 实例
+local observable = Observable()
 
 --- 事件类型定义
 M.EventType = {
@@ -53,60 +56,34 @@ M.EventType = {
 	ManualSkillInput = 80, -- 手动技能输入
 }
 
---- 事件处理器表
-local eventHandlers = {}
-
 --- 订阅事件
 ---@param eventType number 事件类型
 ---@param handler function 事件处理函数
 ---@param context any 上下文对象
 function M.Subscribe(eventType, handler, context)
-	if not eventHandlers[eventType] then
-		eventHandlers[eventType] = {}
-	end
-	table.insert(eventHandlers[eventType], {
-		handler = handler,
-		context = context
-	})
+	local signalName = tostring(eventType)
+	observable:Register(signalName, handler, context)
 end
 
 --- 取消订阅事件
 ---@param eventType number 事件类型
 ---@param handler function 事件处理函数
----@param context any 上下文对象
-function M.Unsubscribe(eventType, handler, context)
-	if not eventHandlers[eventType] then
-		return
-	end
-
-	for i = #eventHandlers[eventType], 1, -1 do
-		local h = eventHandlers[eventType][i]
-		if h.handler == handler and h.context == context then
-			table.remove(eventHandlers[eventType], i)
-			break
-		end
-	end
+function M.Unsubscribe(eventType, handler)
+	local signalName = tostring(eventType)
+	observable:Deregister(signalName, handler)
 end
 
 --- 发布事件
 ---@param eventType number 事件类型
 ---@param eventData table 事件数据
 function M.Publish(eventType, eventData)
-	if not eventHandlers[eventType] then
-		return
-	end
-
-	for _, h in ipairs(eventHandlers[eventType]) do
-		local success, err = pcall(h.handler, eventData, h.context)
-		if not success then
-			print("[CombatEvent] Error in event handler:", err)
-		end
-	end
+	local signalName = tostring(eventType)
+	observable:Notify(signalName, eventData)
 end
 
 --- 清除所有事件处理器
 function M.ClearAll()
-	eventHandlers = {}
+	observable:RemoveAll()
 end
 
 --- 创建事件数据

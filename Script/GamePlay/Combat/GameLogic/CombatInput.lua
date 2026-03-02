@@ -21,13 +21,13 @@ function M:__OnNew(mode, inputData)
 	self.isWaitingForInput = false
 	self.inputCompleted = false
 
-	CombatEvent:Subscribe(CombatEvent.EventType.ManualSkillInput, self.ManualSkillInput, self)
-	CombatEvent:Subscribe(CombatEvent.EventType.ActionStart, self.ActionStart, self)
+	CombatEvent.Subscribe(CombatEvent.EventType.ManualSkillInput, self.ManualSkillInput, self)
+	CombatEvent.Subscribe(CombatEvent.EventType.ActionStart, self.ActionStart, self)
 end
 
 function M:__OnDestroy()
-	CombatEvent:Unsubscribe(CombatEvent.EventType.ManualSkillInput, self.ManualSkillInput, self)
-	CombatEvent:Unsubscribe(CombatEvent.EventType.ActionStart, self.ActionStart, self)
+	CombatEvent.Unsubscribe(CombatEvent.EventType.ManualSkillInput, self.ManualSkillInput, self)
+	CombatEvent.Unsubscribe(CombatEvent.EventType.ActionStart, self.ActionStart, self)
 end
 
 --- 获取输入模式
