@@ -4,8 +4,12 @@
 --- DateTime: 2026/2/28
 ---
 
-
+local LuaHelper = require("Utility.LuaHelper")
 local NormalSkill = require("Script/GamePlay/Combat/GameLogic/Skill/NormalSkill")
+
+---@class SkillFactory
+local M =  LuaHelper.LuaClass()
+
 --- 构造函数
 function M:__OnNew()
 	self.skillMap = {}
@@ -34,3 +38,5 @@ end
 function M:IsSkillRegistered(skillId)
 	return self.skillMap[skillId] ~= nil
 end
+
+return M

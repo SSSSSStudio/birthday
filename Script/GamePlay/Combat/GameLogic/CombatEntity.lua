@@ -118,15 +118,15 @@ function M:GetAutoSkill()
 end
 
 --- 计算行动值增长
----@param speed lfixed 速度值
----@return lfixed
+---@param speed fixed 速度值
+---@return fixed
 function M:CalcActionValueGrowth(speed)
 	-- 类似崩铁的行动值计算：速度越快，行动值减少越快
 	return speed * Fix.new(100)
 end
 
 --- 获取当前HP百分比
----@return lfixed
+---@return fixed
 function M:GetHpPercent()
 	if self.prop.maxHp:ToNumber() <= 0 then
 		return Fix.new(0)
@@ -135,7 +135,7 @@ function M:GetHpPercent()
 end
 
 --- 受到伤害
----@param damage lfixed 伤害值
+---@param damage fixed 伤害值
 function M:TakeDamage(damage)
 	self.prop.hp = self.prop.hp - damage
 	if self.prop.hp <= Fix.new(0) then
@@ -145,7 +145,7 @@ function M:TakeDamage(damage)
 end
 
 --- 恢复生命
----@param heal lfixed 治疗值
+---@param heal fixed 治疗值
 function M:Heal(heal)
 	self.prop.hp = self.prop.hp + heal
 	if self.prop.hp > self.prop.maxHp then
@@ -162,7 +162,7 @@ function M:ResetActionValue()
 end
 
 --- 消耗行动值
----@param amount lfixed
+---@param amount fixed
 function M:ConsumeActionValue(amount)
 	self.prop.actionValue = self.prop.actionValue - amount
 end

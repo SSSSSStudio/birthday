@@ -8,7 +8,7 @@
 ---@class lfixed
 local lfixed = {}
 
----@param value number | integer | lfixed
+---@param value number | integer | fixed
 ---@return fixed
 function lfixed.new(value)
 end
@@ -26,6 +26,11 @@ end
 
 ---@return string
 function fixed:toString()
+end
+
+---@param value number | integer | fixed  @[optional]
+---@return fixed
+function fixed:reset(value)
 end
 
 --[[ meta method

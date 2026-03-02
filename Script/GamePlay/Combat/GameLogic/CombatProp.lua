@@ -7,11 +7,11 @@
 
 local LuaHelper = require("Utility.LuaHelper")
 local Fix = require("lfixed")
+
 ---@class CombatProp
 local M = LuaHelper.LuaClass()
 
 function M:__OnNew(prop)
-
 	self.hp = Fix.new(prop.hp or 0)
 	self.maxHp = Fix.new(prop.maxHp or prop.hp or 0)
 	self.attack = Fix.new(prop.attack or 0)
@@ -21,7 +21,6 @@ function M:__OnNew(prop)
 	self.critDefense = Fix.new(prop.critDefense)
 	self.critDamageAttack = Fix.new(prop.critDamageAttack)
 	self.critDamageDefense = Fix.new(prop.critDamageDefense)
-
 end
 
 return M

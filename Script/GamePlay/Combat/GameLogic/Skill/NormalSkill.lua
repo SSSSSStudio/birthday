@@ -14,22 +14,23 @@ local Formula = require("GamePlay.Combat.GameLogic.Formula")
 local M = LuaHelper.LuaClass(Skill)
 
 function M:__OnNew(skillData)
-	-- 调用基类构造函数
-	M.super:__OnNew(skillData)
-
-	-- 普通技能特有属性
-	self.baseDamage = Fix.new(skillData.baseDamage or 0)
-	self.attackPercent = Fix.new(skillData.attackPercent or 1.0)
-	self.defensePercent = Fix.new(skillData.defensePercent or 0)
-	self.critBonus = Fix.new(skillData.critBonus or 0)
+    -- 调用基类构造函数
+    self.Super.__OnNew(self,skillData)
+    
+    -- 普通技能特有属性
+    self.baseDamage = Fix.new(skillData.baseDamage or 0)
+    self.attackPercent = Fix.new(skillData.attackPercent or 1.0)
+    self.defensePercent = Fix.new(skillData.defensePercent or 0)
+    self.critBonus = Fix.new(skillData.critBonus or 0)
 	self.Buffer = skillData.Buffer
 end
 
 --- 计算技能伤害
 ---@param attacker CombatEntity 攻击者
 ---@param target CombatEntity 目标
----@return lfixed 伤害值
+---@return fixed 伤害值
 function M:CalcDamage(attacker, target)
+    local damage = 0
 	return damage
 end
 

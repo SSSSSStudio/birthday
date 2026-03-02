@@ -13,17 +13,17 @@ local M = {}
 -- 计算伤害
 ---@param attacker CombatEntity 攻击者
 ---@param target CombatEntity 目标
----@return lfixed 伤害值
-function M:CalcDamageDamage(attacker, target)
+---@return fixed 伤害值
+function M.CalcDamageDamage(attacker, target)
 	return attacker.prop.damage
 end
 
 --- 计算防御
 ---@param attacker CombatEntity 攻击者
 ---@param target CombatEntity 目标
----@return lfixed 防御值
+---@return fixed 防御值
 
-function M:CalcDefense(attacker, target)
+function M.CalcDefense(attacker, target)
 	return attacker.prop.defender
 end
 
@@ -32,7 +32,7 @@ end
 ---@param min number 最小值
 ---@param max number 最大值
 ---@return number
-function M:Range(value, min, max)
+function M.Range(value, min, max)
 	if value < min then
 		return min
 	elseif value > max then
@@ -46,7 +46,7 @@ end
 ---@param min number 最小值
 ---@param max number 最大值
 ---@return number
-function M:Random(min, max)
+function M.Random(min, max)
 	if min == nil or max == nil then
 		return CombatManager.RandomFloat()
 	end
@@ -58,11 +58,11 @@ end
 ---@param target CombatEntity 目标
 ---@return boolean
 
-function M:CalcCritRate(attacker, target)
+function M.CalcCritRate(attacker, target)
 	local crit = attacker.prop.critAttack - target.prop.critDefense
-	crit = self:Range(crit, 20, 80)
-	local critRate = self:CalcCritRate(attacker, target)
-	return critRate > self:Random(0, 10000)
+	crit = M:Range(crit, 20, 80)
+	local critRate = M.CalcCritRate(attacker, target)
+	return critRate > M.Random(0, 10000)
 end
 
 --- 计算暴击伤害
@@ -83,7 +83,7 @@ function M:CalcDamage(attacker, defender, skill)
 	attacker:CalcProp()
 	defender:CalcProp()
 
-	local isCrit = self:CalcCritRate(attacker, defender)
+	local isCrit = M.CalcCritRate(attacker, defender)
 	local damage = skill:CalcDamage(attacker, defender)
 
 	return damage

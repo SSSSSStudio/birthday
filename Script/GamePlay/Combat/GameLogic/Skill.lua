@@ -28,13 +28,13 @@ end
 --- 计算技能伤害
 ---@param attacker CombatEntity 攻击者
 ---@param target CombatEntity 目标
----@return lfixed 伤害值
+---@return fixed 伤害值
 function M:CalcDamage(attacker, target)
 	local baseDamage = attacker.prop.attack * self.damageMultiplier
 	local defense = target.prop.defense
 	local damage = baseDamage - defense
-	if damage < Fix.new(0) then
-		damage = Fix.new(0)
+	if damage:toNumber() < 0 then
+		damage:reset(0)
 	end
 	return damage
 end

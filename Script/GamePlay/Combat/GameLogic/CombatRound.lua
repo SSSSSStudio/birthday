@@ -3,7 +3,6 @@
 --- Created by liujinchun.ljc
 --- DateTime: 2026/2/27
 ---
----@class CombatState
 local LuaHelper = require("Utility.LuaHelper")
 local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
 
