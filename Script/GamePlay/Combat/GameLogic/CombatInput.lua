@@ -1,6 +1,8 @@
 local LuaHelper = require("Utility.LuaHelper")
 local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
-local M = LuaHelper.LuaClass(LuaHelper)
+local CombatEvent = require("GamePlay.Combat.GameLogic.CombatEvent")
+
+local M = LuaHelper.LuaClass()
 
 M.InputMode = {
 	Manual = 1,

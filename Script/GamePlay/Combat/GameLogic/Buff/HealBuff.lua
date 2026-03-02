@@ -5,11 +5,10 @@
 ---
 
 local LuaHelper = require("Utility.LuaHelper")
-local Buff = require("GamePlay.Combat.GameLogic.Buff")
 local Fix = require("lfixed")
 
 ---@class HealBuffer
-local M = LuaHelper.LuaClass(Buff)
+local M = LuaHelper.LuaClass("GamePlay.Combat.GameLogic.Buff")
 
 function M:__OnNew(buffData)
 	-- 调用基类构造函数

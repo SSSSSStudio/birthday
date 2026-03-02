@@ -8,6 +8,7 @@
 local LuaHelper = require("Utility.LuaHelper")
 local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
 local CombatProp = require("GamePlay.Combat.GameLogic.CombatProp")
+local CombatConst = require("GamePlay.Combat.GameLogic.CombatConst")
 
 ---@class CombatEntity
 local M = LuaHelper.LuaClass()
@@ -128,7 +129,7 @@ end
 --- 获取当前HP百分比
 ---@return fixed
 function M:GetHpPercent()
-	if self.prop.maxHp:ToNumber() <= 0 then
+	if self.prop.maxHp <= CombatConst.zero then
 		return Fix.new(0)
 	end
 	return self.prop.hp / self.prop.maxHp

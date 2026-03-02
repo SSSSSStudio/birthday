@@ -7,9 +7,11 @@
 
 ---@class Formula
 local Fix = require("lfixed")
-local CombatManager = require("GamePlay.Combat.GameLogic.CombatManager")
 
+local CombatConst = require("GamePlay.Combat.GameLogic.CombatConst")
 local M = {}
+-- 战斗管理器 初始化战斗的时候设置一下
+M.CombatManager = nil
 -- 计算伤害
 ---@param attacker CombatEntity 攻击者
 ---@param target CombatEntity 目标
@@ -48,9 +50,9 @@ end
 ---@return number
 function M.Random(min, max)
 	if min == nil or max == nil then
-		return CombatManager.RandomFloat()
+		return M.CombatManager.RandomFloat()
 	end
-	return CombatManager.RandomRangeFloat(0, max)
+	return M.CombatManager.RandomRangeFloat(0, max)
 end
 
 --- 计算暴击率
@@ -69,8 +71,8 @@ end
 ---@param attacker CombatEntity 攻击者
 ---@param target CombatEntity 目标
 ---@return number
-function M:CalcCritDamage(attacker, target)
-	local baseCritDamage = attacker.prop.critDamage or 1.5
+function M.CalcCritDamage(attacker, target)
+	local baseCritDamage = attacker.prop.critDamage or CombatConst.minCritDamage
 	return baseCritDamage
 end
 

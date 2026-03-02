@@ -27,15 +27,19 @@ function M:__OnNew(players, operate)
 	self.battleState = CombatState.BattleState.Idle
 	self.battleResult = CombatState.BattleResult.None
 	self.config = {}
-	self.inputManager = CombatInput:New(InputMode.Auto, operate)
+	self.inputManager = CombatInput:New(CombatInput.InputMode.Auto, operate)
 	self.isPaused = false
 	self.currentActor = nil
 	self:InitPlayers(players)
+	Formula.CombatManager = self;
 
 	print("[CombatSystem] Initialized, version:", BATTLE_VERSION)
 end
 
 function M:InitPlayers(players)
+	if players == nil then
+        return
+    end
 	for i, player in ipairs(players.player) do
 		local entity = CombatEntity:New(player.id, player.position, CombatState.EntityType.Player, player.prop)
 		entity:Initialize()
@@ -64,6 +68,7 @@ function M:Deinitialize()
 	self.battleState = CombatState.BattleState.Idle
 	self.battleResult = CombatState.BattleResult.None
 	self.config = {}
+	Formula.CombatManager = nil
 end
 
 --- 执行单个回合的完整流程

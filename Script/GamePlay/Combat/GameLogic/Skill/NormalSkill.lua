@@ -5,13 +5,10 @@
 ---
 
 local LuaHelper = require("Utility.LuaHelper")
-local Skill = require("GamePlay.Combat.GameLogic.Skill")
-local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
 local Fix = require("lfixed")
-local Formula = require("GamePlay.Combat.GameLogic.Formula")
 
 ---@class NormalSkill
-local M = LuaHelper.LuaClass(Skill)
+local M = LuaHelper.LuaClass("GamePlay.Combat.GameLogic.Skill")
 
 function M:__OnNew(skillData)
     -- 调用基类构造函数
