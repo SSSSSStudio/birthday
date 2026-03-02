@@ -5,9 +5,24 @@
 ---
 
 local Fix = require("lfixed")
-local M = {}
 
-M.zero = Fix.new(0)
-M.minCritDamage = Fix.new(1.5)
+--- 创建不可修改的常量表
+local function createReadonlyTable(t)
+    local metatable = {
+        __index = t,
+        __newindex = function(_, key, value)
+            error("[CombatConst] Attempt to modify constant '" .. tostring(key) .. "' with value " .. tostring(value), 2)
+        end,
+        __metatable = false -- 防止获取或修改元表
+    }
+    return setmetatable({}, metatable)
+end
 
-return M
+--- 原表：定义所有常量
+local M = {
+    zero = Fix.new(0),
+    minCritDamage = Fix.new(1.5)
+}
+
+--- 返回只读的常量表
+return createReadonlyTable(M)
