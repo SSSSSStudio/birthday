@@ -18,87 +18,84 @@ local randomGenerator
 ---@type CombatManager
 local combatManager
 
-
 --- 初始化战斗系统
 function M.Initialize()
 end
 
 --- 反初始化战斗系统
 function M.Deinitialize()
-	
+
 end
 
 --- 开始战斗
 ---@param randomSeed number 随机种子
 ---@param operate table 操作配置
-function M.BeginPlay(randomSeed,players, operate)
-    print("[CombatSystem] BeginPlay ====================================")
-	
-	combatManager = CombatManager:New(players,operate)
-	
-    --- 初始化随机数生成器
-    randomGenerator = RandomGenerator(randomSeed)
-    
-    --- 更新 CombatManager 的 randomGenerator 和 config
-    if combatManager then
-        combatManager.randomGenerator = randomGenerator
-        combatManager.config = operate or {}
-    end
-    
-    --- 调用 CombatManager 开始战斗流程
-    combatManager:StartBattle(function(result)
-        M.EndPlay(result)
-    end)
+function M.BeginPlay(randomSeed, players, operate)
+	print("[CombatSystem] BeginPlay ====================================")
+
+	combatManager = CombatManager:New(players, operate)
+
+	--- 初始化随机数生成器
+	randomGenerator = RandomGenerator(randomSeed)
+
+	--- 更新 CombatManager 的 randomGenerator 和 config
+	if combatManager then
+		combatManager.randomGenerator = randomGenerator
+		combatManager.config = operate or {}
+	end
+
+	--- 调用 CombatManager 开始战斗流程
+	combatManager:StartBattle(function(result)
+		M.EndPlay(result)
+	end)
 end
 
 --- 结束战斗
 ---@param result number 战斗结果
 function M.EndPlay(result)
-    print("[CombatSystem] EndPlay ====================================")
-    
-    --- 更新战斗结果
-    if combatManager then
-        combatManager:SetBattleState(CombatState.BattleState.BattleEnd)
-    end
-    
-    --- 发布战斗结束事件
-    local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BattleEnd)
-    eventData.battleState = combatManager and combatManager:GetBattleState() or CombatState.BattleState.BattleEnd
-    eventData.value = result
-    CombatEvent.Publish(CombatEvent.EventType.BattleEnd, eventData)
-    
-    print("[CombatSystem] Battle ended with result:", result)
+	print("[CombatSystem] EndPlay ====================================")
+
+	--- 更新战斗结果
+	if combatManager then
+		combatManager:SetBattleState(CombatState.BattleState.BattleEnd)
+	end
+
+	--- 发布战斗结束事件
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BattleEnd)
+	eventData.battleState = combatManager and combatManager:GetBattleState() or CombatState.BattleState.BattleEnd
+	eventData.value = result
+	CombatEvent.Publish(CombatEvent.EventType.BattleEnd, eventData)
+
+	print("[CombatSystem] Battle ended with result:", result)
 end
-
-
 
 --- 随机数接口
 function M.Random()
-    return randomGenerator:Next()
+	return randomGenerator:Next()
 end
 
 function M.RandomFloat()
-    return randomGenerator:NextFloat()
+	return randomGenerator:NextFloat()
 end
 
 function M.RandomFixed()
-    return randomGenerator:NextFixed()
+	return randomGenerator:NextFixed()
 end
 
 function M.RandomRange(min, max)
-    return randomGenerator:NextRange(min, max)
+	return randomGenerator:NextRange(min, max)
 end
 
 function M.RandomRangeFixed(min, max)
-    return randomGenerator:NextRangeFixed(min, max)
+	return randomGenerator:NextRangeFixed(min, max)
 end
 
 function M.RandomRangeFloat(min, max)
-    return randomGenerator:NextRangeFloat(min, max)
+	return randomGenerator:NextRangeFloat(min, max)
 end
 
 function M.Choice(array)
-    return randomGenerator:Choice(array)
+	return randomGenerator:Choice(array)
 end
 
 return M

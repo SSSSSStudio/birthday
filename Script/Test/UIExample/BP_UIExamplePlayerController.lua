@@ -5,6 +5,8 @@
 -- @AUTHOR **
 -- @DATE ${date} ${time}
 --
+
+require("Config.Debugger")
 local UIManager = require("UI.UIManager")
 local MainUIModel = require("Test.UIExample.Main.MainUIModel")
 
