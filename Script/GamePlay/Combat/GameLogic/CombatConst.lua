@@ -24,5 +24,31 @@ local M = {
     minCritDamage = Fix.new(1.5)
 }
 
+--- 属性类型枚举（用于 Buff 配置中的属性 ID）
+M.PropType = {
+    Hp = 1,
+    MaxHp = 2,
+    Attack = 3,
+    Defense = 4,
+    Speed = 5,
+    CritAttack = 6,
+    CritDefense = 7,
+    CritDamageAttack = 8,
+    CritDamageDefense = 9
+}
+
+--- 属性类型到属性名的映射表
+M.PropTypeToName = {
+    [M.PropType.Hp] = "hp",
+    [M.PropType.MaxHp] = "maxHp",
+    [M.PropType.Attack] = "attack",
+    [M.PropType.Defense] = "defense",
+    [M.PropType.Speed] = "speed",
+    [M.PropType.CritAttack] = "critAttack",
+    [M.PropType.CritDefense] = "critDefense",
+    [M.PropType.CritDamageAttack] = "critDamageAttack",
+    [M.PropType.CritDamageDefense] = "critDamageDefense"
+}
+
 --- 返回只读的常量表
 return createReadonlyTable(M)

@@ -5,7 +5,8 @@
 ---
 
 local LuaHelper = require("Utility.LuaHelper")
-local HealBuffer = require("GamePlay.Combat.GameLogic.Buff.HealBuff")
+local HealBuff = require("GamePlay.Combat.GameLogic.Buff.HealBuff")
+local PropBuff = require("GamePlay.Combat.GameLogic.Buff.PropBuff")
 
 ---@class BufferFactory
 local M = LuaHelper.LuaClass()
@@ -13,8 +14,8 @@ local M = LuaHelper.LuaClass()
 function M:__OnNew()
 	self.buffMap = {}
 	-- 注册Buff类型
-	self:RegisterBuff(1, HealBuffer)
-
+	self:RegisterBuff(1, HealBuff)
+	self:RegisterBuff(2, PropBuff)
 	-- 可以继续添加更多Buff类型
 end
 

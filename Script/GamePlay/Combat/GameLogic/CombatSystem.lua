@@ -20,6 +20,7 @@ local combatManager
 
 --- 初始化战斗系统
 function M.Initialize()
+	
 end
 
 --- 反初始化战斗系统

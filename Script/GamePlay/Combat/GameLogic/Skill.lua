@@ -78,18 +78,18 @@ function M:ApplyBufferEffect(attacker, target)
 	for i, v in pairs(self.Buffer) do
 		local buffer = BufferFactory:Make(self.Buffer[i])
 		if buffer.targetType == CombatState.BuffTargetType.Self then
-			target:AddBuff(buffer)
+			attacker:AddBuff(attacker,buffer)
 		elseif buffer.targetType == CombatState.BuffTargetType.Target then
-			attacker:AddBuff(buffer)
+			target:AddBuff(attacker,buffer)
 		elseif buffer.targetType == CombatState.BuffTargetType.SelfTeam then
 			local entities = attacker:BattleManager():GetAttackTargets(targets)
 			for _, entity in pairs(entities) do
-				entity:AddBuff(buffer)
+				entity:AddBuff(attacker,buffer)
 			end
 		elseif buffer.targetType == CombatState.BuffTargetType.TargetTeam then
 			local entities = attacker:BattleManager():GetAttackTargets(attacker)
 			for _, entity in pairs(entities) do
-				entity:AddBuff(buffer)
+				entity:AddBuff(attacker,buffer)
 			end
 		end
 	end

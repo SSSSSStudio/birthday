@@ -9,6 +9,8 @@ local LuaHelper = require("Utility.LuaHelper")
 local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
 local CombatProp = require("GamePlay.Combat.GameLogic.CombatProp")
 local CombatConst = require("GamePlay.Combat.GameLogic.CombatConst")
+local Buff = require("GamePlay.Combat.GameLogic.Buff")
+local CombatEvent = require("GamePlay.Combat.GameLogic.CombatEvent")
 
 ---@class CombatEntity
 local M = LuaHelper.LuaClass()
@@ -23,6 +25,7 @@ function M:__OnNew(manager, id, position, entityType, prop)
 	self.position = position or 0
 	self.buffs = {}
 	self.skills = {}
+	self.buffEventHandlers = {} -- 存储触发Buff的事件处理器
 	self.position = prop.position or 0
 	self.name = prop.name or ("Entity_" .. id)
 end
@@ -39,15 +42,41 @@ function M:BattleManager()
 end
 
 function M:CalcProp()
-	self.prop = self.baseProp:Clone()
+	self.prop = CombatProp:New({})
 
-	self.prop.maxHp = self.baseProp.maxHp + self.extendProp.maxHp
+	self.prop.maxHp = self.baseProp.maxHp + self.petProp.maxHp + self.extendProp.maxHp
 	self.prop.attack = self.baseProp.attack + self.extendProp.attack
 	self.prop.defense = self.baseProp.defense + self.extendProp.defense
 	self.prop.critAttack = self.baseProp.critAttack + self.extendProp.critAttack
 	self.prop.critDefense = self.baseProp.critDefense + self.extendProp.critDefense
 	self.prop.critDamageAttack = self.baseProp.critDamageAttack + self.extendProp.critDamageAttack
 	self.prop.critDamageDefense = self.baseProp.critDamageDefense + self.extendProp.critDamageDefense
+end
+
+-- 刷新Buff后需要重新计算属性
+--- 注意：此方法只处理属性Buff，不会调用触发Buff的ApplyEffect
+function M:RefreshBuff()
+	self.extendProp = CombatProp:New({})
+	
+	-- 累加所有属性Buff的修正值
+	for _, buff in pairs(self.buffs) do
+		if buff.category == Buff.BuffCategory.Stat then
+			local modifier = buff:GetStatModifier()
+			
+			-- 累加所有属性（无需 if 判断，nil 或 0 相加结果正确）
+			self.extendProp.hp = self.extendProp.hp + modifier.hp
+			self.extendProp.maxHp = self.extendProp.maxHp + modifier.maxHp
+			self.extendProp.attack = self.extendProp.attack + modifier.attack
+			self.extendProp.defense = self.extendProp.defense + modifier.defense
+			self.extendProp.speed = self.extendProp.speed + modifier.speed
+			self.extendProp.critAttack = self.extendProp.critAttack + modifier.critAttack
+			self.extendProp.critDefense = self.extendProp.critDefense + modifier.critDefense
+			self.extendProp.critDamageAttack = self.extendProp.critDamageAttack + modifier.critDamageAttack
+			self.extendProp.critDamageDefense = self.extendProp.critDamageDefense + modifier.critDamageDefense
+		end
+    end
+	
+	self:CalcProp()
 end
 --- 判断是否是玩家
 ---@return boolean
@@ -62,22 +91,69 @@ function M:IsEnemy()
 end
 
 --- 添加Buff
----@param buffId number BuffID
----@param duration number 持续回合数
-function M:AddBuff(buffId, duration)
+---@param source CombatEntity 攻击者
+---@param buff Buff buff实例
+function M:AddBuff(source, buff)
 	--这里需要处理叠、覆盖规则
-	self.buffs[buffId] = {
-		id = buffId,
-		duration = duration,
-		stackCount = 1
-	}
-
+	buff:SetTarget(source, self)
+	
+	-- 即时Buff：立即执行效果，不保存到buffs列表
+	if buff.category == Buff.BuffCategory.Instant then
+		buff:ApplyEffect()
+		print("[CombatEntity] Instant buff applied:", buff.name)
+		return
+	end
+	
+	-- 属性Buff和触发Buff：保存到buffs列表
+	self.buffs[buff.id] = buff
+	
+	-- 属性Buff：刷新属性
+	if buff.category == Buff.BuffCategory.Stat then
+		self:RefreshBuff()
+	end
+	
+	-- 触发Buff：订阅相应事件
+	if buff.category == Buff.BuffCategory.Trigger and buff.triggerEvent then
+		local handler = function(eventData)
+			buff:ApplyEffect(eventData)
+		end
+		CombatEvent.Subscribe(buff.triggerEvent, handler, self)
+		
+		-- 保存事件处理器引用，以便后续取消订阅
+		self.buffEventHandlers[buff.id] = {
+			eventType = buff.triggerEvent,
+			handler = handler
+		}
+		
+		print("[CombatEntity] Trigger buff added:", buff.name, "event:", buff.triggerEvent)
+	end
 end
 
 --- 移除Buff
 ---@param buffId number BuffID
 function M:RemoveBuff(buffId)
+	local buff = self.buffs[buffId]
+	if not buff then
+		return
+	end
+	
+	-- 如果是触发Buff，取消事件订阅
+	if buff.category == Buff.BuffCategory.Trigger then
+		local eventHandler = self.buffEventHandlers[buffId]
+		if eventHandler then
+			CombatEvent.Unsubscribe(eventHandler.eventType, eventHandler.handler)
+			self.buffEventHandlers[buffId] = nil
+			print("[CombatEntity] Trigger buff removed:", buff.name, "unsubscribed event:", eventHandler.eventType)
+		end
+	end
+	
+	-- 移除Buff
 	self.buffs[buffId] = nil
+	
+	-- 如果是属性Buff，刷新属性
+	if buff.category == Buff.BuffCategory.Stat then
+		self:RefreshBuff()
+	end
 end
 
 --- 减少Buff持续时间
@@ -85,7 +161,7 @@ function M:DecrementBuffDuration()
 	for buffId, buff in pairs(self.buffs) do
 		buff.duration = buff.duration - 1
 		if buff.duration <= 0 then
-			self.buffs[buffId] = nil
+			self:RemoveBuff(buffId)
 		end
 	end
 end
@@ -130,7 +206,7 @@ end
 ---@return fixed
 function M:GetHpPercent()
 	if self.prop.maxHp <= CombatConst.zero then
-		return Fix.new(0)
+		return CombatConst.zero
 	end
 	return self.prop.hp / self.prop.maxHp
 end
@@ -139,8 +215,8 @@ end
 ---@param damage fixed 伤害值
 function M:TakeDamage(damage)
 	self.prop.hp = self.prop.hp - damage
-	if self.prop.hp <= Fix.new(0) then
-		self.prop.hp = Fix.new(0)
+	if self.prop.hp <= CombatConst.zero then
+		self.prop.hp = CombatConst.zero
 		self.prop.isDead = true
 	end
 end
@@ -152,7 +228,7 @@ function M:Heal(heal)
 	if self.prop.hp > self.prop.maxHp then
 		self.prop.hp = self.prop.maxHp
 	end
-	if self.prop.isDead and self.prop.hp > Fix.new(0) then
+	if self.prop.isDead and self.prop.hp > CombatConst.zero then
 		self.prop.isDead = false
 	end
 end
@@ -166,6 +242,14 @@ end
 ---@param amount fixed
 function M:ConsumeActionValue(amount)
 	self.prop.actionValue = self.prop.actionValue - amount
+end
+
+--- 清理所有Buff事件订阅
+function M:ClearBuffEventHandlers()
+	for buffId, eventHandler in pairs(self.buffEventHandlers) do
+		CombatEvent.Unsubscribe(eventHandler.eventType, eventHandler.handler)
+	end
+	self.buffEventHandlers = {}
 end
 
 return M

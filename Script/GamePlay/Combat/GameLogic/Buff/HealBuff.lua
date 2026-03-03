@@ -6,6 +6,7 @@
 
 local LuaHelper = require("Utility.LuaHelper")
 local Fix = require("lfixed")
+local Buff = require("GamePlay.Combat.GameLogic.Buff")
 
 ---@class HealBuffer
 local M = LuaHelper.LuaClass("GamePlay.Combat.GameLogic.Buff")
@@ -13,29 +14,32 @@ local M = LuaHelper.LuaClass("GamePlay.Combat.GameLogic.Buff")
 function M:__OnNew(buffData)
 	-- 调用基类构造函数
 	M.super:__OnNew(buffData)
+	
+	-- 设置为即时Buff类型
+	self.category = Buff.BuffCategory.Instant
 
-	local param = buffData.param.split(",")
-	-- 治疗Buff特有属性 只是一个例子
-	self.healValue = Fix.new(param[0] or 0)
-	self.healPercent = Fix.new(param[1] or 0)
+	local param = buffData.param and buffData.param:split(",") or {}
+	-- 治疗Buff特有属性
+	self.healValue = Fix.new(tonumber(param[1]) or 0)
+	self.healPercent = Fix.new(tonumber(param[2]) or 0)
 end
 
---- 应用治疗效果
----@param target CombatEntity 目标实体
-function M:ApplyEffect(target)
-	if not target:IsAlive() then
+--- 应用治疗效果（即时Buff，添加时立即执行）
+---@param eventData table 事件数据
+function M:ApplyEffect(eventData)
+	if not self.target or not self.target:IsAlive() then
 		return
 	end
 
 	-- 计算治疗量
-	local healAmount = Fix.new(0)
-
+	local healAmount = CombatConst.zero
+	
 	-- 固定治疗值
 	healAmount = healAmount + self.healValue
 
 	-- 百分比治疗（基于最大HP）
 	if self.healPercent:ToNumber() > 0 then
-		local percentHeal = target.prop.maxHp * self.healPercent
+		local percentHeal = self.target.prop.maxHp * self.healPercent
 		healAmount = healAmount + percentHeal
 	end
 
@@ -45,9 +49,9 @@ function M:ApplyEffect(target)
 	end
 
 	-- 执行治疗
-	target:Heal(healAmount)
+	self.target:Heal(healAmount)
 
-	print("[HealBuffer] Applied heal:", healAmount:ToNumber(), "to", target.name)
+	print("[HealBuffer] Applied heal:", healAmount:ToNumber(), "to", self.target.name)
 end
 
 return M

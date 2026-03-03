@@ -7,39 +7,70 @@
 local LuaHelper = require("Utility.LuaHelper")
 local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
 local Fix = require("lfixed")
+local CombatProp = require("GamePlay.Combat.GameLogic.CombatProp")
 
----@class Buff
+---@class --Buff
 local M = LuaHelper.LuaClass()
+
+--- Buff 类型枚举
+M.BuffCategory = {
+    Stat = 1,        -- 属性Buff：修改实体属性（攻击、防御等）
+    Trigger = 2,     -- 触发Buff：响应特定事件（受伤、攻击等）
+    Instant = 3      -- 即时Buff：立即生效（如治疗、伤害）
+}
 
 function M:__OnNew(buffData)
 	self.id = buffData.id or 0
 	self.name = buffData.name or "UnknownBuff"
 	self.buffType = buffData.buffType or CombatState.ActionType.Buff
-	self.targetType = bufferData.targetType
+	self.targetType = buffData.targetType or CombatState.TargetType.Self
 	self.duration = buffData.duration or 1
 	self.maxDuration = buffData.duration or 1
 	self.stackCount = buffData.stackCount or 1
 	self.maxStackCount = buffData.maxStackCount or 1
+	self.param = buffData.param.split(",") or {}
+	self.target = nil
+	self.source = nil
+
+	-- Buff分类：属性Buff、触发Buff、即时Buff
+	self.category = buffData.category or M.BuffCategory.Stat
 
 	-- 效果类型
 	self.effectType = buffData.effectType or "none" -- none, damage, heal, buff_stat, debuff_stat
-	self.effectValue = buffData.effectValue or Fix.new(0)
+	self.effectValue = buffData.effectValue or CombatConst.zero
 
-	-- 属性修改
-	self.statModifier = buffData.statModifier or {}
-	self.statModifier.hp = buffData.statModifier and buffData.statModifier.hp or Fix.new(0)
-	self.statModifier.attack = buffData.statModifier and buffData.statModifier.attack or Fix.new(0)
-	self.statModifier.defense = buffData.statModifier and buffData.statModifier.defense or Fix.new(0)
-	self.statModifier.speed = buffData.statModifier and buffData.statModifier.speed or Fix.new(0)
+	-- 属性修改（仅属性Buff使用）- 使用 CombatProp 类处理
+	self.statModifier = CombatProp:New({})
+
+	-- 触发事件类型（仅触发Buff使用）
+	self.triggerEvent = buffData.triggerEvent or nil
 
 	self.description = buffData.description or ""
 end
 
---- 应用Buff效果
----@param target CombatEntity 目标实体
-function M:ApplyEffect(target)
+function M:SetTarget(source,target)
+    self.target = target
+	self.source = source
+end
 
+--- 获取属性修正值（仅属性Buff使用）
+---@return CombatProp 返回应用层数后的属性修正值
+function M:GetStatModifier()
+	if self.category ~= M.BuffCategory.Stat then
+		return CombatProp:New({})
+	end
+	
+	return self.statModifier
+end
 
+--- 应用Buff效果（仅触发Buff和即时Buff使用）
+--- 注意：此方法不会在 RefreshBuffer 中调用，只在特定事件时调用
+---@param eventData table 事件数据
+function M:ApplyEffect(eventData)
+	-- 子类重写此方法实现触发效果
+	if self.category == M.BuffCategory.Stat then
+		print("[Buff] Warning: StatBuff should not call ApplyEffect, use GetStatModifier instead")
+	end
 end
 
 --- 移除Buff效果
@@ -70,16 +101,6 @@ function M:RemoveStack()
 		self.stackCount = 0
 	end
 	return self.stackCount <= 0
-end
-
---- 获取属性修正值
----@param statName string 属性名称
----@return lfixed
-function M:GetStatModifier(statName)
-	if self.statModifier[statName] then
-		return self.statModifier[statName] * Fix.new(self.stackCount)
-	end
-	return Fix.new(0)
 end
 
 --- 检查Buff是否过期

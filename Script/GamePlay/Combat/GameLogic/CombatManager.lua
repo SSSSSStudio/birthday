@@ -580,7 +580,7 @@ function M:AddBuffToEntity(entityId, buffData)
 	local entity = self:GetEntityById(entityId)
 	if entity then
 		local buff = Buff:New(buffData)
-		entity:AddBuff(buffData.id, buff)
+		entity:AddBuff(entity, buff)
 
 		--- 记录Buff行动到战斗日志
 		self.battleLog:LogBuffAction(entityId, buffData.id, buffData.effectType or "none", buffData.effectValue or 0)
