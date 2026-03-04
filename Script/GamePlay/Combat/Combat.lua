@@ -6,14 +6,28 @@
 
 local LuaHelper = require("Utility.LuaHelper")
 local CombatActor = require("GamePlay.Combat.GameView.CombatActor")
-local CombatSystem = require("GamePlay.Combat.GameLogic.CombatSystem")
+local CombatManager = require("GamePlay.Combat.GameLogic.CombatManager")
 local CombatEvent = require("GamePlay.Combat.GameLogic.CombatEvent")
 local M = LuaHelper.LuaClass()
 
-function M:__OnNew(skillData)
-		CombatEvent.Subscribe()
-		self.combatSystem = CombatSystem:New(CombatEvent.EventType.CombatEntityCreate,function(entity) self:CombatEntityCreate(entity)  end)
-		self.players = {}
+function M:__OnNew()
+	
+	CombatEvent.Subscribe(CombatEvent.EventType.CombatEntityCreate,function(entity) self:CombatEntityCreate(entity)  end)
+	combatManager = CombatManager:New(players, operate)--- 初始化随机数生成器
+	randomGenerator = RandomGenerator(randomSeed)
+
+	--- 更新 CombatManager 的 randomGenerator 和 config
+	if combatManager then
+		combatManager.randomGenerator = randomGenerator
+		combatManager.config = operate or {}
+	end
+
+	--- 调用 CombatManager 开始战斗流程
+	combatManager:StartBattle(function(result)
+		M.EndPlay(result)
+	end)
+	
+	self.players = {}
 	
 end
 -- 创建战斗实体

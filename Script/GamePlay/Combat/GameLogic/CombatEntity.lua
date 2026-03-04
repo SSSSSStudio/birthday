@@ -28,6 +28,11 @@ function M:__OnNew(manager, id, position, entityType, prop)
 	self.buffEventHandlers = {} -- 存储触发Buff的事件处理器
 	self.position = prop.position or 0
 	self.name = prop.name or ("Entity_" .. id)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.CombatEntityCreate)
+	eventData.source = self
+	CombatEvent.Publish(CombatEvent.EventType.AfterDamage, eventData)
+	
 end
 
 --- 判断是否存活
@@ -92,7 +97,7 @@ end
 
 --- 添加Buff
 ---@param source CombatEntity 攻击者
----@param buff Buff buff实例
+---@param buff  
 function M:AddBuff(source, buff)
 	--这里需要处理叠、覆盖规则
 	buff:SetTarget(source, self)
