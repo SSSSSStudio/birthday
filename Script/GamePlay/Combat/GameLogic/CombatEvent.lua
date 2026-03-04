@@ -54,6 +54,9 @@ M.EventType = {
 	BattleEndCheck = 72, -- 战斗是否结束判断
 
 	ManualSkillInput = 80, -- 手动技能输入
+	
+	
+	CombatEntityCreate = 100,-- 创建战斗实体
 }
 
 --- 订阅事件
