@@ -8,20 +8,20 @@ local LuaHelper = require("Utility.LuaHelper")
 local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
 local CombatEvent = require("GamePlay.Combat.GameLogic.CombatEvent")
 local CombatRound = require("GamePlay.Combat.GameLogic.CombatRound")
-local Skill = require("GamePlay.Combat.GameLogic.Skill")
-local Buff = require("GamePlay.Combat.GameLogic.Buff")
+local CombatConst = require("GamePlay.Combat.GameLogic.CombatConst")
 local BattleLog = require("GamePlay.Combat.GameLogic.BattleLog")
 local Formula = require("GamePlay.Combat.GameLogic.Formula")
 local CombatInput = require("GamePlay.Combat.GameLogic.CombatInput")
-local Fix = require("lfixed")
+local CombatEntity = require("GamePlay.Combat.GameLogic.CombatEntity")
 
 local BATTLE_VERSION = "2026.02.27"
 ---@class CombatManager
 local M = LuaHelper.LuaClass()
 
-function M:__OnNew(players, operate)
+function M:__OnNew(operate)
 	--- 创建并管理 roundManager
 	self.roundManager = CombatRound:New()
+	self.roundManager:SetCombatManager(self)
 	self.randomGenerator = nil
 	self.battleLog = BattleLog:New()
 	self.battleState = CombatState.BattleState.Idle
@@ -29,33 +29,19 @@ function M:__OnNew(players, operate)
 	self.config = {}
 	self.inputManager = CombatInput:New(CombatInput.InputMode.Auto, operate)
 	self.isPaused = false
-	self.currentActor = nil
-	self:InitPlayers(players)
+	self.currentEntity = nil
+
 	Formula.CombatManager = self;
-
 	print("[CombatSystem] Initialized, version:", BATTLE_VERSION)
-end
 
-function M:InitPlayers(players)
-	if players == nil then
-        return
-    end
-	for i, player in ipairs(players.player) do
-		local entity = CombatEntity:New(player.id, player.position, CombatState.EntityType.Player, player.prop)
-		entity:Initialize()
-		self.roundManager:RegisterEntity(entity)
-	end
-
-	for i, enemy in ipairs(players.enemy) do
-		local entity = CombatEntity:New(enemy.id, enemy.position, CombatState.EntityType.Enemy, enemy.prop)
-		entity:Initialize()
-		self.roundManager:RegisterEntity(entity)
-
-	end
+	self:CreateTestPlayers()
+	CombatEvent.Subscribe(CombatEvent.EventType.BattleInitialize, self.InitPlayers, self)
 end
 
 --- 反初始化战斗管理器
 function M:Deinitialize()
+	CombatEvent.Unsubscribe(CombatEvent.EventType.BattleInitialize, self.InitPlayers)
+
 	if self.roundManager then
 		self.roundManager:Reset()
 		self.roundManager = nil
@@ -71,82 +57,57 @@ function M:Deinitialize()
 	Formula.CombatManager = nil
 end
 
---- 执行单个回合的完整流程
----@param currentActor CombatEntity 当前行动实体
----@return boolean 是否成功执行回合（false表示暂停或结束）
-function M:ExecuteSingleRound(currentActor)
-	--- 开始新回合记录
-	local currentRound = self.roundManager:GetCurrentRound()
-	if currentRound == 0 then
-		self.roundManager:StartNewRound()
-		self:StartRoundLog(self.roundManager:GetCurrentRound())
+function M:InitPlayers(eventData)
+	local players = eventData.customization
+	if players == nil then
+		return
+	end
+	for i, player in ipairs(players.player) do
+		local entity = CombatEntity:New(self, player.id, player.position, CombatState.EntityType.Player, player.propData)
+		self.roundManager:RegisterEntity(entity)
+	end
+
+	for i, enemy in ipairs(players.enemy) do
+		local entity = CombatEntity:New(self, enemy.id, enemy.position, CombatState.EntityType.Enemy, enemy.propData)
+		self.roundManager:RegisterEntity(entity)
+	end
+end
+
+--- 开始战斗流程
+function M:StartBattle(endPlayCallback)
+	print("[CombatManager] Start Battle ====================================")
+
+	--- 步骤1: 战斗数据初始化
+	self:SetBattleState(CombatState.BattleState.Initializing)
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BattleInitialize)
+	eventData.battleState = self:GetBattleState()
+	eventData.customization = self.testPlayers
+	CombatEvent.Publish(CombatEvent.EventType.BattleInitialize, eventData)
+
+	--- 步骤2: 战斗开始
+	self:SetBattleState(CombatState.BattleState.InBattle)
+	eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BattleStart)
+	eventData.battleState = self:GetBattleState()
+	CombatEvent.Publish(CombatEvent.EventType.BattleStart, eventData)
+
+	--- 步骤3: 开场技能检测
+	self:CheckOpenSkill()
+
+	--- 根据输入模式选择战斗循环
+	if self.inputManager:GetMode() == CombatInput.InputMode.Verify then
+		--- Verify 模式：使用自动循环
+		self:RunBattleLoopAuto(endPlayCallback)
 	else
-		self:StartRoundLog(self.roundManager:GetCurrentRound())
+		--- Manual 和 Auto 模式：使用手动循环（逐个回合生成）
+		self:RunBattleLoopManual(endPlayCallback)
 	end
-
-	--- 步骤6: 角色回合开始阶段相关逻辑检测
-	self:OnTurnStart(currentActor)
-
-	--- 步骤7: 角色行动开始
-	self:OnActionStart(currentActor)
-
-	--- 步骤8: 角色行动开始阶段相关逻辑检测
-	self:CheckActionStartPhase(currentActor)
-
-	--- 步骤9: 角色开始攻击流程
-	self:OnAttackStart(currentActor)
-
-	--- 步骤10: 角色开始攻击阶段相关逻辑检测
-	self:CheckAttackStartPhase(currentActor)
-
-	--- 步骤11: 角色攻击生效
-	self:OnAttackEffect(currentActor)
-
-	--- 如果暂停，返回 false
-	if self.isPaused then
-		return false
-	end
-
-	--- 步骤12: 伤害生效前阶段相关逻辑检测
-	self:CheckBeforeDamagePhase(currentActor)
-
-	--- 步骤13: 造成伤害
-	self:OnDealDamage(currentActor)
-
-	--- 步骤14: 伤害生效后阶段相关逻辑检测
-	self:CheckAfterDamagePhase(currentActor)
-
-	--- 步骤15: 角色攻击完成
-	self:OnAttackEnd(currentActor)
-
-	--- 步骤16: 角色攻击完成阶段相关逻辑检测
-	self:CheckAttackEndPhase(currentActor)
-
-	--- 步骤17: 角色行动结束
-	self:OnActionEnd(currentActor)
-
-	--- 步骤18: 角色行动结束阶段相关逻辑检测
-	self:CheckActionEndPhase(currentActor)
-
-	--- 步骤19: 角色回合结束
-	self:OnTurnEnd(currentActor)
-
-	--- 步骤20: 角色回合结束阶段逻辑检测
-	self:CheckTurnEndPhase(currentActor)
-
-	--- 步骤22: 行动值计算
-	self:CalculateActionValues()
-
-	--- 输出当前回合战斗记录
-	self:PrintCurrentRoundLog()
-	self:EndRoundLog()
-
-	return true
 end
 
 --- 主战斗循环（自动循环，用于 Verify 模式）
 function M:RunBattleLoopAuto(endPlayCallback)
-	while true do
+	local test = 0
+	while test < 10 do
+		test = test + 1
 		--- 步骤21: 战斗是否结束判断
 		self.battleResult = self.roundManager:CheckBattleEnd()
 		if self.battleResult ~= CombatState.BattleResult.None then
@@ -155,17 +116,20 @@ function M:RunBattleLoopAuto(endPlayCallback)
 			end
 			break
 		end
-
+		
+		--- 步骤4: 行动值计算
+ 		self:CalculateActionValues()
+		
 		--- 步骤5: 进入角色回合
-		local currentActor = self.roundManager:GetNextActor()
-		if not currentActor then
+		local curEntity = self.roundManager:GetNextEntity()
+		if not curEntity then
 			break
 		end
 
-		self.roundManager:SetCurrentActor(currentActor)
+		self.roundManager:SetCurrentEntity(curEntity)
 
 		--- 执行单个回合
-		if not self:ExecuteSingleRound(currentActor) then
+		if not self.roundManager:ExecuteRound(curEntity, self.inputManager) then
 			break
 		end
 	end
@@ -177,7 +141,7 @@ function M:RunBattleLoopManual(endPlayCallback)
 	if self.isPaused then
 		if self.inputManager:IsInputCompleted() then
 			self.isPaused = false
-			self.currentActor = nil
+			self.currentEntity = nil
 		end
 		return
 	end
@@ -191,48 +155,19 @@ function M:RunBattleLoopManual(endPlayCallback)
 		return
 	end
 
-	--- 步骤5: 进入角色回合
-	local currentActor = self.roundManager:GetNextActor()
-	if not currentActor then
-		return
-	end
-
-	self.roundManager:SetCurrentActor(currentActor)
-
-	--- 执行单个回合
-	self:ExecuteSingleRound(currentActor)
-end
-
---- 开始战斗流程
-function M:StartBattle(endPlayCallback)
-	print("[CombatManager] Start Battle ====================================")
-
-	--- 步骤1: 战斗数据初始化
-	self:SetBattleState(CombatState.BattleState.Initializing)
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BattleInitialize)
-	eventData.battleState = self:GetBattleState()
-	CombatEvent.Publish(CombatEvent.EventType.BattleInitialize, eventData)
-
-	--- 步骤2: 战斗开始
-	self:SetBattleState(CombatState.BattleState.InBattle)
-	eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BattleStart)
-	eventData.battleState = self:GetBattleState()
-	CombatEvent.Publish(CombatEvent.EventType.BattleStart, eventData)
-
-	--- 步骤3: 开场技能检测
-	self:CheckOpenSkill()
-
 	--- 步骤4: 行动值计算
 	self:CalculateActionValues()
 
-	--- 根据输入模式选择战斗循环
-	if self.inputManager:GetMode() == CombatInput.InputMode.Verify then
-		--- Verify 模式：使用自动循环
-		self:RunBattleLoopAuto(endPlayCallback)
-	else
-		--- Manual 和 Auto 模式：使用手动循环（逐个回合生成）
-		self:RunBattleLoopManual(endPlayCallback)
+	--- 步骤5: 进入角色回合
+	local currentEntity = self.roundManager:GetNextEntity()
+	if not currentEntity then
+		return
 	end
+
+	self.roundManager:SetCurrentEntity(currentEntity)
+
+	--- 执行单个回合
+	self.roundManager:ExecuteRound(currentEntity, self.inputManager)
 end
 
 --- 检测开场技能
@@ -248,262 +183,66 @@ end
 function M:CalculateActionValues()
 	print("[CombatManager] Calculate Action Values")
 
-	self.roundManager:CalculateActionValues()
+	--- 计算所有实体的行动值增长
+	local allEntities = self.roundManager:GetAllEntities()
+	
+	--- 为每个实体添加原始索引，用于稳定排序
+	for i, entity in ipairs(allEntities) do
+		entity._sortIndex = i
+	end
+	
+	--- 稳定排序：actionValue 相等时保持原始顺序
+	table.sort(allEntities, function(a, b)
+		if a.prop.actionValue ~= b.prop.actionValue then
+			return a.prop.actionValue < b.prop.actionValue
+		else
+			return a._sortIndex < b._sortIndex
+		end
+	end)
+	
+	self.roundManager.entities = allEntities
+	local firstEntity = allEntities[1]
+	local cost = firstEntity.prop.actionValue
+	if cost == CombatConst.zero then
+		firstEntity.prop.actionValue = CombatConst.actionBase / firstEntity.prop.spd
+		for i, entity in ipairs(allEntities) do
+			entity.index = i
+		end
+		
+		table.sort(allEntities, function(a, b)
+			if a.prop.actionValue ~= b.prop.actionValue then
+				return a.prop.actionValue < b.prop.actionValue
+			else
+				return a.index < b.index
+			end
+		end)
+	end
+
+	for _, entity in ipairs(allEntities) do
+		if entity:IsAlive() then
+			entity:ConsumeActionValue(cost)
+		end
+		
+		print("sssssssssssssssss  ", entity.name, ": ", entity.prop.actionValue)
+	end
 
 	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.ActionValueCalc)
 	eventData.round = self.roundManager:GetCurrentRound()
 	CombatEvent.Publish(CombatEvent.EventType.ActionValueCalc, eventData)
 end
 
---- 角色回合开始
----@param actor CombatEntity
-function M:OnTurnStart(actor)
-	print("[CombatManager] Turn Start:", actor.name)
+--- 角色回合开始（事件发布）
+---@param entity CombatEntity
+function M:OnTurnStart(entity)
+	print("[CombatManager] Turn Start:", entity.name)
 
 	self.battleState = CombatState.BattleState.TurnStart
 
 	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.TurnStart)
-	eventData.currentActor = actor
+	eventData.currentEntity = entity
 	eventData.round = self.roundManager:GetCurrentRound()
-	eventData.actionValue = actor.prop.actionValue:ToNumber()
+	eventData.actionValue = entity.prop.actionValue:ToNumber()
 	CombatEvent.Publish(CombatEvent.EventType.TurnStart, eventData)
-end
-
---- 检测回合开始阶段
----@param actor CombatEntity
-function M:CheckTurnStartPhase(actor)
-	-- 可以在这里添加Buff触发、被动技能等逻辑
-end
-
---- 角色行动开始
----@param actor CombatEntity
-function M:OnActionStart(actor)
-	print("[CombatManager] Action Start:", actor.name)
-
-	self.battleState = CombatState.BattleState.ActionStart
-
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.ActionStart)
-	eventData.currentActor = actor
-	CombatEvent.Publish(CombatEvent.EventType.ActionStart, eventData)
-end
-
---- 检测行动开始阶段
----@param actor CombatEntity
-function M:CheckActionStartPhase(actor)
-	-- 检测行动开始时的Buff、被动技能等
-end
-
---- 角色开始攻击流程
----@param actor CombatEntity
-function M:OnAttackStart(actor)
-	print("[CombatManager] Attack Start:", actor.name)
-
-	self.battleState = CombatState.BattleState.Attacking
-
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.AttackStart)
-	eventData.attacker = actor
-	eventData.currentActor = actor
-	CombatEvent.Publish(CombatEvent.EventType.AttackStart, eventData)
-
-end
-
---- 检测攻击开始阶段
----@param actor CombatEntity
-function M:CheckAttackStartPhase(actor)
-	-- 检测攻击开始时的Buff、被动技能等
-end
-
---- 角色攻击生效
----@param actor CombatEntity
-function M:OnAttackEffect(actor)
-	print("[CombatManager] Attack Effect:", actor.name)
-
-	self.battleState = CombatState.BattleState.Attacking
-
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.AttackEffect)
-	eventData.attacker = actor
-	eventData.currentActor = actor
-	CombatEvent.Publish(CombatEvent.EventType.AttackEffect, eventData)
-
-	--- 如果是手动模式，暂停并等待外部输入
-	if self.inputManager:GetMode() == CombatInput.InputMode.Manual then
-		print("[CombatManager] Paused, waiting for manual input...")
-		self.isPaused = true
-		self.currentActor = actor
-		return
-	end
-
-	--- 自动或验证模式：立即获取输入数据并执行
-	local roundIndex = self.roundManager:GetCurrentRound()
-	local inputData = self.inputManager:GetInputData(roundIndex, actor)
-
-	if inputData and #inputData >= 2 then
-		local skillId = inputData[1]
-		local targetIds = inputData[2]
-
-		--- 执行伤害计算和应用
-		self:OnDealDamage(actor, skillId, targetIds)
-	else
-		print("[CombatManager] Warning: Invalid input data from CombatInput")
-	end
-end
-
---- 检测伤害生效前阶段
----@param actor CombatEntity
-function M:CheckBeforeDamagePhase(actor)
-	print("[CombatManager] Before Damage Phase:", actor.name)
-
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BeforeDamage)
-	eventData.attacker = actor
-	eventData.currentActor = actor
-	CombatEvent.Publish(CombatEvent.EventType.BeforeDamage, eventData)
-end
-
---- 造成伤害
----@param actor CombatEntity
----@param skillId number 技能ID
----@param targetIds table 目标ID列表
-function M:OnDealDamage(actor, skillId, targetIds)
-	print("[CombatManager] Deal Damage:", actor.name)
-
-	self.battleState = CombatState.BattleState.DamageCalc
-
-	-- 获取技能
-	local skill = actor:GetSkill(skillId)
-	if not skill then
-		print("[CombatManager] Warning: Skill not found:", skillId)
-		return
-	end
-
-	-- 获取目标
-	local targets = self:GetAttackTargets(targetIds)
-	if not targets or #targets == 0 then
-		print("[CombatManager] Warning: No valid targets found")
-		return
-	end
-
-	local damages = {}
-	local weakness = {}
-
-	for _, target in ipairs(targets) do
-		if target:IsAlive() then
-			-- 计算伤害（包含暴击判定）
-			local damage, isCritical = Formula:CalcDamage(actor, target, skill)
-
-			-- 应用伤害
-			target:TakeDamage(damage)
-
-			-- 记录战斗数据
-			table.insert(damages, -damage:ToNumber())
-			table.insert(weakness, -1) -- 默认弱点值
-
-			-- 发布伤害事件
-			local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.DealDamage)
-			eventData.attacker = actor
-			eventData.defender = target
-			eventData.damage = damage:ToNumber()
-			eventData.isCritical = isCritical
-			eventData.currentActor = actor
-			CombatEvent.Publish(CombatEvent.EventType.DealDamage, eventData)
-
-			print("[CombatManager]", actor.name, "deals", damage:ToNumber(), "damage to", target.name, isCritical and "(CRITICAL!)" or "")
-		end
-	end
-
-	-- 记录技能行动到战斗日志
-	if #targetIds > 0 then
-		self:LogSkillAction(actor.id, skillId, targetIds, damages, weakness)
-	end
-end
-
---- 检测伤害生效后阶段
----@param actor CombatEntity
-function M:CheckAfterDamagePhase(actor)
-	print("[CombatManager] After Damage Phase:", actor.name)
-
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.AfterDamage)
-	eventData.attacker = actor
-	eventData.currentActor = actor
-	CombatEvent.Publish(CombatEvent.EventType.AfterDamage, eventData)
-end
-
---- 角色攻击完成
----@param actor CombatEntity
-function M:OnAttackEnd(actor)
-	print("[CombatManager] Attack End:", actor.name)
-
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.AttackEnd)
-	eventData.attacker = actor
-	eventData.currentActor = actor
-	CombatEvent.Publish(CombatEvent.EventType.AttackEnd, eventData)
-end
-
---- 检测攻击完成阶段
----@param actor CombatEntity
-function M:CheckAttackEndPhase(actor)
-	-- 检测攻击完成时的Buff、被动技能等
-end
-
---- 角色行动结束
----@param actor CombatEntity
-function M:OnActionEnd(actor)
-	print("[CombatManager] Action End:", actor.name)
-
-	self.battleState = CombatState.BattleState.ActionEnd
-
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.ActionEnd)
-	eventData.currentActor = actor
-	CombatEvent.Publish(CombatEvent.EventType.ActionEnd, eventData)
-end
-
---- 检测行动结束阶段
----@param actor CombatEntity
-function M:CheckActionEndPhase(actor)
-	-- 检测行动结束时的Buff、被动技能等
-	-- 减少Buff持续时间
-	actor:DecrementBuffDuration()
-end
-
---- 角色回合结束
----@param actor CombatEntity
-function M:OnTurnEnd(actor)
-	print("[CombatManager] Turn End:", actor.name)
-
-	self.battleState = CombatState.BattleState.TurnEnd
-
-	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.TurnEnd)
-	eventData.currentActor = actor
-	eventData.round = self.roundManager:GetCurrentRound()
-	CombatEvent.Publish(CombatEvent.EventType.TurnEnd, eventData)
-end
-
---- 检测回合结束阶段
----@param actor CombatEntity
-function M:CheckTurnEndPhase(actor)
-	-- 检测回合结束时的Buff、被动技能等
-	for _, entity in pairs(self.roundManager:GetAllEntities()) do
-		entity:DecrementBuffDuration()
-	end
-end
-
---- 获取攻击目标
----@param targetIds CombatEntity
----@return table
-function M:GetAttackTargets(targetIds)
-	local ret = {}
-	for _, targetId in pairs(targetIds) do
-		local target = self:GetEntityById(targetId)
-		if target then
-			table.insert(ret, target)
-		end
-	end
-	return ret
-end
-
---- 获取所有存活的实体
----@return table
-function M:GetAllAliveEntities()
-	return self.roundManager:GetAllEntities()
 end
 
 --- 随机数接口
@@ -591,21 +330,11 @@ function M:AddBuffToEntity(entityId, buffData)
 	end
 end
 
---- 根据ID获取实体
+--- 根据ID获取实体（委托给 CombatRound）
 ---@param entityId number 实体ID
 ---@return CombatEntity|nil
 function M:GetEntityById(entityId)
-	if not self.roundManager then
-		return nil
-	end
-
-	local allEntities = self.roundManager:GetAllEntities()
-	for _, entity in ipairs(allEntities) do
-		if entity.id == entityId then
-			return entity
-		end
-	end
-	return nil
+	return self.roundManager:GetEntityById(entityId)
 end
 
 --- 获取实体的技能
@@ -719,6 +448,54 @@ end
 ---@return BattleLog
 function M:GetBattleLog()
 	return self.battleLog
+end
+
+--- 模拟战斗玩家
+function M:CreateTestPlayers()
+	local player1 = {
+		id = 1,
+		position = 1,
+		type = CombatState.EntityType.Player,
+		propData = {
+			propId = 10001,
+			level = 1
+		}
+	}
+
+	local player2 = {
+		id = 2,
+		position = 2,
+		type = CombatState.EntityType.Player,
+		propData = {
+			propId = 10001,
+			level = 10
+		}
+	}
+
+	local enemy1 = {
+		id = 10001,
+		position = 3,
+		type = CombatState.EntityType.Enemy,
+		propData = {
+			propId = 10002,
+			level = 1
+		}
+	}
+
+	local enemy2 = {
+		id = 10002,
+		position = 4,
+		type = CombatState.EntityType.Enemy,
+		propData = {
+			propId = 10002,
+			level = 10
+		}
+	}
+
+	self.testPlayers = {
+		player = { player1, player2 },
+		enemy = { enemy1, enemy2 }
+	}
 end
 
 return M

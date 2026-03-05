@@ -103,7 +103,7 @@ function M.CreateEventData(eventType)
 		-- 战斗相关字段
 		battleState = nil, -- 战斗状态
 		currentTurn = nil, -- 当前回合数
-		currentActor = nil, -- 当前行动实体
+		currentEntity = nil, -- 当前行动实体
 		-- 攻击相关字段
 		attacker = nil, -- 攻击者
 		defender = nil, -- 防御者
@@ -119,6 +119,8 @@ function M.CreateEventData(eventType)
 		-- 回合相关字段
 		round = nil, -- 回合数
 		actionValue = nil, -- 行动值
+		-- 自定义字段
+		customization = {}
 	}
 end
 

@@ -20,7 +20,7 @@ local combatManager
 
 --- 初始化战斗系统
 function M.Initialize()
-	
+
 end
 
 --- 反初始化战斗系统
@@ -31,10 +31,10 @@ end
 --- 开始战斗
 ---@param randomSeed number 随机种子
 ---@param operate table 操作配置
-function M.BeginPlay(randomSeed, players, operate)
+function M.BeginPlay(randomSeed, operate)
 	print("[CombatSystem] BeginPlay ====================================")
 
-	combatManager = CombatManager:New(players, operate)
+	combatManager = CombatManager:New(operate)
 
 	--- 初始化随机数生成器
 	randomGenerator = RandomGenerator(randomSeed)
@@ -56,7 +56,7 @@ end
 function M.EndPlay(result)
 	print("[CombatSystem] EndPlay ====================================")
 
-	--- 更新战斗结果
+	--- 更新战斗结果 
 	if combatManager then
 		combatManager:SetBattleState(CombatState.BattleState.BattleEnd)
 	end

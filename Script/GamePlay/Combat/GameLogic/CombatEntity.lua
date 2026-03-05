@@ -15,19 +15,20 @@ local CombatEvent = require("GamePlay.Combat.GameLogic.CombatEvent")
 ---@class CombatEntity
 local M = LuaHelper.LuaClass()
 
-function M:__OnNew(manager, id, position, entityType, prop)
+function M:__OnNew(manager, id, position, entityType, propData)
+	self.propData = propData
+	
 	self.id = id
 	self.combatManager = manager
 	self.entityType = entityType or CombatState.EntityType.Player
-	self.baseProp = CombatProp:New(prop or {})
-	self.extendProp = CombatProp:New({})
-	self.prop = CombatProp:New({})
+	self.baseProp = CombatProp:New(self.propData)
+	self.extendProp = CombatProp:New(self.propData)
+	self.prop = CombatProp:New(self.propData)
 	self.position = position or 0
 	self.buffs = {}
 	self.skills = {}
 	self.buffEventHandlers = {} -- 存储触发Buff的事件处理器
-	self.position = prop.position or 0
-	self.name = prop.name or ("Entity_" .. id)
+	self.name = propData.name or ("Entity_" .. id)
 
 	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.CombatEntityCreate)
 	eventData.source = self
@@ -47,15 +48,28 @@ function M:BattleManager()
 end
 
 function M:CalcProp()
-	self.prop = CombatProp:New({})
+	self.prop = CombatProp:New(self.propData)
 
-	self.prop.maxHp = self.baseProp.maxHp + self.petProp.maxHp + self.extendProp.maxHp
-	self.prop.attack = self.baseProp.attack + self.extendProp.attack
-	self.prop.defense = self.baseProp.defense + self.extendProp.defense
-	self.prop.critAttack = self.baseProp.critAttack + self.extendProp.critAttack
-	self.prop.critDefense = self.baseProp.critDefense + self.extendProp.critDefense
-	self.prop.critDamageAttack = self.baseProp.critDamageAttack + self.extendProp.critDamageAttack
-	self.prop.critDamageDefense = self.baseProp.critDamageDefense + self.extendProp.critDamageDefense
+	-- 基础属性 + 扩展属性
+	self.prop.maxHp = self.baseProp.maxHp + self.extendProp.maxHp
+	self.prop.hp = self.baseProp.hp + self.extendProp.hp
+	self.prop.atk = self.baseProp.atk + self.extendProp.atk
+	self.prop.def = self.baseProp.def + self.extendProp.def
+	self.prop.crit = self.baseProp.crit + self.extendProp.crit
+	self.prop.critDef = self.baseProp.critDef + self.extendProp.critDef
+	self.prop.critDamage = self.baseProp.critDamage + self.extendProp.critDamage
+	self.prop.critDamageDef = self.baseProp.critDamageDef + self.extendProp.critDamageDef
+	self.prop.miss = self.baseProp.miss + self.extendProp.miss
+	self.prop.hitOdds = self.baseProp.hitOdds + self.extendProp.hitOdds
+	self.prop.spd = self.baseProp.spd + self.extendProp.spd
+	self.prop.damageAmp = self.baseProp.damageAmp + self.extendProp.damageAmp
+	self.prop.damageRd = self.baseProp.damageRd + self.extendProp.damageRd
+	self.prop.hpPercent = self.baseProp.hpPercent + self.extendProp.hpPercent
+	self.prop.atkPercent = self.baseProp.atkPercent + self.extendProp.atkPercent
+	self.prop.defPercent = self.baseProp.defPercent + self.extendProp.defPercent
+	self.prop.skillInc = self.baseProp.skillInc + self.extendProp.skillInc
+	self.prop.skillRd = self.baseProp.skillRd + self.extendProp.skillRd
+	self.prop.breakInc = self.baseProp.breakInc + self.extendProp.breakInc
 end
 
 -- 刷新Buff后需要重新计算属性
@@ -67,17 +81,25 @@ function M:RefreshBuff()
 	for _, buff in pairs(self.buffs) do
 		if buff.category == Buff.BuffCategory.Stat then
 			local modifier = buff:GetStatModifier()
-			
-			-- 累加所有属性（无需 if 判断，nil 或 0 相加结果正确）
 			self.extendProp.hp = self.extendProp.hp + modifier.hp
 			self.extendProp.maxHp = self.extendProp.maxHp + modifier.maxHp
-			self.extendProp.attack = self.extendProp.attack + modifier.attack
-			self.extendProp.defense = self.extendProp.defense + modifier.defense
-			self.extendProp.speed = self.extendProp.speed + modifier.speed
-			self.extendProp.critAttack = self.extendProp.critAttack + modifier.critAttack
-			self.extendProp.critDefense = self.extendProp.critDefense + modifier.critDefense
-			self.extendProp.critDamageAttack = self.extendProp.critDamageAttack + modifier.critDamageAttack
-			self.extendProp.critDamageDefense = self.extendProp.critDamageDefense + modifier.critDamageDefense
+			self.extendProp.atk = self.extendProp.atk + modifier.atk
+			self.extendProp.def = self.extendProp.def + modifier.def
+			self.extendProp.crit = self.extendProp.crit + modifier.crit
+			self.extendProp.critDef = self.extendProp.critDef + modifier.critDef
+			self.extendProp.critDamage = self.extendProp.critDamage + modifier.critDamage 
+			self.extendProp.critDamageDef = self.extendProp.critDamageDef + modifier.critDamageDef
+			self.extendProp.miss = self.extendProp.miss + modifier.miss
+			self.extendProp.hitOdds = self.extendProp.hitOdds + modifier.hitOdds
+			self.extendProp.spd = self.extendProp.spd + modifier.spd
+			self.extendProp.damageAmp = self.extendProp.damageAmp + modifier.damageAmp
+			self.extendProp.damageRd = self.extendProp.damageRd + modifier.damageRd
+			self.extendProp.hpPercent = self.extendProp.hpPercent + modifier.hpPercent
+			self.extendProp.atkPercent = self.extendProp.atkPercent + modifier.atkPercent
+			self.extendProp.defPercent = self.extendProp.defPercent + modifier.defPercent
+			self.extendProp.skillInc = self.extendProp.skillInc + modifier.skillInc
+			self.extendProp.skillRd = self.extendProp.skillRd + modifier.skillRd
+			self.extendProp.breakInc = self.extendProp.breakInc + modifier.breakInc
 		end
     end
 	
@@ -199,14 +221,6 @@ function M:GetAutoSkill()
 	end
 end
 
---- 计算行动值增长
----@param speed fixed 速度值
----@return fixed
-function M:CalcActionValueGrowth(speed)
-	-- 类似崩铁的行动值计算：速度越快，行动值减少越快
-	return speed * Fix.new(100)
-end
-
 --- 获取当前HP百分比
 ---@return fixed
 function M:GetHpPercent()
@@ -240,13 +254,13 @@ end
 
 --- 重置行动值
 function M:ResetActionValue()
-	self.prop.actionValue = self.prop.baseActionValue
+	self.prop.actionValue = CombatConst.actionBase / self.prop.spd
 end
 
 --- 消耗行动值
 ---@param amount fixed
-function M:ConsumeActionValue(amount)
-	self.prop.actionValue = self.prop.actionValue - amount
+function M:ConsumeActionValue(inValue)
+	self.prop.actionValue = self.prop.actionValue - inValue
 end
 
 --- 清理所有Buff事件订阅

@@ -54,7 +54,7 @@ end
 function M:EnterCombat(data)
 	--开始进入战斗
 	print("[Combat] EnterCombat ====================================")
-	CombatSystem.BeginPlay(3457)
+	CombatSystem.BeginPlay(3457, data.operate)
 	
 end
 

@@ -3,8 +3,12 @@
 --- Created by liujinchun.ljc
 --- DateTime: 2026/2/27
 ---
+
 local LuaHelper = require("Utility.LuaHelper")
 local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
+local CombatEvent = require("GamePlay.Combat.GameLogic.CombatEvent")
+local Formula = require("GamePlay.Combat.GameLogic.Formula")
+local CombatInput = require("GamePlay.Combat.GameLogic.CombatInput")
 
 ---@class CombatRound
 local M = LuaHelper.LuaClass()
@@ -12,8 +16,15 @@ local M = LuaHelper.LuaClass()
 function M:__OnNew()
 	self.entities = {}
 	self.currentRound = 0
-	self.currentActor = nil
+	self.currentEntity = nil
 	self.actionQueue = {}
+	self.combatManager = nil  -- 引用 CombatManager，用于发布事件和获取日志
+end
+
+--- 设置战斗管理器引用
+---@param manager CombatManager
+function M:SetCombatManager(manager)
+	self.combatManager = manager
 end
 
 --- 注册战斗实体
@@ -66,36 +77,26 @@ function M:GetAliveEnemies()
 	return enemies
 end
 
---- 计算所有实体的行动值增长
-function M:CalculateActionValues()
-	for _, entity in ipairs(self.entities) do
-		if entity:IsAlive() then
-			local growth = entity:CalcActionValueGrowth(entity.prop.speed)
-			entity:ConsumeActionValue(growth)
-		end
-	end
-end
-
 --- 获取下一个行动的实体
 ---@return CombatEntity|nil
-function M:GetNextActor()
+function M:GetNextEntity()
 	local aliveEntities = self:GetAliveEntities()
 	if #aliveEntities == 0 then
 		return nil
 	end
 
 	-- 找到行动值最小的实体
-	local nextActor = nil
+	local nextEntity = nil
 	local minActionValue = nil
 
 	for _, entity in ipairs(aliveEntities) do
 		if minActionValue == nil or entity.prop.actionValue < minActionValue then
 			minActionValue = entity.prop.actionValue
-			nextActor = entity
+			nextEntity = entity
 		end
 	end
 
-	return nextActor
+	return nextEntity
 end
 
 --- 开始新的回合
@@ -105,14 +106,14 @@ end
 
 --- 设置当前行动实体
 ---@param entity CombatEntity
-function M:SetCurrentActor(entity)
-	self.currentActor = entity
+function M:SetCurrentEntity(entity)
+	self.currentEntity = entity
 end
 
 --- 获取当前行动实体
 ---@return CombatEntity|nil
-function M:GetCurrentActor()
-	return self.currentActor
+function M:GetCurrentEntity()
+	return self.currentEntity
 end
 
 --- 获取当前回合数
@@ -142,8 +143,300 @@ end
 function M:Reset()
 	self.entities = {}
 	self.currentRound = 0
-	self.currentActor = nil
+	self.currentEntity = nil
 	self.actionQueue = {}
+end
+
+--- 执行单个回合的完整流程
+---@param entity CombatEntity 当前行动实体
+---@param inputManager CombatInput 输入管理器
+---@return boolean 是否成功执行回合（false表示暂停或结束）
+function M:ExecuteRound(entity, inputManager)
+	--- 开始新回合记录
+	local currentRound = self:GetCurrentRound()
+	if currentRound == 0 then
+		self:StartNewRound()
+	end
+	
+	--- 步骤6: 角色回合开始阶段相关逻辑检测
+	self:CheckTurnStartPhase(entity)
+
+	--- 步骤7: 角色行动开始
+	self:OnActionStart(entity)
+
+	--- 步骤8: 角色行动开始阶段相关逻辑检测
+	self:CheckActionStartPhase(entity)
+
+	--- 步骤9: 角色开始攻击流程
+	self:OnAttackStart(entity)
+
+	--- 步骤10: 角色开始攻击阶段相关逻辑检测
+	self:CheckAttackStartPhase(entity)
+
+	--- 步骤11: 角色攻击生效
+	local shouldPause = self:OnAttackEffect(entity, inputManager)
+	if shouldPause then
+		return false
+	end
+
+	--- 步骤12: 伤害生效前阶段相关逻辑检测
+	self:CheckBeforeDamagePhase(entity)
+
+	--- 步骤13: 造成伤害（由 OnAttackEffect 触发）
+	--- 步骤14: 伤害生效后阶段相关逻辑检测
+	self:CheckAfterDamagePhase(entity)
+
+	--- 步骤15: 角色攻击完成
+	self:OnAttackEnd(entity)
+
+	--- 步骤16: 角色攻击完成阶段相关逻辑检测
+	self:CheckAttackEndPhase(entity)
+
+	--- 步骤17: 角色行动结束
+	self:OnActionEnd(entity)
+
+	--- 步骤18: 角色行动结束阶段相关逻辑检测
+	self:CheckActionEndPhase(entity)
+
+	--- 步骤19: 角色回合结束
+	self:OnTurnEnd(entity)
+
+	--- 步骤20: 角色回合结束阶段逻辑检测
+	self:CheckTurnEndPhase(entity)
+
+	return true
+end
+
+--- 检测回合开始阶段
+---@param entity CombatEntity
+function M:CheckTurnStartPhase(entity)
+	-- 可以在这里添加Buff触发、被动技能等逻辑
+end
+
+--- 角色行动开始
+---@param entity CombatEntity
+function M:OnActionStart(entity)
+	print("[CombatRound] Action Start:", entity.name)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.ActionStart)
+	eventData.currentEntity = entity
+	CombatEvent.Publish(CombatEvent.EventType.ActionStart, eventData)
+end
+
+--- 检测行动开始阶段
+---@param entity CombatEntity
+function M:CheckActionStartPhase(entity)
+	-- 检测行动开始时的Buff、被动技能等
+end
+
+--- 角色开始攻击流程
+---@param entity CombatEntity
+function M:OnAttackStart(entity)
+	print("[CombatRound] Attack Start:", entity.name)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.AttackStart)
+	eventData.attacker = entity
+	eventData.currentEntity = entity
+	CombatEvent.Publish(CombatEvent.EventType.AttackStart, eventData)
+end
+
+--- 检测攻击开始阶段
+---@param entity CombatEntity
+function M:CheckAttackStartPhase(entity)
+	-- 检测攻击开始时的Buff、被动技能等
+end
+
+--- 角色攻击生效
+---@param entity CombatEntity
+---@param inputManager CombatInput 输入管理器
+---@return boolean 是否暂停
+function M:OnAttackEffect(entity, inputManager)
+	print("[CombatRound] Attack Effect:", entity.name)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.AttackEffect)
+	eventData.attacker = entity
+	eventData.currentEntity = entity
+	CombatEvent.Publish(CombatEvent.EventType.AttackEffect, eventData)
+
+	--- 如果是手动模式，暂停并等待外部输入
+	if inputManager:GetMode() == CombatInput.InputMode.Manual then
+		print("[CombatRound] Paused, waiting for manual input...")
+		return true
+	end
+
+	--- 自动或验证模式：立即获取输入数据并执行
+	local roundIndex = self:GetCurrentRound()
+	local inputData = inputManager:GetInputData(roundIndex, entity)
+
+	if inputData and #inputData >= 2 then
+		local skillId = inputData[1]
+		local targetIds = inputData[2]
+
+		--- 执行伤害计算和应用
+		self:DealDamage(entity, skillId, targetIds)
+	else
+		print("[CombatRound] Warning: Invalid input data from CombatInput")
+	end
+
+	return false
+end
+
+--- 检测伤害生效前阶段
+---@param entity CombatEntity
+function M:CheckBeforeDamagePhase(entity)
+	print("[CombatRound] Before Damage Phase:", entity.name)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.BeforeDamage)
+	eventData.attacker = entity
+	eventData.currentEntity = entity
+	CombatEvent.Publish(CombatEvent.EventType.BeforeDamage, eventData)
+end
+
+--- 造成伤害
+---@param entity CombatEntity
+---@param skillId number 技能ID
+---@param targetIds table 目标ID列表
+function M:DealDamage(entity, skillId, targetIds)
+	print("[CombatRound] Deal Damage:", entity.name)
+
+	-- 获取技能
+	local skill = entity:GetSkill(skillId)
+	if not skill then
+		print("[CombatRound] Warning: Skill not found:", skillId)
+		return
+	end
+
+	-- 获取目标
+	local targets = self:GetAttackTargets(targetIds)
+	if not targets or #targets == 0 then
+		print("[CombatRound] Warning: No valid targets found")
+		return
+	end
+
+	local damages = {}
+	local weakness = {}
+
+	for _, target in ipairs(targets) do
+		if target:IsAlive() then
+			-- 计算伤害（包含暴击判定）
+			local damage, isCritical = Formula:CalcDamage(entity, target, skill)
+
+			-- 应用伤害
+			target:TakeDamage(damage)
+
+			-- 记录战斗数据
+			table.insert(damages, -damage:ToNumber())
+			table.insert(weakness, -1) -- 默认弱点值
+
+			-- 发布伤害事件
+			local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.DealDamage)
+			eventData.attacker = entity
+			eventData.defender = target
+			eventData.damage = damage:ToNumber()
+			eventData.isCritical = isCritical
+			eventData.currentEntity = entity
+			CombatEvent.Publish(CombatEvent.EventType.DealDamage, eventData)
+
+			print("[CombatRound]", entity.name, "deals", damage:ToNumber(), "damage to", target.name, isCritical and "(CRITICAL!)" or "")
+		end
+	end
+
+	-- 记录技能行动到战斗日志
+	if self.combatManager and #targetIds > 0 then
+		self.combatManager:LogSkillAction(entity.id, skillId, targetIds, damages, weakness)
+	end
+end
+
+--- 检测伤害生效后阶段
+---@param entity CombatEntity
+function M:CheckAfterDamagePhase(entity)
+	print("[CombatRound] After Damage Phase:", entity.name)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.AfterDamage)
+	eventData.attacker = entity
+	eventData.currentEntity = entity
+	CombatEvent.Publish(CombatEvent.EventType.AfterDamage, eventData)
+end
+
+--- 角色攻击完成
+---@param entity CombatEntity
+function M:OnAttackEnd(entity)
+	print("[CombatRound] Attack End:", entity.name)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.AttackEnd)
+	eventData.attacker = entity
+	eventData.currentEntity = entity
+	CombatEvent.Publish(CombatEvent.EventType.AttackEnd, eventData)
+end
+
+--- 检测攻击完成阶段
+---@param entity CombatEntity
+function M:CheckAttackEndPhase(entity)
+	-- 检测攻击完成时的Buff、被动技能等
+end
+
+--- 角色行动结束
+---@param entity CombatEntity
+function M:OnActionEnd(entity)
+	print("[CombatRound] Action End:", entity.name)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.ActionEnd)
+	eventData.currentEntity = entity
+	CombatEvent.Publish(CombatEvent.EventType.ActionEnd, eventData)
+end
+
+--- 检测行动结束阶段
+---@param entity CombatEntity
+function M:CheckActionEndPhase(entity)
+	-- 检测行动结束时的Buff、被动技能等
+	-- 减少Buff持续时间
+	entity:DecrementBuffDuration()
+end
+
+--- 角色回合结束
+---@param entity CombatEntity
+function M:OnTurnEnd(entity)
+	print("[CombatRound] Turn End:", entity.name)
+
+	local eventData = CombatEvent.CreateEventData(CombatEvent.EventType.TurnEnd)
+	eventData.currentEntity = entity
+	eventData.round = self:GetCurrentRound()
+	CombatEvent.Publish(CombatEvent.EventType.TurnEnd, eventData)
+end
+
+--- 检测回合结束阶段
+---@param entity CombatEntity
+function M:CheckTurnEndPhase(entity)
+	-- 检测回合结束时的Buff、被动技能等
+	for _, inEntity in pairs(self:GetAllEntities()) do
+		inEntity:DecrementBuffDuration()
+	end
+end
+
+--- 获取攻击目标
+---@param targetIds table 目标ID列表
+---@return table
+function M:GetAttackTargets(targetIds)
+	local ret = {}
+	for _, targetId in pairs(targetIds) do
+		local target = self:GetEntityById(targetId)
+		if target then
+			table.insert(ret, target)
+		end
+	end
+	return ret
+end
+
+--- 根据ID获取实体
+---@param entityId number 实体ID
+---@return CombatEntity|nil
+function M:GetEntityById(entityId)
+	for _, entity in ipairs(self.entities) do
+		if entity.id == entityId then
+			return entity
+		end
+	end
+	return nil
 end
 
 return M

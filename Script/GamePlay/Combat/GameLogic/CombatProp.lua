@@ -6,21 +6,74 @@
 
 
 local LuaHelper = require("Utility.LuaHelper")
+local CsvDatas = require("Define.CsvDatas")
 local Fix = require("lfixed")
 
 ---@class CombatProp
 local M = LuaHelper.LuaClass()
 
-function M:__OnNew(prop)
-	self.hp = Fix.new(prop.hp or 0)
-	self.maxHp = Fix.new(prop.maxHp or prop.hp or 0)
-	self.attack = Fix.new(prop.attack or 0)
-	self.defense = Fix.new(prop.defense or 0)
-	self.actionValue = Fix.new(prop.actionValue or 0)
-	self.critAttack = Fix.new(prop.critAttack)
-	self.critDefense = Fix.new(prop.critDefense)
-	self.critDamageAttack = Fix.new(prop.critDamageAttack)
-	self.critDamageDefense = Fix.new(prop.critDamageDefense)
+function M:__OnNew(propData)
+	if not propData then
+		return
+	end
+
+	self:InitAttributeDefine(propData.propId, propData.level)
+	self.isDead = false
+end
+
+function M:InitAttributeDefine(propId, level)
+	-- 根据属性表初始化属性
+	local attrCfg = CsvDatas.CardAttributeDefine
+	local attrLevelUpCfg = CsvDatas.CardAttrLevelUpDefine
+	if not attrCfg or not attrLevelUpCfg then
+		return
+	end
+
+	if not attrCfg[propId] then
+		return
+	end
+	
+	self.hp = Fix.new(attrCfg[propId].hp or 0)
+	self.maxHp = Fix.new(attrCfg[propId].hp or 0)
+	self.atk = Fix.new(attrCfg[propId].atk or 0)
+	self.def = Fix.new(attrCfg[propId].def or 0)
+	self.crit = Fix.new(attrCfg[propId].crit or 0)
+	self.critDef = Fix.new(attrCfg[propId].critDef or 0)
+	self.critDamage = Fix.new(attrCfg[propId].critDamage or 0)
+	self.critDamageDef = Fix.new(attrCfg[propId].critDamageDef or 0)
+	self.miss = Fix.new(attrCfg[propId].miss or 0)
+	self.hitOdds = Fix.new(attrCfg[propId].hitOdds or 0)
+	self.spd = Fix.new(attrCfg[propId].spd or 0)
+	self.damageAmp = Fix.new(attrCfg[propId].damageAmp or 0)
+	self.damageRd = Fix.new(attrCfg[propId].damageRd or 0)
+	self.hpPercent = Fix.new(attrCfg[propId].hpPercent or 0)
+	self.atkPercent = Fix.new(attrCfg[propId].atkPercent or 0)
+	self.defPercent = Fix.new(attrCfg[propId].defPercent or 0)
+	self.skillInc = Fix.new(attrCfg[propId].skillInc or 0)
+	self.skillRd = Fix.new(attrCfg[propId].skillRd or 0)
+	self.breakInc = Fix.new(attrCfg[propId].breakInc or 0)
+	
+	if level > 1 then
+		self.hp = self.hp + Fix.new(attrLevelUpCfg[propId].hp or 0) * Fix.new(level)
+		self.maxHp = self.maxHp + Fix.new(attrLevelUpCfg[propId].hp or 0) * Fix.new(level)
+		self.atk = self.atk + Fix.new(attrLevelUpCfg[propId].atk or 0) * Fix.new(level)
+		self.def = self.def + Fix.new(attrLevelUpCfg[propId].def or 0) * Fix.new(level)
+		self.crit = self.crit + Fix.new(attrLevelUpCfg[propId].crit or 0) * Fix.new(level)
+		self.critDef = self.critDef + Fix.new(attrLevelUpCfg[propId].critDef or 0) * Fix.new(level)
+		self.critDamage = self.critDamage + Fix.new(attrLevelUpCfg[propId].critDamage or 0) * Fix.new(level)
+		self.critDamageDef = self.critDamageDef + Fix.new(attrLevelUpCfg[propId].critDamageDef or 0) * Fix.new(level)
+		self.miss = self.miss + Fix.new(attrLevelUpCfg[propId].miss or 0) * Fix.new(level)
+		self.hitOdds = self.hitOdds + Fix.new(attrLevelUpCfg[propId].hitOdds or 0) * Fix.new(level)
+		self.spd = self.spd + Fix.new(attrLevelUpCfg[propId].spd or 0) * Fix.new(level)
+		self.damageAmp = self.damageAmp + Fix.new(attrLevelUpCfg[propId].damageAmp or 0) * Fix.new(level)
+		self.damageRd = self.damageRd + Fix.new(attrLevelUpCfg[propId].damageRd or 0) * Fix.new(level)
+		self.hpPercent = self.hpPercent + Fix.new(attrLevelUpCfg[propId].hpPercent or 0) * Fix.new(level)
+		self.atkPercent = self.atkPercent + Fix.new(attrLevelUpCfg[propId].atkPercent or 0) * Fix.new(level)
+		self.defPercent = self.defPercent + Fix.new(attrLevelUpCfg[propId].defPercent or 0) * Fix.new(level)
+		self.skillInc = self.skillInc + Fix.new(attrLevelUpCfg[propId].skillInc or 0) * Fix.new(level)
+		self.skillRd = self.skillRd + Fix.new(attrLevelUpCfg[propId].skillRd or 0) * Fix.new(level)
+		self.breakInc = self.breakInc + Fix.new(attrLevelUpCfg[propId].breakInc or 0) * Fix.new(level)
+	end
 end
 
 return M

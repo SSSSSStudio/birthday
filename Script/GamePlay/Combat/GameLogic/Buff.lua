@@ -9,7 +9,7 @@ local CombatState = require("GamePlay.Combat.GameLogic.CombatState")
 local Fix = require("lfixed")
 local CombatProp = require("GamePlay.Combat.GameLogic.CombatProp")
 
----@class --Buff
+---@class Buff
 local M = LuaHelper.LuaClass()
 
 --- Buff 类型枚举
