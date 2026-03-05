@@ -6,9 +6,6 @@
 -- @DATE ${date} ${time}
 --
 
----@type SimulationServer
-local SimulationServer = require("Development.SimulationServer")
-
 ---@type UIManager
 local UIManager = require("UI.UIManager")
 
@@ -25,15 +22,13 @@ local M = UnLua.Class()
 -- end
 function M:ReceiveBeginPlay()
 	print("[GM_DevelopGameMode_C] ReceiveBeginPlay ====================================")
-	SimulationServer.Initialize()
-	UIManager.RegisterConfig("DevelopMain","UI.Develop.DevelopMainController","/Game/UI/Develop/WBP_DevelopMain.WBP_DevelopMain_C")
+	UIManager.RegisterConfig("DevelopMain","UI.Develop.DevelopMainController","/Game/Development/UI/WBP_DevelopMain.WBP_DevelopMain_C")
 	UIManager.RegisterConfig("TestMain","Test.UI.TestMainController","/Game/Test/UI/WBP_TestMain.WBP_TestMain_C")
 	UIManager.Start()
 end
 
 function M:ReceiveEndPlay()
 	print("[GM_DevelopGameMode_C] ReceiveEndPlay ====================================")
-	SimulationServer.Shutdown()
 end
 
 function M:OnStartPlay()

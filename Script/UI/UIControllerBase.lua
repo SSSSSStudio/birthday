@@ -37,8 +37,6 @@ function M:GetName()
     return self.name
 end
 
-
-
 function M:Show()
     if self.bIsVisible then
         return
