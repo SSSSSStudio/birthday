@@ -10,7 +10,7 @@ local M = {}
 
 ---@return UWidget
 function M.CreateMaskUWidget()
-	local viewClass = UE.UClass.Load("/Game/UI/Common/WBP_Mask.WBP_Mask_C")
+	local viewClass = UE.UClass.Load("/Game/G01/UI/Common/WBP_Mask.WBP_Mask_C")
 	if not viewClass then
 		return nil
 	end

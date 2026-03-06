@@ -45,9 +45,9 @@ function M.Initialize()
 	toastLayer = UIToastLayer()
 	topLayer = UITopLayer()
 
-	UIConfigSystem.Register(DEFAULT_MSG_BOX_NAME, "UI.Widgets.MessageBox.MsgBoxController","/Game/UI/Widgets/MessageBox/WBP_MessageBox.WBP_MessageBox_C", true)
-	UIConfigSystem.Register(DEFAULT_TOAST_NAME, "UI.Widgets.Toast.ToastController","/Game/UI/Widgets/Toast/WBP_Toast.WBP_Toast_C", true)
-	UIConfigSystem.Register(DEFAULT_LOCK_NAME, "UI.Widgets.Lock.LockController","/Game/UI/Widgets/Lock/WBP_Lock.WBP_Lock_C", true)
+	UIConfigSystem.Register(DEFAULT_MSG_BOX_NAME, "UI.Widgets.MessageBox.MsgBoxController","/Game/G01/UI/Widgets/MessageBox/WBP_MessageBox.WBP_MessageBox_C", true)
+	UIConfigSystem.Register(DEFAULT_TOAST_NAME, "UI.Widgets.Toast.ToastController","/Game/G01/UI/Widgets/Toast/WBP_Toast.WBP_Toast_C", true)
+	UIConfigSystem.Register(DEFAULT_LOCK_NAME, "UI.Widgets.Lock.LockController","/Game/G01/UI/Widgets/Lock/WBP_Lock.WBP_Lock_C", true)
 	
 end
 
