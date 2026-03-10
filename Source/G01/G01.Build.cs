@@ -33,6 +33,7 @@ public class G01 : ModuleRules
 			"LuaLPegLibrary",
 			"LuaPbcLibrary",
 			"LuaMsgpackLibrary",
+			"LuaFixedLibrary",
 			"LuaWSProtoLibrary",
 			"LuaHParserLibrary",
 			"LuaTw2Library",

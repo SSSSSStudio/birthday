@@ -31,12 +31,21 @@ local function ReceiveBeginPlay()
 end
 
 local function ReceiveEndPlay()
-	for obj in pairs(timerList) do
-		obj:stop()
+	-- 安全地停止所有 timer
+	for timer in pairs(timerList) do
+		-- 使用 pcall 保护调用，避免访问已释放的对象导致崩溃
+		pcall(function()
+			if timer then
+				timer:stop()
+			end
+		end)
     end
 	timerList = {}
-	levent.stop()
 	
+	-- 安全地停止事件循环
+	pcall(function()
+		levent.stop()
+	end)
 end
 
 --lproject.set_beginplay_callback(ReceiveBeginPlay)
@@ -92,6 +101,11 @@ end
 ---@return ltw2_event_timer_watcher
 function M.Timeout(intervalMs, func, bLoop)
 	local timer = levent.timer_watcher_new()
+	-- 检查 timer 是否创建成功
+	if not timer then
+		return nil
+	end
+	
 	if not timer:start(intervalMs, not bLoop, function()
 		func()
 		if not bLoop then

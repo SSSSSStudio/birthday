@@ -5,6 +5,10 @@
 -- @AUTHOR **
 -- @DATE ${date} ${time}
 --
+
+---@type SimulationServer
+local SimulationServer = require("Development.SimulationServer")
+
 ---@type EventDispatcher
 local EventDispatcher = require("Core.EventDispatcher")
 
@@ -19,11 +23,16 @@ local M = UnLua.Class()
 
 function M:ReceiveBeginPlay()
 	print("[Home] ReceiveBeginPlay ====================================")
+	SimulationServer.Initialize()
 	EventDispatcher.AddEvent("ACEnterHome", self.EnterHome, self)
+	EventDispatcher.AddEvent("ACLeaveHome", self.LeaveHome, self)
+	EventDispatcher.AddEvent("ACEnterHomeEditMode", self.EnterHomeEditMode, self)
+	EventDispatcher.AddEvent("ACLeaveHomeEditMode", self.LeaveHomeEditMode, self)
 	
 end
 
 function M:ReceiveEndPlay()
+	SimulationServer.Shutdown()
 end
 
 function M:OnStartPlay()
@@ -48,5 +57,18 @@ end
 function M:EnterHome(data)
 	print("[Home] EnterHome ====================================")
 end
+
+function M:LeaveHome(data)
+    print("[Home] LeaveHome ====================================")
+end
+
+function M:EnterHomeEditMode(data)
+    print("[Home] EnterHomeEditMode ====================================")
+end
+
+function M:LeaveHomeEditMode(data)
+    print("[Home] LeaveHomeEditMode ====================================")
+end
+
 
 return M

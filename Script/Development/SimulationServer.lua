@@ -13,10 +13,13 @@ local LuaHelper = require("Utility.LuaHelper")
 ---@type EventLoop
 local EventLoop = require("Core.EventLoop")
 
+---@type CsvDatas
+local CsvDatas = require("Define.CsvDatas")
+
 local function RegisterEvent(name, callback)
-	EventDispatcher.AddEvent(name,function(...)
+	EventDispatcher.AddEvent(name, function(...)
 		local param = table.pack(...)
-		EventLoop.Timeout(1000,function()
+		EventLoop.Timeout(1000, function()
 			callback(table.unpack(param))
 		end)
 	end)
@@ -32,14 +35,14 @@ local function EnterHomeEditMode()
 			},
 		},
 	}
-	EventDispatcher.Dispatch("ACEnterHomeEditMode",enterHomeEditMode)
+	EventDispatcher.Dispatch("ACEnterHomeEditMode", enterHomeEditMode)
 end
 
 local function LeaveHomeEditMode(furnitureBag, placement)
 	local leaveHomeEditMode = {
 		code = 1,
 	}
-	EventDispatcher.Dispatch("ACLeaveHomeEditMode",leaveHomeEditMode)
+	EventDispatcher.Dispatch("ACLeaveHomeEditMode", leaveHomeEditMode)
 end
 
 local function LeaveHome()
@@ -49,15 +52,13 @@ local function LeaveHome()
 	local leaveHome = {
 		code = 1,
 	}
-	EventDispatcher.Dispatch("ACEnterHome",leaveHome)
+	EventDispatcher.Dispatch("ACLeaveHome", leaveHome)
 end
 
-
 local function EnterHome()
-	RegisterEvent("CALeaveHome",LeaveHome)
-	RegisterEvent("CAEnterHomeEditMode",EnterHomeEditMode)
-	RegisterEvent("CALeaveHomeEditMode",LeaveHomeEditMode)
-
+	RegisterEvent("CALeaveHome", LeaveHome)
+	RegisterEvent("CAEnterHomeEditMode", EnterHomeEditMode)
+	RegisterEvent("CALeaveHomeEditMode", LeaveHomeEditMode)
 
 	local enterHome = {
 		placementList = {
@@ -81,7 +82,7 @@ local function EnterHome()
 			},
 		},
 	}
-	EventDispatcher.Dispatch("ACEnterHome",enterHome)
+	EventDispatcher.Dispatch("ACEnterHome", enterHome)
 end
 
 local function FinishCombat(data)
@@ -90,31 +91,35 @@ local function FinishCombat(data)
 	local finishCombat = {
 		code = 1,
 	}
-	EventDispatcher.Dispatch("ACFinishCombat",finishCombat)
+	EventDispatcher.Dispatch("ACFinishCombat", finishCombat)
 end
 
 ---Combat
 local function EnterCombat()
-	RegisterEvent("CAFinishCombat",FinishCombat)
+	RegisterEvent("CAFinishCombat", FinishCombat)
+	local enterCombat = {
+        operate = {},
+    }
 	
-	EventDispatcher.Dispatch("ACEnterCombat")
+	EventDispatcher.Dispatch("ACEnterCombat", enterCombat)
 end
 
 ---@class SimulationServer
 local M = {}
 
 function M.Initialize()
----Home
-	RegisterEvent("CAEnterHome",EnterHome)
-
----Combat
-    RegisterEvent("CAEnterCombat",EnterCombat)
+	CsvDatas.Initialize()
 	
+	---Home
+	RegisterEvent("CAEnterHome", EnterHome)
+
+	---Combat
+	RegisterEvent("CAEnterCombat", EnterCombat)
 end
 
 function M.Shutdown()
-    EventDispatcher.RemoveEvent("CAEnterHome")
-    EventDispatcher.RemoveEvent("CAEnterCombat")
+	EventDispatcher.RemoveEvent("CAEnterHome")
+	EventDispatcher.RemoveEvent("CAEnterCombat")
 end
 
 return M

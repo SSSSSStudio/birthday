@@ -23,6 +23,7 @@ extern "C" {
 #include "lmsgpack.h"
 #include "lwsproto.h"
 #include "lhparser.h"
+#include "lfixed.h"
 
 #include "ThirdParty/LuaProjectLibrary/LuaProjectLibraryModule.h"
 #include "ThirdParty/LuaTlsLibrary/LuaTlsLibraryModule.h"
@@ -50,6 +51,7 @@ public:
 		Env.AddBuiltInLoader(TEXT("lxml"),luaopen_lxml);
 		Env.AddBuiltInLoader(TEXT("lpeg"),luaopen_lpeg);
 		Env.AddBuiltInLoader(TEXT("lpbc"),luaopen_lpbc);
+		Env.AddBuiltInLoader(TEXT("lfixed"),luaopen_lfixed);
 		Env.AddBuiltInLoader(TEXT("lmsgpack"),luaopen_lmsgpack);
 		Env.AddBuiltInLoader(TEXT("lwsproto"),luaopen_lwsproto);
 		Env.AddBuiltInLoader(TEXT("lhparser"),luaopen_lhparser);

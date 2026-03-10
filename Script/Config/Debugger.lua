@@ -7,10 +7,13 @@
 local IniParser = require "Utility.IniParser"
 
 local config = IniParser.Read("Config/LuaDebugger.ini")
+local dbg
+UEPrint(config)
 if config and config["Editor"] then
 	if config["Editor"].bEnableDebug == "True" then
 		package.cpath = package.cpath .. ';' .. config["Editor"].riderPluginsPath
-		local dbg = require('emmy_core')
+		dbg = require('emmy_core')
+		UEPrint(dbg)
 		if dbg then
 			dbg.tcpListen('localhost', 9966)
 			if config["Editor"].bEnableWaitIDE == "True" then
@@ -21,4 +24,3 @@ if config and config["Editor"] then
 		end
 	end
 end
-
