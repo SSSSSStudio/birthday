@@ -16,7 +16,14 @@
 	#endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct lua_State;
 
 LHPARSER_API int32_t luaopen_lhparser(struct lua_State* L);
 
+#ifdef __cplusplus
+}
+#endif

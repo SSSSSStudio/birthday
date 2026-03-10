@@ -39,11 +39,11 @@ local function ReceiveEndPlay()
 	
 end
 
-lproject.set_beginplay_callback(ReceiveBeginPlay)
-
-lproject.set_tick_callback(Tick)
-
-lproject.set_endplay_callback(ReceiveEndPlay)
+--lproject.set_beginplay_callback(ReceiveBeginPlay)
+--
+--lproject.set_tick_callback(Tick)
+--
+--lproject.set_endplay_callback(ReceiveEndPlay)
 
 ---@class EventLoop
 local M = {}

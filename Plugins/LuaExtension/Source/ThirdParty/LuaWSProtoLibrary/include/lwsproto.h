@@ -16,6 +16,14 @@
 	#endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct lua_State;
 
 LWSPROTO_API int32_t luaopen_lwsproto(struct lua_State* L);
+
+#ifdef __cplusplus
+}
+#endif

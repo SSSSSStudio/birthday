@@ -20,9 +20,9 @@ extern "C" {
 #include "lcore.h"
 #include "levent.h"
 
-#include "lmsgpack.hpp"
-#include "lwsproto.hpp"
-#include "lhparser.hpp"
+#include "lmsgpack.h"
+#include "lwsproto.h"
+#include "lhparser.h"
 
 #include "ThirdParty/LuaProjectLibrary/LuaProjectLibraryModule.h"
 #include "ThirdParty/LuaTlsLibrary/LuaTlsLibraryModule.h"

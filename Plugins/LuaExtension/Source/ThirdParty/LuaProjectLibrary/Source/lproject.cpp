@@ -7,6 +7,7 @@ static bool receive_beginplay(struct lua_State *L)
 	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
 	if (lua_isboolean(L, -1))
     {
+        lua_pop(L, 1);
         return false;
     }
 	
@@ -15,6 +16,7 @@ static bool receive_beginplay(struct lua_State *L)
     int32_t rc = lua_pcall(L, 0, 0, 0);
 	if (rc != LUA_OK)
 	{
+		lua_pop(L, 1);
 		return false;
 	}
 	lua_pushboolean(L, 1);
@@ -28,6 +30,7 @@ bool lproject_endplay(struct lua_State *L)
 	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
 	if (!lua_isboolean(L, -1))
 	{
+		lua_pop(L, 1);
 		return false;
 	}
 	
@@ -99,6 +102,7 @@ bool lproject_tick(struct lua_State *L, float DeltaTime)
 	lua_rawgetp(L, LUA_REGISTRYINDEX, &s_iRunningKey);
 	if (!lua_isboolean(L, -1))
 	{
+		lua_pop(L, 1);
 		return false;
 	}
 	
