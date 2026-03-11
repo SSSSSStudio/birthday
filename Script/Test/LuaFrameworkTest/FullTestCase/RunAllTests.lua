@@ -17,8 +17,8 @@ local testModules = {
     "Test.LuaFrameworkTest.FullTestCase.TestXmlParser",
     "Test.LuaFrameworkTest.FullTestCase.TestMsgPackFile",
     "Test.LuaFrameworkTest.FullTestCase.TestInterface",
-    --
-    -- Core 模块测试
+    ----
+    ---- Core 模块测试
     "Test.LuaFrameworkTest.FullTestCase.TestEventDispatcher",
     "Test.LuaFrameworkTest.FullTestCase.TestHttpHelper",
     "Test.LuaFrameworkTest.FullTestCase.TestWebSocket",

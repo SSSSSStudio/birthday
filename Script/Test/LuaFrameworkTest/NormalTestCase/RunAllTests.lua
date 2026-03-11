@@ -16,10 +16,6 @@
 -- - Channel：从 4 个测试增加到 13 个（增加连接失败和超时测试）
 --
 
--- 设置 Lua 模块搜索路径
-local scriptPath = "Script/?.lua;Script/?/init.lua"
-package.path = scriptPath .. ";" .. package.path
-
 local TestRunner = require("Test.LuaFrameworkTest.TestRunner")
 
 -- 定义所有测试模块
@@ -34,7 +30,6 @@ local testModules = {
     "Test.LuaFrameworkTest.NormalTestCase.TestXmlParser",      -- 3 个测试
     "Test.LuaFrameworkTest.NormalTestCase.TestMsgPackFile",    -- 3 个测试
     "Test.LuaFrameworkTest.NormalTestCase.TestInterface",      -- 4 个测试
-    
     -- Core 模块测试（10个模块）
     "Test.LuaFrameworkTest.NormalTestCase.TestDelegate",       -- 7 个测试
     "Test.LuaFrameworkTest.NormalTestCase.TestMultiDelegate",  -- 12 个测试（增强）

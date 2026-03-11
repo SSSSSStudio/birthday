@@ -30,7 +30,7 @@ local M = UnLua.Class()
 
 function M:ReceiveInit()
 	LuaHelper.DisableGlobalVariable()
-	--EventLoop.Startup()
+	EventLoop.Startup()
 	UEHelper.Initialize(self)
 	UIManager.Initialize()
 
