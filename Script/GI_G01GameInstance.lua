@@ -4,26 +4,14 @@ local LuaHelper = require("Utility.LuaHelper")
 ---@type EventLoop
 local EventLoop = require("Core.EventLoop")
 
----@type ProtoDispatcher
-local ProtoDispatcher = require("Core.ProtoDispatcher")
------@type NetPack
---local NetPack = require("Net.NetPack")
-
 ---@type UIManager
 local UIManager = require("UI.UIManager")
 
 ---@type UEHelper
 local UEHelper = require("Core.UEHelper")
 
-
---[[
-local protoFileList = {
-	"common_message_desc.proto",
-	"base_message_desc.proto",
-	"agent_message_desc.proto",
-	"player_message_desc.proto",
-}
-]]
+---@type ProtoDispatcher
+local ProtoDispatcher = require("Core.ProtoDispatcher")
 
 ---@type GI_G01GameInstance_C
 local M = UnLua.Class()
@@ -33,11 +21,6 @@ function M:ReceiveInit()
 	EventLoop.Startup()
 	UEHelper.Initialize(self)
 	UIManager.Initialize()
-
-	--网络协议环境
-	--ProtoDispatcher.Init("Config/ProtoFiles")
-	--ProtoDispatcher.ImportProtoFile(protoFileList)
-	--NetPack.Init("Config/ProtoFiles/message_id.json")
 end
 
 

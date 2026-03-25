@@ -20,6 +20,7 @@ local M = UnLua.Class("UI.UIViewBase")
 	 self.Button_1.OnClicked:Add(self,self:CreateEvent("OnCustomCharacterClick"))
 	 self.Button_2.OnClicked:Add(self,self:CreateEvent("OnHomeClick"))
 	 self.Button_3.OnClicked:Add(self,self:CreateEvent("OnCombatClick"))
+	 self.Button_4.OnClicked:Add(self,self:CreateEvent("OnNetworkClick"))
  end
 
 --function M:Tick(MyGeometry, InDeltaTime)

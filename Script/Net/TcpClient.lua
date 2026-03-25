@@ -97,7 +97,7 @@ local function OnHandShakeMessage(self, data)
 	end
 end
 
-local function OnGCSceneInfoBuf(self,proto)
+local function OnGCRoleInfoBuf(self,proto)
 	if self.status ~= CONNECTING_HANDSHAKE then
 		return
 	end
@@ -116,9 +116,8 @@ local function OnGCSceneInfoBuf(self,proto)
 		}
 		self:Send("CGPingBuf", CGPingBuf)
 	end, true)
-	EventDispatcher.Dispatch("AccountLoginSuccess", self)
+	EventDispatcher.Dispatch("AccountLoginSuccess",proto)
 end
-
 local function OnACHandShakeBuf(self,proto)
 	if self.status ~= CONNECTING_HANDSHAKE then
 		return
@@ -196,15 +195,13 @@ function M:__init()
 
 	ProtoDispatcher.AddDispatch("ACPublicKeyExchangeBuf", self, OnACPublicKeyExchangeBuf)
 	ProtoDispatcher.AddDispatch("ACHandShakeBuf", self, OnACHandShakeBuf)
-	ProtoDispatcher.AddDispatch("GCSceneInfoBuf", self, OnGCSceneInfoBuf)
-
-	
+	ProtoDispatcher.AddDispatch("GCRoleInfoBuf", self, OnGCRoleInfoBuf)
 end
 
 function M:__gc()
 	ProtoDispatcher.RemoveDispatch("ACPublicKeyExchangeBuf", self)
 	ProtoDispatcher.RemoveDispatch("ACHandShakeBuf", self)
-	ProtoDispatcher.RemoveDispatch("GCSceneInfoBuf", self)
+	ProtoDispatcher.RemoveDispatch("GCRoleInfoBuf", self)
 	self:Close()
 end
 

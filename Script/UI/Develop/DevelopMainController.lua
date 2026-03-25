@@ -17,6 +17,7 @@ function M:__OnNew(name, view, model)
 	self.view:SubscribeEvent("OnCustomCharacterClick", self.OnCustomCharacterClick, self)
 	self.view:SubscribeEvent("OnHomeClick", self.OnHomeClick, self)
 	self.view:SubscribeEvent("OnCombatClick", self.OnCombatClick, self)
+	self.view:SubscribeEvent("OnNetworkClick", self.OnNetworkClick, self)
 end
 
 function M:OnTestClick()
@@ -36,6 +37,10 @@ end
 function M:OnCombatClick()
 	print("OnCombatClick")
 	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Development/Maps/Combat/l_CombatEntry")
+end
+function M:OnNetworkClick()
+    print("OnRegisterAndLoginClick")
+    UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Development/Maps/Network/l_NetworkEntry")
 end
 
 return M

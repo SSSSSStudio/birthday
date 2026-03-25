@@ -9,8 +9,17 @@
 ---@type UIManager
 local UIManager = require("UI.UIManager")
 
----@type TcpClient
-local TcpClient = require("Net.TcpClient")
+---@type ProtoDispatcher
+local ProtoDispatcher = require("Core.ProtoDispatcher")
+---@type NetPack
+local NetPack = require("Net.NetPack")
+
+local protoFileList = {
+	"common_message_desc.proto",
+	"base_message_desc.proto",
+	"agent_message_desc.proto",
+	"player_message_desc.proto",
+}
 
 ---@type GM_DevelopGameMode_C
 local M = UnLua.Class()
@@ -24,8 +33,15 @@ function M:ReceiveBeginPlay()
 	print("[GM_DevelopGameMode_C] ReceiveBeginPlay ====================================")
 	UIManager.RegisterConfig("DevelopMain","UI.Develop.DevelopMainController","/Game/Development/UI/WBP_DevelopMain.WBP_DevelopMain_C")
 	UIManager.RegisterConfig("TestMain","Test.UI.TestMainController","/Game/Test/UI/WBP_TestMain.WBP_TestMain_C")
+	UIManager.RegisterConfig("NetworkMain","UI.Develop.Network.NetworkController","/Game/Development/UI/WBP_Network.WBP_Network_C")
+
 	UIManager.Start()
+	--网络协议环境
+	ProtoDispatcher.Init("Development/ProtoFiles")
+	ProtoDispatcher.ImportProtoFile(protoFileList)
+	NetPack.Init("Development/ProtoFiles/message_id.json")
 end
+
 
 function M:ReceiveEndPlay()
 	print("[GM_DevelopGameMode_C] ReceiveEndPlay ====================================")
