@@ -21,6 +21,7 @@ function M:Construct()
 	self.Button_1.OnClicked:Add(self,self:CreateEvent("OnLoginClick"))
 	self.Button_2.OnClicked:Add(self,self:CreateEvent("OnCloseClick"))
 	self.Button.OnClicked:Add(self,self:CreateEvent("OnCreateRoleClick"))
+	self.Button_3.OnClicked:Add(self,self:CreateEvent("OnReconnectClick"))
 end
 
 function M:SetAccount(userName,password)

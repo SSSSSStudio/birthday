@@ -118,18 +118,52 @@ local function OnGCRoleInfoBuf(self,proto)
 	end, true)
 	EventDispatcher.Dispatch("AccountLoginSuccess",proto)
 end
+local function OnGCReconnectionSuccessBuf(self,proto)
+    if self.status ~= CONNECTING_HANDSHAKE then
+        return
+    end
+    self.status = CONNECTED
+    if self.heartTimeout then
+        self.heartTimeout:stop()
+        self.heartTimeout = nil
+    end
+    self.heartTimeout = EventLoop.Timeout(20000, function()
+        if self.status ~= CONNECTED then
+            return
+        end
+        local CGPingBuf = {
+            timestamp = EventLoop.ClockMonotonic(),
+        }
+        self:Send("CGPingBuf", CGPingBuf)
+    end, true)
+    EventDispatcher.Dispatch("ReconnectSuccess",proto.token)
+end
+
+local function OnGCReconnectionFailBuff(self,proto)
+    if self.status ~= CONNECTING_HANDSHAKE then
+        return
+    end
+    EventDispatcher.Dispatch("ReconnectFail")
+end
 local function OnACHandShakeBuf(self,proto)
 	if self.status ~= CONNECTING_HANDSHAKE then
 		return
 	end
-	
-	local CAPlayerCookieLoginBuf = {
-		timestamp = EventLoop.ClockMonotonic(),
-		tokenValue = self.userName,
-		serverId = 1001,
-		terminalInfos = { auth = "guest" } ,
-	}
-	SendPack(self,"CAPlayerCookieLoginBuf", CAPlayerCookieLoginBuf)
+	if not self.token then
+		local CAPlayerCookieLoginBuf = {
+			timestamp = EventLoop.ClockMonotonic(),
+			tokenValue = self.userName,
+			serverId = 1001,
+			terminalInfos = { auth = "guest" } ,
+		}
+		SendPack(self,"CAPlayerCookieLoginBuf", CAPlayerCookieLoginBuf)
+	else
+	    local CAReconnectBuf = {
+			timestamp = EventLoop.ClockMonotonic(),
+			token = self.token,
+		}
+		SendPack(self,"CAReconnectBuf", CAReconnectBuf)
+	end
 end
 
 local function OnACPublicKeyExchangeBuf(self, proto)
@@ -139,8 +173,7 @@ local function OnACPublicKeyExchangeBuf(self, proto)
 		local sessionKey = lcrypt.srp_create_session_key_client(self.userName,self.password,self.salt,localPrivKey,localPubKey,remotePubKey)
 		local key = lcrypt.sha256(sessionKey)
 		self.key = string.sub(key, 1, 16)
-		self.password = nil
-		self.salt = nil
+		self.salt = ""
 		local handler = LuaHelper.Handler(self, OnMessage)
 		self.channel:SetMessageCallback(handler)
 		
@@ -184,8 +217,9 @@ local M = Interface("TcpClient")
 
 function M:__init()
 	self.status = DISCONNECTED
-	self.userName = ""
-	self.password = ""
+	self.address = nil
+	self.userName = nil
+	self.password = nil
 	self.salt = ""
 	self.key = ""
 	self.msgCache = ""
@@ -196,6 +230,8 @@ function M:__init()
 	ProtoDispatcher.AddDispatch("ACPublicKeyExchangeBuf", self, OnACPublicKeyExchangeBuf)
 	ProtoDispatcher.AddDispatch("ACHandShakeBuf", self, OnACHandShakeBuf)
 	ProtoDispatcher.AddDispatch("GCRoleInfoBuf", self, OnGCRoleInfoBuf)
+	ProtoDispatcher.AddDispatch("GCReconnectionSuccessBuf", self, OnGCReconnectionSuccessBuf)
+	ProtoDispatcher.AddDispatch("GCReconnectionFailBuf", self, OnGCReconnectionFailBuff)
 end
 
 function M:__gc()
@@ -210,15 +246,22 @@ function M:SetDisconnectCallback(func)
 	self.disconnectCB = func
 end
 
----@param user string
----@param addr string
+---@param userName string
+---@param password string
+---@param address string
+---@return boolean
 function M:Connect(userName,password,address)
+    if self.status ~= DISCONNECTED then
+        return false
+    end
 	self.status = CONNECTING
 	self.msgCache = ""
+	self.token = nil
 	
 	local channel = Channel.Connect(address,1000, true, function(bSucc)
 		if bSucc then
 			if self.channel:Bind(true, false) then
+				self.address = address
 				self.userName = userName
 				self.password = password
 				HandShake(self)
@@ -239,6 +282,45 @@ function M:Connect(userName,password,address)
     end)
 	
 	self.channel = channel
+	return true
+end
+
+---@param token string
+---@return boolean
+function M:Reconnect(token)
+ 	if self.status ~= DISCONNECTED then
+ 		self:Close()
+    end
+    
+    if not self.address or not self.userName or not self.password then
+        return false
+    end
+	self.status = CONNECTING
+	self.msgCache = ""
+	self.token = token
+	
+	local channel = Channel.Connect(self.address,1000, true, function(bSucc)
+		if bSucc then
+			if self.channel:Bind(true, false) then
+				HandShake(self)
+				return
+			end
+		end
+		if self.disconnectCB then
+			self.disconnectCB(self)
+			self.disconnectCB = nil
+		end
+	end)
+	
+	channel:SetDisconnectCallback(function()
+		if self.disconnectCB then
+			self.disconnectCB(self)
+			self.disconnectCB = nil
+		end
+    end)
+	
+	self.channel = channel
+	return true
 end
 
 function M:GetStatus()
@@ -258,8 +340,6 @@ function M:Close(timeoutMs)
         self.channel:Close(timeoutMs)
 		self.channel = nil
     end
-	self.userName = ""
-	self.password = ""
 	self.salt = ""
 	self.key = ""
 	self.msgCache = ""

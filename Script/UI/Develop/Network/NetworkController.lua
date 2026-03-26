@@ -6,6 +6,8 @@
 local LuaHelper = require("Utility.LuaHelper")
 local UEHelper = require("Core.UEHelper")
 
+---@type UIManager
+local UIManager = require("UI.UIManager")
 ---@type ProtoDispatcher
 local ProtoDispatcher = require("Core.ProtoDispatcher")
 ---@type NetManager
@@ -24,7 +26,9 @@ function M:__OnNew(name, view, model)
 	self.view:SubscribeEvent("OnLoginClick", self.OnLoginClick, self)
 	self.view:SubscribeEvent("OnCloseClick", self.OnCloseClick, self)
 	self.view:SubscribeEvent("OnCreateRoleClick", self.OnCreateRoleClick, self)
+	self.view:SubscribeEvent("OnReconnectClick", self.OnReconnectClick, self)
 	self.view:SetAddress(IP,PORT)
+	self.token = nil
 end
 
 function M:SetAccount(account,password)
@@ -42,8 +46,14 @@ end
 function M:OnCloseClick()
 	UE.UGameplayStatics.OpenLevel(UEHelper.GetGameInstance(),"/Game/Maps/L_DevelopEntry")
 end
-
-
+function M:OnReconnectClick()
+    print("OnReconnectClick")
+    if not self.token then
+		UIManager.Toast_Open(nil, "还未登陆账户不能重连测试")
+		return
+    end
+    NetManager.ReconnectToServer(self.token)
+end
 
 function M:OnCreateRoleClick()
 	local CGCreateRoleBuf = {
@@ -64,6 +74,10 @@ function M:OpenCreateRole()
         roleName = roleName .. string.sub(chars, index, index)
     end
     self.view:OpenCreateRole(roleName)
+end
+
+function M:SetToken(token)
+    self.token = token
 end
 
 

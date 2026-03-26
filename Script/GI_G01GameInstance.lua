@@ -12,6 +12,8 @@ local UEHelper = require("Core.UEHelper")
 
 ---@type ProtoDispatcher
 local ProtoDispatcher = require("Core.ProtoDispatcher")
+---@type NetManager
+local NetManager = require("Net.NetManager")
 
 ---@type GI_G01GameInstance_C
 local M = UnLua.Class()
@@ -21,6 +23,7 @@ function M:ReceiveInit()
 	EventLoop.Startup()
 	UEHelper.Initialize(self)
 	UIManager.Initialize()
+	NetManager.Initialize()
 end
 
 
@@ -30,6 +33,8 @@ end
 
 
 function M:ReceiveShutdown()
+    print("[GI_G01GameInstance] ReceiveShutdown ====================================")
+    NetManager.Shutdown()
 	UIManager.Destroy()
 	ProtoDispatcher.Cleanup()
 	EventLoop.Shutdown();
