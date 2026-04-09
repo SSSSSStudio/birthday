@@ -44,11 +44,6 @@ function M:RemoveAllEvent()
     self.subject:RemoveAll()
 end
 
---- @param signal string
-function M:UnsubscribeEvent(signal)
-    self.subject:Deregister(signal)
-end
-
 --- @param observer table
 function M:RemoveObserverEvent(observer)
 	self.subject:RemoveObserver(observer)

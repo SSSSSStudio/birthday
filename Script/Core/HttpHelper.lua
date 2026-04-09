@@ -33,6 +33,7 @@ function M.Request(url, target, func, verb, contentType, context, token)
         if httpRequestNum <= limitMaxHttpRequest and #httpRequestQueue > 0 then
             local requestObj = httpRequestQueue[1]
 			requestObj:Request()
+			httpRequestNum = httpRequestNum + 1
             table.remove(httpRequestQueue, 1)
         end	
 	end)
@@ -64,6 +65,7 @@ function M.Download(url, target, func,savePath)
 		if httpRequestNum <= limitMaxHttpRequest and #httpRequestQueue > 0 then
 			local requestObj = httpRequestQueue[1]
 			requestObj:Request()
+			httpRequestNum = httpRequestNum + 1
 			table.remove(httpRequestQueue, 1)
 		end
 	end)
@@ -95,6 +97,7 @@ function M.Upload(url, target, func, filePath)
 		if httpRequestNum <= limitMaxHttpRequest and #httpRequestQueue > 0 then
 			local requestObj = httpRequestQueue[1]
 			requestObj:Request()
+			httpRequestNum = httpRequestNum + 1
 			table.remove(httpRequestQueue, 1)
 		end
 	end)

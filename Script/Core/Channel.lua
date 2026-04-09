@@ -105,8 +105,8 @@ end
 
 ---@param timeoutMs integer
 function M.Close(self,timeoutMs)
-	if self.connecting then
-		self.connecting = false
+	if self.bConnecting then
+		self.bConnecting = false
 
 		if self.timeout then
 			self.timeout:stop()

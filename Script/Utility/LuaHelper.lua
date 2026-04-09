@@ -121,13 +121,14 @@ function M.HandleFunc(target, func, ...)
 	local param = table.pack(...)
 	return function(...)
 		local finalParam = {}
-		for k, v in ipairs(param) do
-			finalParam[k] = v		
+		for k = 1, param.n do
+			finalParam[k] = param[k]
 		end
-		for _, v in ipairs(table.pack(...)) do
-			finalParam[#finalParam + 1] = v
+		local args = table.pack(...)
+		for k = 1, args.n do
+			finalParam[param.n + k] = args[k]
 		end
-		func(target, table.unpack(finalParam))
+		func(target, table.unpack(finalParam, 1, param.n + args.n))
 	end
 end
 
