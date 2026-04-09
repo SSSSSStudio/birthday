@@ -69,7 +69,7 @@ end
 ---@param content string
 ---@return UIMsgBoxController
 function M:OpenAlert(name, model, title, content)
-	return self:Open(name, model, title, content, ALERT_STYLE)
+	return self:Open(name, model, title, content, false)
 end
 
 ---@param name string
@@ -78,7 +78,7 @@ end
 ---@param content string
 ---@return UIMsgBoxController
 function M:OpenConfirm(name, model, title, content)
-	return self:Open(name, model, title, content, CONFIRM_STYLE)
+	return self:Open(name, model, title, content, true)
 end
 
 ---@param name string

@@ -53,47 +53,51 @@ end
 local function OnMessage(self, data)
 	if self.status == CONNECTED or self.status == CONNECTING_HANDSHAKE then
 		self.msgCache = self.msgCache .. data
-		local packLength = #self.msgCache
-		if packLength < 4 then
-            return
-        end
-		
-		local length = string.unpack(">I4", self.msgCache:sub(1,4))
-		if length + 4 < packLength then
-			return
+		while true do
+			local packLength = #self.msgCache
+			if packLength < 4 then
+				return
+			end
+
+			local length = string.unpack(">I4", self.msgCache:sub(1,4))
+			if length + 4 > packLength then
+				return
+			end
+
+			local dataMsg = self.msgCache:sub(5, length + 4)
+			local packMsg = lcrypt.aes_decrypt(self.key, dataMsg)
+			self.msgCache = self.msgCache:sub(length + 5)
+			local name, msg = NetPack.Unpack(packMsg)
+			if not name then
+				return
+			end
+			ProtoDispatcher.DispatchMessage(name, msg)
 		end
-		
-		local dataMsg = self.msgCache:sub(5, length + 4)
-		local packMsg = lcrypt.aes_decrypt(self.key, dataMsg)
-		self.msgCache = self.msgCache:sub(length + 5)
-		local name, msg = NetPack.Unpack(packMsg)
-        if not name then
-            return
-        end
-        ProtoDispatcher.DispatchMessage(name, msg)
 	end
 end
 
 local function OnHandShakeMessage(self, data)
 	if self.status == CONNECTING_HANDSHAKE then
 		self.msgCache = self.msgCache .. data
-		local packLength = #self.msgCache
-		if packLength < 4 then
-			return
-		end
+		while true do
+			local packLength = #self.msgCache
+			if packLength < 4 then
+				return
+			end
 
-		local length = string.unpack(">I4", self.msgCache:sub(1,4))
-		if length + 4 < packLength then
-			return
-		end
+			local length = string.unpack(">I4", self.msgCache:sub(1,4))
+			if length + 4 > packLength then
+				return
+			end
 
-		local packMsg = self.msgCache:sub(5, length + 4)
-		self.msgCache = self.msgCache:sub(length + 5)
-		local name, msg = NetPack.Unpack(packMsg)
-		if not name or not msg then
-			return
+			local packMsg = self.msgCache:sub(5, length + 4)
+			self.msgCache = self.msgCache:sub(length + 5)
+			local name, msg = NetPack.Unpack(packMsg)
+			if not name or not msg then
+				return
+			end
+			ProtoDispatcher.DispatchMessage(name, msg)
 		end
-		ProtoDispatcher.DispatchMessage(name, msg)
 	end
 end
 
@@ -238,6 +242,8 @@ function M:__gc()
 	ProtoDispatcher.RemoveDispatch("ACPublicKeyExchangeBuf", self)
 	ProtoDispatcher.RemoveDispatch("ACHandShakeBuf", self)
 	ProtoDispatcher.RemoveDispatch("GCRoleInfoBuf", self)
+	ProtoDispatcher.RemoveDispatch("GCReconnectionSuccessBuf", self)
+	ProtoDispatcher.RemoveDispatch("GCReconnectionFailBuf", self)
 	self:Close()
 end
 
@@ -268,6 +274,7 @@ function M:Connect(userName,password,address)
 				return
 			end
 		end
+		self.status = DISCONNECTED
 		if self.disconnectCB then
 			self.disconnectCB(self)
 			self.disconnectCB = nil
@@ -275,6 +282,7 @@ function M:Connect(userName,password,address)
 	end)
 	
 	channel:SetDisconnectCallback(function()
+		self.status = DISCONNECTED
 		if self.disconnectCB then
 			self.disconnectCB(self)
 			self.disconnectCB = nil
@@ -306,6 +314,7 @@ function M:Reconnect(token)
 				return
 			end
 		end
+		self.status = DISCONNECTED
 		if self.disconnectCB then
 			self.disconnectCB(self)
 			self.disconnectCB = nil

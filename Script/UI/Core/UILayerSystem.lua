@@ -42,13 +42,13 @@ function M.Start()
 end
 
 function M.Destroy()
-	layersRef = {}
 	for _, layer in pairs(layers) do
         if layer then
 			layer:RemoveFromParent()
 			UnLua.Unref(layer)
         end
     end
+	layersRef = {}
 	layers = {}
 end
 

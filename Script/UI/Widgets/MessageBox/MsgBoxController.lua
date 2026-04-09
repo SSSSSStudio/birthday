@@ -48,6 +48,8 @@ end
 function M:OnConfirmClick()
 	if self.confirmCallback then
         self.confirmCallback()
+	else
+        UIManager.MsgBox_Close(self.name)
     end
 end
 
@@ -58,6 +60,5 @@ function M:OnCancelClick()
 		UIManager.MsgBox_Close(self.name)
 	end
 end
-
 
 return M

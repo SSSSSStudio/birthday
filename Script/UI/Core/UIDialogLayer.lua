@@ -88,7 +88,7 @@ function M:CloseTop()
 	
 	self.nameAndController[controller:GetName()] = nil
 	controller:Destroy()
-	controller = nil
+	UpdateOrder(self)
 	return true
 end
 

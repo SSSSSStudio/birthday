@@ -121,6 +121,9 @@ function M.WrapWidgetInSizeBox(widget)
 	end
 
 	local desiredSize = M.GetWidgetLocalSize(widget)
+	if not desiredSize then
+		return nil
+	end
 	sizeBox:SetWidthOverride(desiredSize.X)
 	sizeBox:SetHeightOverride(desiredSize.Y)
 	sizeBox:AddChild(widget)
@@ -136,15 +139,17 @@ function M.DuplicateWidgetToPanel(panel, widget)
 	end
 	local position = M.GetWidgetViewportPosition(widget)
 	local size = M.GetWidgetLocalSize(widget)
+	if not position or not size then
+		return nil
+	end
 	local newWidget = M.DuplicateWidget(widget, true)
 	local inSizeBox = M.WrapWidgetInSizeBox(newWidget)
 	if inSizeBox then
 		panel:AddChild(inSizeBox)
-	end
-
-	if inSizeBox.Slot then
-		inSizeBox.Slot:SetSize(UE.FVector2D(size.X, size.Y))
-		inSizeBox.Slot:SetPosition(position)
+		if inSizeBox.Slot then
+			inSizeBox.Slot:SetSize(UE.FVector2D(size.X, size.Y))
+			inSizeBox.Slot:SetPosition(position)
+		end
 	end
 	return newWidget
 end
