@@ -40,14 +40,14 @@ static tw2_archive_t* create_writer(const char* filename, uint32_t flags)
 
 	uint32_t mode = 0;
 
-	if (flags & WRITER_BINARY)
+	if (flags & TW2_WRITER_BINARY)
 	{
-		if (flags & WRITER_CHANGE)
+		if (flags & TW2_WRITER_CHANGE)
 		{
 			mode |= FILEREAD_None;
 			mode |= FILEREAD_AllowWrite;
 		}
-		else if (flags & WRITER_APPEND)
+		else if (flags & TW2_WRITER_APPEND)
 		{
 			mode |= FILEWRITE_Append;
 		}
@@ -58,12 +58,12 @@ static tw2_archive_t* create_writer(const char* filename, uint32_t flags)
 	}
 	else
 	{
-		if (flags & WRITER_CHANGE)
+		if (flags & TW2_WRITER_CHANGE)
 		{
 			mode |= FILEREAD_None;
 			mode |= FILEREAD_AllowWrite;
 		}
-		else if (flags & WRITER_APPEND)
+		else if (flags & TW2_WRITER_APPEND)
 		{
 			mode |= FILEWRITE_Append;
 		}
@@ -119,27 +119,37 @@ static void archive_close(tw2_archive_t* pHandle)
 
 void FLuaExtensionModule::StartupModule()
 {
-	tw2_io_reset_file_functions(create_reader,create_writer,archive_tell,archive_size,archive_serialize,archive_flush,archive_seek,archive_close);
-	tw2_set_log_custom_print([](enLogLevel e, const char* s)
+	tw2_io_vtable_t io_vtable;
+	io_vtable.createReader = create_reader;
+	io_vtable.createWriter = create_writer;
+	io_vtable.archiveTell = archive_tell;
+	io_vtable.archiveSize = archive_size;
+	io_vtable.archiveSerialize = archive_serialize;
+	io_vtable.archiveFlush = archive_flush;
+	io_vtable.archiveSeek = archive_seek;
+	io_vtable.archiveClose = archive_close;
+
+	tw2_io_reset_file_functions(&io_vtable);
+	tw2_set_log_custom_print([](tw2_log_level_t e, const char* s)
 	{
 		switch (e)
 		{
-		case eLogLevelInfo:
+		case TW2_LOG_LEVEL_INFO:
 			{
 				UE_LOG(LogTemp, Log, TEXT("%s"), UTF8_TO_TCHAR(s));
 			}
 			break;
-		case eLogLevelWarning:
+		case TW2_LOG_LEVEL_WARNING:
 			{
 				UE_LOG(LogTemp, Warning, TEXT("%s"), UTF8_TO_TCHAR(s));
 			}
 			break;
-		case eLogLevelError:
+		case TW2_LOG_LEVEL_ERROR:
 			{
 				UE_LOG(LogTemp, Error, TEXT("%s"), UTF8_TO_TCHAR(s));
 			}
 			break;
-		case eLogLevelFatal:
+		case TW2_LOG_LEVEL_FATAL:
 			{
 				UE_LOG(LogTemp, Fatal, TEXT("%s"), UTF8_TO_TCHAR(s));
 			}
