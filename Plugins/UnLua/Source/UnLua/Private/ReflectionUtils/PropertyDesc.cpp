@@ -942,7 +942,8 @@ public:
             FScriptMap ScriptMap;
             FLuaMap LuaMap(&ScriptMap, KeyProperty, ValueProperty, FLuaMap::OwnedByOther);
             TraverseTable(L, IndexInStack, &LuaMap, FMapPropertyDesc::FillMap);
-            ArrayProperty->CopyCompleteValue(ValuePtr, &ScriptMap);
+            MapProperty->CopyCompleteValue(ValuePtr, &ScriptMap);
+        	//hebo.pb fix
         }
         else if (Type == LUA_TUSERDATA)
         {
@@ -1080,7 +1081,8 @@ public:
             FScriptSet ScriptSet;
             FLuaSet LuaSet(&ScriptSet, InnerProperty, FLuaSet::OwnedByOther);
             TraverseTable(L, IndexInStack, &LuaSet, FSetPropertyDesc::FillSet);
-            ArrayProperty->CopyCompleteValue(ValuePtr, &ScriptSet);
+            SetProperty->CopyCompleteValue(ValuePtr, &ScriptSet);
+        	//hebo.pb fix
         }
         else if (Type == LUA_TUSERDATA)
         {

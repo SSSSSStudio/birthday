@@ -49,7 +49,9 @@ namespace UnLua
                 bool TwoLevelPtr;
                 void* Userdata = GetUserdataFast(L, -1, &TwoLevelPtr);
                 check(TwoLevelPtr)
-                *(void**)Userdata = nullptr;
+                if (LIKELY(Userdata))
+                    *(void**)Userdata = nullptr;
+            	//hebo.pb fix
 
                 lua_pop(L, 1);
 

@@ -43,22 +43,22 @@ static _decl_forceinline void tw2_slice_set(tw2_slice_t* pSlice, const char* dat
 	pSlice->length = n;
 }
 
-static _decl_forceinline const char* tw2_slice_data(tw2_slice_t* pSlice)
+static _decl_forceinline const char* tw2_slice_data(const tw2_slice_t* pSlice)
 {
 	return pSlice->data;
 }
 
-static _decl_forceinline size_t tw2_slice_length(tw2_slice_t* pSlice)
+static _decl_forceinline size_t tw2_slice_length(const tw2_slice_t* pSlice)
 {
 	return pSlice->length;
 }
 
-static _decl_forceinline size_t tw2_slice_empty(tw2_slice_t* pSlice)
+static _decl_forceinline bool tw2_slice_empty(const tw2_slice_t* pSlice)
 {
 	return pSlice->length == 0;
 }
 
-static _decl_forceinline int32_t tw2_slice_cmp(tw2_slice_t* pSlice, tw2_slice_t* pRhs)
+static _decl_forceinline int32_t tw2_slice_cmp(const tw2_slice_t* pSlice, const tw2_slice_t* pRhs)
 {
 	const size_t minLen = (pSlice->length < pRhs->length) ? pSlice->length : pRhs->length;
 	int32_t r = memcmp(pSlice->data, pRhs->data, minLen);
@@ -82,7 +82,7 @@ static _decl_forceinline void tw2_slice_remove_suffix(tw2_slice_t* pSlice, size_
 	pSlice->length -= n;
 }
 
-static _decl_forceinline void tw2_slice_read_skil(tw2_slice_t* pSlice, size_t offset) 
+static _decl_forceinline void tw2_slice_read_skip(tw2_slice_t* pSlice, size_t offset) 
 {
 	assert(offset <= pSlice->length);
 	pSlice->data += offset;

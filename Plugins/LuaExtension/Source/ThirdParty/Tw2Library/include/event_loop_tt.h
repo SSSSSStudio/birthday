@@ -23,13 +23,13 @@
 #include "async_tt.h"
 
 struct tw2_timer_s;
-struct tw2_listen_s;
+struct tw2_listener_s;
 struct tw2_watcher_s;
 struct tw2_asyncbuf_s;
 struct tw2_connection_s;
 
 typedef struct tw2_timer_s tw2_timer_t;
-typedef struct tw2_listen_s tw2_listen_t;
+typedef struct tw2_listener_s tw2_listener_t;
 typedef struct tw2_watcher_s tw2_watcher_t;
 typedef struct tw2_asyncbuf_s tw2_asyncbuf_t;
 typedef struct tw2_connection_s tw2_connection_t;
@@ -38,6 +38,10 @@ struct tw2_event_loop_s;
 
 typedef struct tw2_event_loop_s tw2_event_loop_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 tw2_API tw2_event_loop_t* tw2_event_loop_new();
 
 tw2_API void tw2_event_loop_addref(tw2_event_loop_t* pHandle);
@@ -45,8 +49,6 @@ tw2_API void tw2_event_loop_addref(tw2_event_loop_t* pHandle);
 tw2_API void tw2_event_loop_release(tw2_event_loop_t* pHandle);
 
 tw2_API void tw2_event_loop_set_concurrent_threads(tw2_event_loop_t* pHandle, uint32_t concurrentThreads);
-
-tw2_API void tw2_event_loop_set_Timer(tw2_event_loop_t* pHandle, uint32_t concurrentThreads);
 
 tw2_API uint32_t tw2_event_loop_get_concurrent_threads(tw2_event_loop_t* pHandle);
 
@@ -81,22 +83,22 @@ tw2_API bool tw2_timer_is_once(tw2_timer_t* pHandle);
 
 tw2_API bool tw2_timer_is_running(tw2_timer_t* pHandle);
 
-//tw2_listen_t
-tw2_API tw2_listen_t* tw2_listen_new(tw2_event_loop_t* pEventLoop, const tw2_address_t* pListenAddr, bool bStream);
+//tw2_listener_t
+tw2_API tw2_listener_t* tw2_listener_new(tw2_event_loop_t* pEventLoop, const tw2_address_t* pListenAddr, bool bStream);
 
-tw2_API void tw2_listen_set_accept_cb(tw2_listen_t* pHandle, void (*fn)(const tw2_listen_t*,tw2_connection_t*,const char*,uint32_t,void*));
+tw2_API void tw2_listener_set_accept_cb(tw2_listener_t* pHandle, void (*fn)(const tw2_listener_t*,tw2_connection_t*,const char*,uint32_t,void*));
 
-tw2_API void tw2_listen_set_accept_filter_cb(tw2_listen_t* pHandle, bool (*fn)(const tw2_listen_t*,const tw2_address_t*,const char*,uint32_t,void*));
+tw2_API void tw2_listener_set_accept_filter_cb(tw2_listener_t* pHandle, bool (*fn)(const tw2_listener_t*,const tw2_address_t*,const char*,uint32_t,void*));
 
-tw2_API void tw2_listen_addref(tw2_listen_t* pHandle);
+tw2_API void tw2_listener_addref(tw2_listener_t* pHandle);
 
-tw2_API void tw2_listen_release(tw2_listen_t* pHandle);
+tw2_API void tw2_listener_release(tw2_listener_t* pHandle);
 
-tw2_API bool tw2_listen_start(tw2_listen_t* pHandle,void* pUserData, void(*userFree)(void*));
+tw2_API bool tw2_listener_start(tw2_listener_t* pHandle,void* pUserData, void(*userFree)(void*));
 
-tw2_API void tw2_listen_stop(tw2_listen_t* pHandle);
+tw2_API void tw2_listener_stop(tw2_listener_t* pHandle);
 
-tw2_API bool tw2_listen_post_accept(tw2_listen_t* pHandle);
+tw2_API bool tw2_listener_post_accept(tw2_listener_t* pHandle);
 
 //tw2_watcher_t
 tw2_API tw2_watcher_t* tw2_watcher_new(tw2_event_loop_t* pEventLoop, bool bManualReset, void (*fn)(tw2_watcher_t*,void*), void* pUserData, void(*userFree)(void*));
@@ -162,3 +164,7 @@ tw2_API int32_t tw2_connection_get_write_pending_count(tw2_connection_t* pHandle
 tw2_API size_t tw2_connection_get_write_pending_bytes(tw2_connection_t* pHandle);
 
 tw2_API size_t tw2_connection_get_receive_capacity(tw2_connection_t* pHandle);
+
+#ifdef __cplusplus
+}
+#endif

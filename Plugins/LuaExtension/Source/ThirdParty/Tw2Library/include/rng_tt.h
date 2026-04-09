@@ -28,8 +28,16 @@ typedef struct tw2_rng_s
 	uint64_t state[4];
 } tw2_rng_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 tw2_API void tw2_rng_random_seed(tw2_rng_t* pRNG, uint64_t seed/* = 1234567890*/);
 
 tw2_API uint64_t tw2_rng_random(tw2_rng_t* pRNG);
 
 tw2_API uint64_t tw2_rng_random_distribution(tw2_rng_t* pRNG, uint64_t low, uint64_t up);
+
+#ifdef __cplusplus
+}
+#endif

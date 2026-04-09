@@ -46,7 +46,7 @@ typedef void *QUEUE[2];
 #define QUEUE_NEXT_PREV(q)  (QUEUE_PREV(QUEUE_NEXT(q)))
 
 #define QUEUE_DATA(ptr, type, field)                                          \
-	((type *) ((char *) (ptr) - container_of(type, field)))
+	((type *) ((char *) (ptr) - offsetof(type, field)))
 
 #define QUEUE_FOREACH(q, h)                                                   \
   	for ((q) = QUEUE_NEXT(h); (q) != (h); (q) = QUEUE_NEXT(q))

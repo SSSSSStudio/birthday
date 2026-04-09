@@ -17,7 +17,14 @@
 
 #pragma once
 
+#ifdef __cplusplus
+#include <atomic>
+using std::atomic_flag;
+using std::memory_order_acquire;
+using std::memory_order_release;
+#else
 #include <stdatomic.h>
+#endif
 
 #include "thread_tt.h"
 
@@ -34,19 +41,22 @@ static _decl_forceinline void tw2_spinlock_init(tw2_spinlock_t* pHandle)
 static _decl_forceinline void tw2_spinlock_lock(tw2_spinlock_t* pHandle)
 {
     uint32_t spinCount = 0;
-    if (atomic_flag_test_and_set_explicit(&pHandle->flag,memory_order_acquire))
+    uint32_t backoff = 1;
+    while (atomic_flag_test_and_set_explicit(&pHandle->flag, memory_order_acquire))
     {
-        do
+        for (uint32_t i = 0; i < backoff; ++i)
         {
-            if (spinCount++ < 2048)
-            {
-                tw2_thread_pause();
-            }
-            else
-            {
-                tw2_thread_yield();
-            }
-        } while(atomic_flag_test_and_set_explicit(&pHandle->flag,memory_order_relaxed));
+            tw2_thread_pause();
+        }
+        if (++spinCount > 1024)
+        {
+            tw2_thread_yield();
+            backoff = 1;
+        }
+        else
+        {
+            backoff = (backoff * 2 < 256) ? backoff * 2 : 256;
+        }
     }
 }
 

@@ -81,14 +81,18 @@
 	#define ONCE_FLAG_INIT PTHREAD_ONCE_INIT
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //----------------thread----------------
 enum 
 {
-	eThreadSuccess	= 0,
-	eThreadNomem	= 1,
-	eThreadTimedout	= 2,
-	eThreadInvalid	= 3,
-	eThreadError	= 4,
+	TW2_THREAD_SUCCESS	= 0,
+	TW2_THREAD_NOMEM	= 1,
+	TW2_THREAD_TIMEDOUT	= 2,
+	TW2_THREAD_INVALID	= 3,
+	TW2_THREAD_ERROR	= 4,
 };
 
 typedef void (*thread_cb)(void* pArg);
@@ -220,3 +224,7 @@ tw2_API void tw2_cond_broadcast(tw2_cond_t* pCond);
 tw2_API void tw2_cond_wait(tw2_cond_t* pCond, tw2_mutex_t* pMutex);
 
 tw2_API int32_t tw2_cond_timedwait(tw2_cond_t* pCond, tw2_mutex_t* pMutex, uint64_t timeoutMS);
+
+#ifdef __cplusplus
+}
+#endif

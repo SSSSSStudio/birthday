@@ -42,6 +42,10 @@ typedef struct tw2_address_s
 	};
 } tw2_address_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 tw2_API bool tw2_address_init(tw2_address_t* pAddress, const char* addr, uint16_t port, bool bInV6);
 
 tw2_API void tw2_address_init_any(tw2_address_t* pAddress, uint16_t port, bool bInV6);
@@ -52,9 +56,24 @@ tw2_API void tw2_address_init_v6(tw2_address_t* pAddress, struct sockaddr_in6 in
 
 tw2_API bool tw2_address_init_from(tw2_address_t* pAddress, const char* format);
 
-tw2_API bool tw2_address_addr_port_to_string(tw2_address_t* pAddress, char* pStr, size_t length);
+tw2_API bool tw2_address_addr_port_to_string(const tw2_address_t* pAddress, char* pStr, size_t length);
 
-tw2_API bool tw2_address_addr_to_string(tw2_address_t* pAddress, char* pStr, size_t length);
+tw2_API bool tw2_address_addr_to_string(const tw2_address_t* pAddress, char* pStr, size_t length);
+
+#ifdef __cplusplus
+}
+#endif
+
+static _decl_forceinline
+#if defined( _WINDOWS ) || defined( _WIN32 )
+ADDRESS_FAMILY
+#else
+sa_family_t
+#endif
+tw2_address_family(const tw2_address_t* pAddress)
+{
+	return pAddress->in.sin_family;
+}
 
 static _decl_forceinline bool tw2_address_is_v4(const tw2_address_t* pAddress)
 {
@@ -66,27 +85,32 @@ static _decl_forceinline bool tw2_address_is_v6(const tw2_address_t* pAddress)
 	 return pAddress->in.sin_family == AF_INET6;
 }
 
-static _decl_forceinline uint16_t tw2_address_get_port(const tw2_address_t* pAddress)
+static _decl_forceinline uint16_t tw2_address_port(const tw2_address_t* pAddress)
 {
 	return ntohs(pAddress->in.sin_port);
 }
 
-static _decl_forceinline uint32_t tw2_address_get_network_addr(const tw2_address_t* pAddress)
+static _decl_forceinline uint32_t tw2_address_ip4_raw_addr(const tw2_address_t* pAddress)
 {
 	return pAddress->in.sin_addr.s_addr;
 }
 
-static _decl_forceinline uint16_t tw2_address_get_network_port(const tw2_address_t* pAddress)
+static _decl_forceinline struct in6_addr tw2_address_ip6_raw_addr(const tw2_address_t* pAddress)
+{
+	return pAddress->in6.sin6_addr;
+}
+
+static _decl_forceinline uint16_t tw2_address_raw_port(const tw2_address_t* pAddress)
 {
 	return pAddress->in.sin_port;
 }
 
-static _decl_forceinline struct sockaddr* tw2_address_get_sockaddr(const tw2_address_t* pAddress)
+static _decl_forceinline struct sockaddr* tw2_address_sockaddr(const tw2_address_t* pAddress)
 {
 	return (struct sockaddr*)(&pAddress->in);
 }
 
-static _decl_forceinline socklen_t tw2_address_get_socklen(const tw2_address_t* pAddress)
+static _decl_forceinline socklen_t tw2_address_socklen(const tw2_address_t* pAddress)
 {
 	return pAddress->in.sin_family == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 }
@@ -98,5 +122,7 @@ static _decl_forceinline uint64_t tw2_address_hash(const tw2_address_t* pAddress
 
 static _decl_forceinline int32_t tw2_address_cmp(const tw2_address_t* pAddress,const tw2_address_t* pRhs)
 {
+	if (pAddress->in.sin_family != pRhs->in.sin_family)
+		return (int32_t)pAddress->in.sin_family - (int32_t)pRhs->in.sin_family;
 	return pAddress->in.sin_family == AF_INET6 ? memcmp(&pAddress->in6,&pRhs->in6,sizeof(struct sockaddr_in6)) : memcmp(&pAddress->in,&pRhs->in,offsetof(struct sockaddr_in, sin_zero));
 }

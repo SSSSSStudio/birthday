@@ -91,12 +91,10 @@
 typedef struct tw2_iovec_s
 {
 	char*	pBuf;
-	int32_t	length;
+	size_t	length;
 } tw2_iovec_t;
 
 #define container_of(ptr, type, member) ((type *) ((char *) (ptr) - offsetof(type, member)))
-
-#define align_size(n,alignment) ((n+alignment-1) & ~(alignment-1))
 
 #if defined(__clang__) || defined(__GNUC__)
 	#define _decl_forceinline inline __attribute__((__always_inline__))
@@ -127,7 +125,6 @@ typedef struct tw2_iovec_s
 #else
 	#define _decl_unused 
 #endif
-
 
 #if defined(__clang__) || defined(__GNUC__)
 	#define _decl_thread_local __thread
@@ -198,6 +195,12 @@ typedef struct tw2_iovec_s
 #else 
 	#define max(a,b)	({__typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a > _b ? _a : _b; })
 	#define min(a,b)	({__typeof__ (a) _a = (a); __typeof__ (b) _b = (b); _a < _b ? _a : _b; })
+	typedef int32_t SOCKET;
+	#define INVALID_SOCKET (-1)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 tw2_API void tw2_set_mem_functions(void *(*userMalloc)(size_t), void *(*userRealloc)(void*, size_t), void (*userFree)(void*));
@@ -211,6 +214,10 @@ _decl_nodiscard tw2_API void* tw2_realloc(void* p, size_t size);
 _decl_nodiscard tw2_API char* tw2_strdup(const char* s); 
 
 _decl_nodiscard tw2_API char* tw2_strndup(const char* s, size_t n);
+
+#ifdef __cplusplus
+}
+#endif
 
 #if DEF_PLATFORM == DEF_PLATFORM_WINDOWS
 	#define tw2_strtok(s, d, pp)		strtok_s(s, d, pp)
@@ -245,10 +252,34 @@ static _decl_forceinline size_t tw2_strlncat(char* pDst, size_t len, const char*
 
 static _decl_forceinline float tw2_bits_to_float(const uint32_t v)
 {
-	return (v >> 8) * 0x1.0p-24f;
+	return (float)(v >> 8) / 16777216.0f;
 }
 
 static _decl_forceinline double tw2_bits_to_double(const uint64_t v) 
 {
-	return (v >> 11) * 0x1.0p-53;
+	return (double)(v >> 11) / 9007199254740992.0;
+}
+
+static _decl_forceinline size_t tw2_align_size(size_t n, size_t alignment)
+{
+	return (n + alignment - 1) & ~(alignment - 1);
+}
+
+static _decl_forceinline size_t tw2_roundup_pow2(size_t n)
+{
+	if (n == 0)
+	{
+		return 1;
+	}
+	n--;
+	n |= n >> 1;
+	n |= n >> 2;
+	n |= n >> 4;
+	n |= n >> 8;
+	n |= n >> 16;
+#if SIZE_MAX > 0xFFFFFFFFUL
+	n |= n >> 32;
+#endif
+	n++;
+	return n;
 }

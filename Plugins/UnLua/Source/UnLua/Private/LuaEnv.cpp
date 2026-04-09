@@ -759,8 +759,9 @@ namespace UnLua
         }
         else
         {
-            UNLUA_STAT_MEMORY_REALLOC(ptr, Buffer, Lua);
             Buffer = FMemory::Realloc(ptr, nsize);
+            UNLUA_STAT_MEMORY_REALLOC(ptr, Buffer, Lua);
+        	//hebo.pb fix
         }
         return Buffer;
     }

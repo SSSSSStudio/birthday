@@ -19,6 +19,10 @@
 
 #include "utility_tt.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 tw2_API bool tw2_env_init();
 
 tw2_API void tw2_env_clear();
@@ -26,3 +30,7 @@ tw2_API void tw2_env_clear();
 tw2_API bool tw2_os_set_env_var(const char* name, const char* var);
 
 tw2_API bool tw2_os_get_env_var(const char* name, char* pVar, size_t* pLength);
+
+#ifdef __cplusplus
+}
+#endif

@@ -32,6 +32,10 @@ typedef struct tw2_ringbuf_s
 	size_t	writeIndex;
 } tw2_ringbuf_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 tw2_API void tw2_ringbuf_init(tw2_ringbuf_t* pBuf, size_t capacity);
 
 tw2_API void tw2_ringbuf_clear(tw2_ringbuf_t* pBuf);
@@ -46,6 +50,10 @@ tw2_API void tw2_ringbuf_reset(tw2_ringbuf_t* pBuf);
 
 tw2_API void tw2_ringbuf_reserve(tw2_ringbuf_t* pBuf,size_t capacity);
 
+#ifdef __cplusplus
+}
+#endif
+
 static _decl_forceinline void tw2_ringbuf_swap_to_reset(tw2_ringbuf_t* pBuf, tw2_ringbuf_t* pRhs)
 {
 	char* pBytes = pBuf->pBytes;
@@ -56,8 +64,8 @@ static _decl_forceinline void tw2_ringbuf_swap_to_reset(tw2_ringbuf_t* pBuf, tw2
 	pBuf->capacity = pRhs->capacity;
 	pRhs->pBytes = pBytes;
 	pRhs->capacity = capacity;
-	pRhs->readIndex = capacity;
-	pRhs->writeIndex = capacity;
+	pRhs->readIndex = 0;
+	pRhs->writeIndex = 0;
 }
 
 static _decl_forceinline void tw2_ringbuf_swap_buffer(tw2_ringbuf_t* pBuf, char** ppBuffer, size_t* pCapacity)
@@ -65,98 +73,72 @@ static _decl_forceinline void tw2_ringbuf_swap_buffer(tw2_ringbuf_t* pBuf, char*
 	char* pBytes = pBuf->pBytes;
 	size_t capacity = pBuf->capacity;
 	pBuf->pBytes = *ppBuffer;
-	pBuf->readIndex = *pCapacity;
-	pBuf->writeIndex = *pCapacity;
+	pBuf->readIndex = 0;
+	pBuf->writeIndex = 0;
 	pBuf->capacity = *pCapacity;
 	*ppBuffer = pBytes;
 	*pCapacity = capacity;
 }
 
-static _decl_forceinline bool tw2_ringbuf_empty(tw2_ringbuf_t* pBuf)
+static _decl_forceinline bool tw2_ringbuf_empty(const tw2_ringbuf_t* pBuf)
 {
-	return pBuf->readIndex == pBuf->capacity;
+	return pBuf->readIndex == pBuf->writeIndex;
 }
 
-static _decl_forceinline size_t tw2_ringbuf_readable_bytes(tw2_ringbuf_t* pBuf)
+static _decl_forceinline size_t tw2_ringbuf_readable_bytes(const tw2_ringbuf_t* pBuf)
 {
-	if (pBuf->writeIndex > pBuf->readIndex)
-	{
-		return pBuf->writeIndex - pBuf->readIndex;
-	}
-	else
-	{
-		return pBuf->writeIndex + (pBuf->capacity - pBuf->readIndex);
-	}
+	if (_unlikely(pBuf->capacity == 0)) return 0;
+	return (pBuf->writeIndex - pBuf->readIndex) & (pBuf->capacity - 1);
 }
 
-static _decl_forceinline size_t tw2_ringbuf_writable_bytes(tw2_ringbuf_t* pBuf)
+static _decl_forceinline size_t tw2_ringbuf_writable_bytes(const tw2_ringbuf_t* pBuf)
 {
-	if (pBuf->readIndex >= pBuf->writeIndex)
-	{
-		return pBuf->readIndex - pBuf->writeIndex;
-	}
-	else
-	{
-		return pBuf->readIndex + (pBuf->capacity - pBuf->writeIndex);
-	}
+	if (_unlikely(pBuf->capacity == 0)) return 0;
+	return (pBuf->readIndex - pBuf->writeIndex - 1) & (pBuf->capacity - 1);
 }
 
-static _decl_forceinline size_t tw2_ringbuf_capacity(tw2_ringbuf_t* pBuf)
+static _decl_forceinline size_t tw2_ringbuf_capacity(const tw2_ringbuf_t* pBuf)
 {
 	return pBuf->capacity;
 }
 
-static _decl_forceinline char* tw2_ringbuf_bytes(tw2_ringbuf_t* pBuf)
+static _decl_forceinline const char* tw2_ringbuf_bytes(const tw2_ringbuf_t* pBuf)
 {
 	return pBuf->pBytes;
 }
 
 static _decl_forceinline char* tw2_ringbuf_peek_contiguous_read(tw2_ringbuf_t* pBuf, size_t* pReadableBytes)
 {
-	if (pBuf->writeIndex > pBuf->readIndex)
-	{
-		*pReadableBytes = pBuf->writeIndex - pBuf->readIndex;
-	}
-	else
-	{
-		*pReadableBytes = pBuf->capacity - pBuf->readIndex;
-	}
+	size_t readableBytes = tw2_ringbuf_readable_bytes(pBuf);
+	size_t toEnd = pBuf->capacity - pBuf->readIndex;
+	*pReadableBytes = readableBytes < toEnd ? readableBytes : toEnd;
 	return pBuf->pBytes + pBuf->readIndex;
 }
 
 static _decl_forceinline char* tw2_ringbuf_peek_contiguous_write(tw2_ringbuf_t* pBuf, size_t* pWritableBytes)
 {
-	if (pBuf->readIndex >= pBuf->writeIndex)
-	{
-		*pWritableBytes = pBuf->readIndex - pBuf->writeIndex;
-	}
-	else
-	{
-		*pWritableBytes = pBuf->capacity - pBuf->writeIndex;
-	}
+	size_t writableBytes = tw2_ringbuf_writable_bytes(pBuf);
+	size_t toEnd = pBuf->capacity - pBuf->writeIndex;
+	*pWritableBytes = writableBytes < toEnd ? writableBytes : toEnd;
 	return pBuf->pBytes + pBuf->writeIndex;
 }
 
 static _decl_forceinline void tw2_ringbuf_read_skip(tw2_ringbuf_t* pBuf, size_t offset)
 {
-	assert(tw2_ringbuf_readable_bytes(pBuf) >= offset);
-	if (tw2_ringbuf_readable_bytes(pBuf) == offset)
+	size_t readable = tw2_ringbuf_readable_bytes(pBuf);
+	assert(readable >= offset);
+	if (_unlikely(readable == offset))
 	{
-		pBuf->readIndex = pBuf->capacity;
-		pBuf->writeIndex = 0;
+		pBuf->readIndex = pBuf->writeIndex = 0;
 	}
 	else
 	{
-		pBuf->readIndex = (pBuf->readIndex + offset) % pBuf->capacity;
+		pBuf->readIndex = (pBuf->readIndex + offset) & (pBuf->capacity - 1);
 	}
 }
 
 static _decl_forceinline void tw2_ringbuf_write_skip(tw2_ringbuf_t* pBuf, size_t offset)
 {
 	assert((offset != 0) && (tw2_ringbuf_writable_bytes(pBuf) >= offset));
-	pBuf->writeIndex = (pBuf->writeIndex + offset) % pBuf->capacity;
-	if (pBuf->readIndex == pBuf->capacity)
-	{
-		pBuf->readIndex = 0;
-	}
+	pBuf->writeIndex = (pBuf->writeIndex + offset) & (pBuf->capacity - 1);
 }
