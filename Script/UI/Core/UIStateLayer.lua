@@ -108,7 +108,7 @@ function M:CloseAll()
 		self.currentController = nil
 	end
 	
-	for _, controller in pairs(self.recordStack) do
+	for _, controller in ipairs(self.recordStack) do
         controller:Destroy()
     end
 		
