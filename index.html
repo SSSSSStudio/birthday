@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生日快乐</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: 5%;
+        }
+        
+        .title {
+            font-size: 3em;
+            color: #FFD700;
+            text-shadow: 
+                0 0 10px #FF6B6B,
+                0 0 20px #FF6B6B,
+                0 0 30px #FF6B6B,
+                2px 2px 4px rgba(0,0,0,0.5);
+            animation: glow 2s ease-in-out infinite alternate;
+            text-align: center;
+        }
+        
+        .name {
+            font-size: 2em;
+            color: #FFF;
+            text-shadow: 
+                0 0 10px #4ECDC4,
+                0 0 20px #4ECDC4;
+            margin-top: 20px;
+            animation: fadeIn 2s ease-out;
+        }
+        
+        .error {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #FFF;
+        }
+        
+        .error h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        
+        .error p {
+            font-size: 1.2em;
+            color: #AAA;
+        }
+        
+        .loading {
+            position: absolute;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #FFF;
+            font-size: 1em;
+            opacity: 0.7;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 
+                    0 0 10px #FF6B6B,
+                    0 0 20px #FF6B6B,
+                    0 0 30px #FF6B6B,
+                    2px 2px 4px rgba(0,0,0,0.5);
+            }
+            to {
+                text-shadow: 
+                    0 0 20px #FFD700,
+                    0 0 30px #FFD700,
+                    0 0 40px #FFD700,
+                    2px 2px 4px rgba(0,0,0,0.5);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <div id="overlay">
+        <div class="title">生日快乐</div>
+        <div class="name" id="birthdayName"></div>
+    </div>
+    <div class="error" id="errorMsg">
+        <h2>页面不存在</h2>
+        <p>请检查链接是否正确</p>
+    </div>
+    <div class="loading" id="loadingText">正在加载...</div>
+    
+    <script>
+        // 从 URL 参数获取 ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        
+        // 根据 ID 获取配置
+        const config = id ? getConfigById(id) : null;
+        
+        if (config) {
+            document.getElementById('birthdayName').textContent = '祝 ' + config.name + ' 生日快乐！';
+        } else if (id) {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('errorMsg').style.display = 'block';
+            throw new Error('Invalid ID');
+        } else {
+            document.getElementById('birthdayName').textContent = '祝 亲爱的 生日快乐！';
+        }
+        
+        // Babylon.js 初始化
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+        
+        const createScene = function() {
+            const scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(0.05, 0.05, 0.15, 1);
+            
+            // 相机
+            const camera = new BABYLON.ArcRotateCamera(
+                "camera",
+                -Math.PI / 2,
+                Math.PI / 3,
+                8,
+                new BABYLON.Vector3(0, 1.5, 0),
+                scene
+            );
+            camera.attachControl(canvas, true);
+            camera.lowerRadiusLimit = 5;
+            camera.upperRadiusLimit = 15;
+            
+            // 灯光
+            const hemisphericLight = new BABYLON.HemisphericLight(
+                "hemiLight",
+                new BABYLON.Vector3(0, 1, 0),
+                scene
+            );
+            hemisphericLight.intensity = 0.6;
+            hemisphericLight.groundColor = new BABYLON.Color3(0.2, 0.1, 0.3);
+            
+            const pointLight = new BABYLON.PointLight(
+                "pointLight",
+                new BABYLON.Vector3(0, 4, 0),
+                scene
+            );
+            pointLight.intensity = 1.5;
+            pointLight.diffuse = new BABYLON.Color3(1, 0.9, 0.7);
+            
+            // 创建蛋糕层
+            function createCakeLayer(name, y, diameter, height, color) {
+                const layer = BABYLON.MeshBuilder.CreateCylinder(
+                    name,
+                    { diameter: diameter, height: height, tessellation: 64 },
+                    scene
+                );
+                layer.position.y = y;
+                
+                const material = new BABYLON.StandardMaterial(name + "Mat", scene);
+                material.diffuseColor = color;
+                material.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+                material.emissiveColor = color.scale(0.1);
+                layer.material = material;
+                
+                return layer;
+            }
+            
+            // 三层蛋糕
+            const layer1 = createCakeLayer("layer1", 0.4, 3, 0.8, new BABYLON.Color3(0.95, 0.85, 0.75));
+            const layer2 = createCakeLayer("layer2", 1.1, 2.2, 0.6, new BABYLON.Color3(1, 0.6, 0.7));
+            const layer3 = createCakeLayer("layer3", 1.6, 1.5, 0.5, new BABYLON.Color3(0.9, 0.7, 0.85));
+            
+            // 奶油边
+            function createFrostingRim(parent, y, diameter) {
+                const rim = BABYLON.MeshBuilder.CreateTorus(
+                    "frosting",
+                    { diameter: diameter + 0.1, thickness: 0.15, tessellation: 32 },
+                    scene
+                );
+                rim.position.y = y;
+                rim.parent = parent;
+                
+                const material = new BABYLON.StandardMaterial("frostingMat", scene);
+                material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+                material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+                rim.material = material;
+                
+                return rim;
+            }
+            
+            createFrostingRim(layer1, 0.35, 3);
+            createFrostingRim(layer2, 0.25, 2.2);
+            createFrostingRim(layer3, 0.2, 1.5);
+            
+            // 蜡烛
+            function createCandle(x, z, parentY) {
+                const candleGroup = new BABYLON.TransformNode("candleGroup", scene);
+                candleGroup.position = new BABYLON.Vector3(x, parentY, z);
+                
+                const candle = BABYLON.MeshBuilder.CreateCylinder(
+                    "candle",
+                    { diameter: 0.1, height: 0.5 },
+                    scene
+                );
+                candle.position.y = 0.25;
+                candle.parent = candleGroup;
+                
+                const candleMat = new BABYLON.StandardMaterial("candleMat", scene);
+                candleMat.diffuseColor = new BABYLON.Color3(1, 0.9, 0.5);
+                candleMat.emissiveColor = new BABYLON.Color3(0.3, 0.2, 0);
+                candle.material = candleMat;
+                
+                // 火焰
+                const flame = BABYLON.MeshBuilder.CreateSphere(
+                    "flame",
+                    { diameter: 0.12, segments: 8 },
+                    scene
+                );
+                flame.position.y = 0.55;
+                flame.scaling = new BABYLON.Vector3(0.8, 1.5, 0.8);
+                flame.parent = candleGroup;
+                
+                const flameMat = new BABYLON.StandardMaterial("flameMat", scene);
+                flameMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
+                flameMat.emissiveColor = new BABYLON.Color3(1, 0.8, 0.2);
+                flameMat.disableLighting = true;
+                flame.material = flameMat;
+                
+                // 火焰光源
+                const flameLight = new BABYLON.PointLight("flameLight", new BABYLON.Vector3(x, parentY + 0.6, z), scene);
+                flameLight.diffuse = new BABYLON.Color3(1, 0.8, 0.4);
+                flameLight.intensity = 0.5;
+                flameLight.range = 3;
+                
+                // 火焰动画
+                let time = Math.random() * Math.PI * 2;
+                scene.registerBeforeRender(() => {
+                    time += 0.15;
+                    flame.scaling.x = 0.7 + Math.sin(time) * 0.15;
+                    flame.scaling.z = 0.7 + Math.cos(time * 1.3) * 0.15;
+                    flameLight.intensity = 0.4 + Math.sin(time * 2) * 0.2;
+                });
+                
+                return candleGroup;
+            }
+            
+            // 添加蜡烛
+            const candlePositions = [
+                { x: 0, z: 0 },
+                { x: 0.3, z: 0.3 },
+                { x: -0.3, z: 0.3 },
+                { x: 0.3, z: -0.3 },
+                { x: -0.3, z: -0.3 }
+            ];
+            
+            candlePositions.forEach(pos => {
+                createCandle(pos.x, pos.z, 1.85);
+            });
+            
+            // 粒子系统 - 星星
+            const particleSystem = new BABYLON.ParticleSystem("particles", 200, scene);
+            particleSystem.particleTexture = createStarTexture(scene);
+            particleSystem.emitter = new BABYLON.Vector3(0, 2.5, 0);
+            particleSystem.minEmitBox = new BABYLON.Vector3(-3, -1, -3);
+            particleSystem.maxEmitBox = new BABYLON.Vector3(3, 2, 3);
+            
+            particleSystem.color1 = new BABYLON.Color4(1, 0.9, 0.5, 1);
+            particleSystem.color2 = new BABYLON.Color4(1, 0.5, 0.8, 1);
+            particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.5, 0);
+            
+            particleSystem.minSize = 0.05;
+            particleSystem.maxSize = 0.15;
+            
+            particleSystem.minLifeTime = 2;
+            particleSystem.maxLifeTime = 4;
+            
+            particleSystem.emitRate = 30;
+            
+            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+            
+            particleSystem.gravity = new BABYLON.Vector3(0, 0.2, 0);
+            
+            particleSystem.direction1 = new BABYLON.Vector3(-0.5, 1, -0.5);
+            particleSystem.direction2 = new BABYLON.Vector3(0.5, 1.5, 0.5);
+            
+            particleSystem.minAngularSpeed = 0;
+            particleSystem.maxAngularSpeed = Math.PI;
+            
+            particleSystem.minEmitPower = 0.2;
+            particleSystem.maxEmitPower = 0.5;
+            particleSystem.updateSpeed = 0.01;
+            
+            particleSystem.start();
+            
+            // 创建星星纹理
+            function createStarTexture(scene) {
+                const size = 32;
+                const textureCanvas = document.createElement('canvas');
+                textureCanvas.width = size;
+                textureCanvas.height = size;
+                const ctx = textureCanvas.getContext('2d');
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                const cx = size / 2;
+                const cy = size / 2;
+                const spikes = 4;
+                const outerRadius = size / 2 - 2;
+                const innerRadius = size / 4;
+                
+                for (let i = 0; i < spikes * 2; i++) {
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const angle = (i * Math.PI) / spikes - Math.PI / 2;
+                    const x = cx + Math.cos(angle) * radius;
+                    const y = cy + Math.sin(angle) * radius;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.shadowColor = '#FFFF00';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                
+                return new BABYLON.Texture(textureCanvas.toDataURL(), scene);
+            }
+            
+            // 盘子
+            const plate = BABYLON.MeshBuilder.CreateCylinder(
+                "plate",
+                { diameter: 4, height: 0.1, tessellation: 64 },
+                scene
+            );
+            plate.position.y = -0.05;
+            
+            const plateMat = new BABYLON.StandardMaterial("plateMat", scene);
+            plateMat.diffuseColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+            plateMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+            plate.material = plateMat;
+            
+            // 地面
+            const ground = BABYLON.MeshBuilder.CreateGround(
+                "ground",
+                { width: 20, height: 20 },
+                scene
+            );
+            ground.position.y = -0.1;
+            
+            const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
+            groundMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.15);
+            groundMat.specularColor = new BABYLON.Color3(0.3, 0.3, 0.4);
+            groundMat.specularPower = 64;
+            ground.material = groundMat;
+            
+            // ========== 加载骨骼网格体角色 ==========
+            // 创建一个占位角色（如果没有 GLB 模型）
+            function createPlaceholderCharacter() {
+                const characterGroup = new BABYLON.TransformNode("characterGroup", scene);
+                
+                // 身体
+                const body = BABYLON.MeshBuilder.CreateCapsule("body", { height: 1.2, radius: 0.3 }, scene);
+                body.position.y = 0.6;
+                body.parent = characterGroup;
+                
+                const bodyMat = new BABYLON.StandardMaterial("bodyMat", scene);
+                bodyMat.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.9);
+                bodyMat.emissiveColor = new BABYLON.Color3(0.1, 0.2, 0.3);
+                body.material = bodyMat;
+                
+                // 头
+                const head = BABYLON.MeshBuilder.CreateSphere("head", { diameter: 0.5 }, scene);
+                head.position.y = 1.4;
+                head.parent = characterGroup;
+                
+                const headMat = new BABYLON.StandardMaterial("headMat", scene);
+                headMat.diffuseColor = new BABYLON.Color3(1, 0.85, 0.7);
+                head.material = headMat;
+                
+                // 设置位置
+                characterGroup.position = new BABYLON.Vector3(2.5, 0, 0);
+                
+                return characterGroup;
+            }
+            
+            // 围绕蛋糕跳舞动画
+            let dancer = null;
+            let danceAnimationGroup = null;
+            
+            // 尝试加载 GLB 模型
+            const modelPath = urlParams.get('model') || null;
+            
+            if (modelPath) {
+                // 加载外部 GLB 模型
+                BABYLON.SceneLoader.ImportMeshAsync("", "", modelPath, scene)
+                    .then((result) => {
+                        dancer = result.meshes[0];
+                        
+                        // 播放动画
+                        if (result.animationGroups.length > 0) {
+                            danceAnimationGroup = result.animationGroups[0];
+                            danceAnimationGroup.start(true);
+                        }
+                        
+                        // 调整大小和位置
+                        dancer.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+                        dancer.position = new BABYLON.Vector3(2.5, 0, 0);
+                        
+                        document.getElementById('loadingText').style.display = 'none';
+                    })
+                    .catch(() => {
+                        // 加载失败，使用占位角色
+                        dancer = createPlaceholderCharacter();
+                        document.getElementById('loadingText').style.display = 'none';
+                    });
+            } else {
+                // 没有模型路径，使用占位角色
+                dancer = createPlaceholderCharacter();
+                document.getElementById('loadingText').style.display = 'none';
+            }
+            
+            // 跳舞动画：围绕蛋糕旋转 + 上下跳动
+            let danceTime = 0;
+            scene.registerBeforeRender(() => {
+                if (dancer) {
+                    danceTime += 0.02;
+                    
+                    // 围绕蛋糕旋转
+                    const radius = 2.5;
+                    dancer.position.x = Math.cos(danceTime) * radius;
+                    dancer.position.z = Math.sin(danceTime) * radius;
+                    
+                    // 面向蛋糕
+                    dancer.rotation.y = -danceTime + Math.PI / 2;
+                    
+                    // 上下跳动
+                    dancer.position.y = Math.abs(Math.sin(danceTime * 4)) * 0.2;
+                }
+            });
+            
+            return scene;
+        };
+        
+        const scene = createScene();
+        
+        engine.runRenderLoop(function() {
+            scene.render();
+        });
+        
+        window.addEventListener("resize", function() {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
