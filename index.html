@@ -1132,46 +1132,160 @@
                 lotteryLight.intensity = 0.8 + Math.sin(lotteryTime * 4) * 0.3;
             });
 
-            // ========== 占位角色（GLB 加载失败时使用） ==========
+            // ========== 乐高小人角色 ==========
             function createPlaceholderCharacter() {
                 const characterGroup = new BABYLON.TransformNode("characterGroup", scene);
 
-                // 身体
-                const body = BABYLON.MeshBuilder.CreateCapsule("body", { height: 1.2, radius: 0.3 }, scene);
-                body.position.y = 0.8;
-                body.parent = characterGroup;
+                // 乐高小人配色
+                const skinColor = new BABYLON.Color3(1.0, 0.82, 0.15);   // 经典乐高黄皮肤
+                const shirtColor = LEGO_COLORS.red;                       // 红色上衣
+                const pantsColor = LEGO_COLORS.blue;                      // 深蓝裤子
+                const hairColor = new BABYLON.Color3(0.22, 0.14, 0.08);   // 深棕头发
 
-                const bodyMat = new BABYLON.StandardMaterial("bodyMat", scene);
-                bodyMat.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.9);
-                bodyMat.emissiveColor = new BABYLON.Color3(0.05, 0.1, 0.15);
-                body.material = bodyMat;
+                // --- 两条腿（方形积木）---
+                // legGroup 作为腿部容器，便于抬腿动画（父节点旋转以脚根为轴）
+                const legMat = legoMat("legMat_ch", pantsColor);
 
-                // 头
-                const head = BABYLON.MeshBuilder.CreateSphere("head", { diameter: 0.5 }, scene);
-                head.position.y = 1.7;
+                const legLGroup = new BABYLON.TransformNode("legLGroup", scene);
+                legLGroup.parent = characterGroup;
+                legLGroup.position.set(-0.13, 0.55, 0);
+                const legL = BABYLON.MeshBuilder.CreateBox("legL", { width: 0.26, height: 0.55, depth: 0.3 }, scene);
+                legL.position.y = -0.275; // 以 legLGroup 原点（髋部）为顶
+                legL.material = legMat;
+                legL.parent = legLGroup;
+
+                const legRGroup = new BABYLON.TransformNode("legRGroup", scene);
+                legRGroup.parent = characterGroup;
+                legRGroup.position.set(0.13, 0.55, 0);
+                const legR = BABYLON.MeshBuilder.CreateBox("legR", { width: 0.26, height: 0.55, depth: 0.3 }, scene);
+                legR.position.y = -0.275;
+                legR.material = legMat;
+                legR.parent = legRGroup;
+
+                // 腰带（黑色窄条）
+                const belt = BABYLON.MeshBuilder.CreateBox("belt", { width: 0.56, height: 0.06, depth: 0.32 }, scene);
+                belt.position.set(0, 0.58, 0);
+                belt.material = legoMat("beltMat", LEGO_COLORS.black);
+                belt.parent = characterGroup;
+
+                // --- 梯形身体（上窄下宽）---
+                // 使用 CreateCylinder 的 diameterTop/diameterBottom 近似梯形棱柱
+                // 改用 CreateBox 缩放做梯形视觉：两层盒子
+                const torsoGroup = new BABYLON.TransformNode("torsoGroup", scene);
+                torsoGroup.parent = characterGroup;
+                torsoGroup.position.set(0, 0.6, 0);
+
+                // 身体主体（梯形近似：自定义 Mesh）
+                const torso = BABYLON.MeshBuilder.CreateCylinder("torso", {
+                    height: 0.7,
+                    diameterTop: 0.48,
+                    diameterBottom: 0.62,
+                    tessellation: 4
+                }, scene);
+                torso.rotation.y = Math.PI / 4; // 让方柱正面朝前
+                torso.position.y = 0.35;
+                torso.scaling.z = 0.62; // 前后压扁更像乐高
+                torso.material = legoMat("torsoMat", shirtColor);
+                torso.parent = torsoGroup;
+
+                // 肩部小方块
+                const shoulder = BABYLON.MeshBuilder.CreateBox("shoulder", { width: 0.62, height: 0.12, depth: 0.36 }, scene);
+                shoulder.position.y = 0.72;
+                shoulder.material = legoMat("shoulderMat", shirtColor);
+                shoulder.parent = torsoGroup;
+
+                // --- 两只手臂（倾斜圆柱 + 手掌）---
+                function createArm(side) {
+                    const armGroup = new BABYLON.TransformNode("armGroup_" + side, scene);
+                    armGroup.parent = torsoGroup;
+                    armGroup.position.set(side * 0.35, 0.68, 0);
+
+                    const upperArm = BABYLON.MeshBuilder.CreateCylinder("arm_" + side,
+                        { diameter: 0.2, height: 0.55, tessellation: 10 }, scene);
+                    upperArm.position.set(side * 0.04, -0.28, 0.02);
+                    upperArm.rotation.z = side * 0.25;  // 微向外张
+                    upperArm.rotation.x = -0.2;          // 微向前伸
+                    upperArm.material = legoMat("armMat", shirtColor);
+                    upperArm.parent = armGroup;
+
+                    const hand = BABYLON.MeshBuilder.CreateCylinder("hand_" + side,
+                        { diameter: 0.24, height: 0.18, tessellation: 10 }, scene);
+                    hand.position.set(side * 0.14, -0.55, 0.12);
+                    hand.rotation.z = side * 0.25;
+                    hand.material = legoMat("handMat", LEGO_COLORS.yellow); // 皮肤色（黄）
+                    hand.material.diffuseColor = skinColor;
+                    hand.parent = armGroup;
+
+                    return armGroup;
+                }
+                const armL = createArm(-1);
+                const armR = createArm(1);
+
+                // 脖子
+                const neck = BABYLON.MeshBuilder.CreateCylinder("neck",
+                    { diameter: 0.22, height: 0.12, tessellation: 10 }, scene);
+                neck.position.set(0, 1.38, 0);
+                neck.material = legoMat("neckMat", LEGO_COLORS.yellow);
+                neck.material.diffuseColor = skinColor;
+                neck.parent = characterGroup;
+
+                // --- 圆柱状头部（乐高标志性）---
+                const head = BABYLON.MeshBuilder.CreateCylinder("head",
+                    { diameter: 0.55, height: 0.6, tessellation: 16 }, scene);
+                head.position.set(0, 1.75, 0);
+                const headMat = legoMat("headMat_ch", LEGO_COLORS.yellow);
+                headMat.diffuseColor = skinColor;
+                head.material = headMat;
                 head.parent = characterGroup;
 
-                const headMat = new BABYLON.StandardMaterial("headMat", scene);
-                headMat.diffuseColor = new BABYLON.Color3(1, 0.85, 0.7);
-                head.material = headMat;
+                // 头顶小突点（乐高 stud）
+                const headStud = BABYLON.MeshBuilder.CreateCylinder("headStud",
+                    { diameter: 0.3, height: 0.1, tessellation: 14 }, scene);
+                headStud.position.set(0, 2.1, 0);
+                headStud.material = headMat;
+                headStud.parent = characterGroup;
 
-                // 两条腿（让走路动画有视觉效果）
-                const legL = BABYLON.MeshBuilder.CreateCapsule("legL", { height: 0.6, radius: 0.1 }, scene);
-                legL.position.set(-0.13, 0.3, 0);
-                legL.parent = characterGroup;
-                const legR = BABYLON.MeshBuilder.CreateCapsule("legR", { height: 0.6, radius: 0.1 }, scene);
-                legR.position.set(0.13, 0.3, 0);
-                legR.parent = characterGroup;
-                const legMat = new BABYLON.StandardMaterial("legMat", scene);
-                legMat.diffuseColor = new BABYLON.Color3(0.15, 0.2, 0.4);
-                legL.material = legMat;
-                legR.material = legMat;
+                // --- 头发（深棕色方帽）---
+                const hair = BABYLON.MeshBuilder.CreateBox("hair",
+                    { width: 0.62, height: 0.22, depth: 0.62 }, scene);
+                hair.position.set(0, 2.02, 0);
+                hair.material = legoMat("hairMat", hairColor);
+                hair.parent = characterGroup;
+                // 前额刘海
+                const bangs = BABYLON.MeshBuilder.CreateBox("bangs",
+                    { width: 0.56, height: 0.15, depth: 0.12 }, scene);
+                bangs.position.set(0, 1.95, 0.26);
+                bangs.material = hair.material;
+                bangs.parent = characterGroup;
 
-                // 设置初始位置
+                // --- 眼睛（两个黑色小点）---
+                const eyeMat = legoMat("eyeMat", LEGO_COLORS.black);
+                const eyeL = BABYLON.MeshBuilder.CreateSphere("eyeL", { diameter: 0.06 }, scene);
+                eyeL.position.set(-0.1, 1.82, 0.27);
+                eyeL.material = eyeMat;
+                eyeL.parent = characterGroup;
+                const eyeR = BABYLON.MeshBuilder.CreateSphere("eyeR", { diameter: 0.06 }, scene);
+                eyeR.position.set(0.1, 1.82, 0.27);
+                eyeR.material = eyeMat;
+                eyeR.parent = characterGroup;
+
+                // 嘴（浅红小弧/方块）
+                const mouth = BABYLON.MeshBuilder.CreateBox("mouth",
+                    { width: 0.14, height: 0.03, depth: 0.02 }, scene);
+                mouth.position.set(0, 1.7, 0.28);
+                mouth.material = legoMat("mouthMat", new BABYLON.Color3(0.5, 0.1, 0.1));
+                mouth.parent = characterGroup;
+
+                // 初始位置
                 characterGroup.position = new BABYLON.Vector3(WALK_START_X, 0, 0);
 
-                // 将腿的引用存储在 metadata 中
-                characterGroup.metadata = { legL, legR };
+                // 将腿/臂的 Group 引用存储在 metadata（用于行走动画）
+                characterGroup.metadata = {
+                    legL: legLGroup,
+                    legR: legRGroup,
+                    armL: armL,
+                    armR: armR
+                };
 
                 return characterGroup;
             }
@@ -1234,17 +1348,31 @@
                 }
             });
 
-            // ========== 虚拟摇杆（通用 PC + 移动端）==========
-            // 摇杆坐标系：屏幕上的 X/Y。
-            // 映射到世界：相机 alpha=-PI/4（看向 +X,-Z 方向），所以：
-            //   - 屏幕上向上(-Y) → 世界向 +X 和 -Z 方向
-            //   - 需要把屏幕向量旋转到世界 XZ 平面
+            // ========== 虚拟摇杆（屏幕方向 = 人物移动方向）==========
+            // 原则：屏幕上看到摇杆推的是哪个方向，人物就往屏幕上的那个方向走（人物面向也同步）
+            // 相机 alpha=-π/4、beta≈π/3.2，摄像机看向 (+X,-Z) 方向。
+            // 屏幕 X 轴 → 世界向量 cameraRight (xz 分量)
+            // 屏幕 -Y 轴 → 世界向量 cameraForwardFlat (xz 分量，y 归 0)
             const joystickBase = document.getElementById('joystickBase');
             const joystickThumb = document.getElementById('joystickThumb');
-            const JOYSTICK_RADIUS = 55; // 摇杆推动半径（像素）
+            const JOYSTICK_RADIUS = 55;
             let joystickActive = false;
             let joystickPointerId = null;
             const joystickCenter = { x: 0, y: 0 };
+
+            // 预计算相机水平投影的 forward / right 向量（仅一次，因相机角度固定）
+            // 相机从 target 指向相机位置的反向量即 forward。alpha=-PI/4 时，
+            // 相机位置 ≈ target + R*(cos(alpha)*sin(beta), cos(beta), sin(alpha)*sin(beta))。
+            // 我们要的是角色参考的"向前"（远离镜头）= -camera.forward 在 XZ 平面的投影。
+            // 直接用 alpha 推导：camera 水平投影方向单位向量：
+            //   相机朝向 target：方向向量 XZ 分量 = (-cos(alpha), -sin(alpha))
+            //   所以"角色向前"（远离镜头，即镜头看向的方向）XZ = (-cos(alpha), -sin(alpha))
+            //   角色"向右"（屏幕右侧）XZ = 垂直向量 = (-sin(alpha), cos(alpha))    [右手系 y 朝上]
+            const camAlpha = camera.alpha; // -PI/4
+            const forwardX = -Math.cos(camAlpha);
+            const forwardZ = -Math.sin(camAlpha);
+            const rightX = -Math.sin(camAlpha);
+            const rightZ = Math.cos(camAlpha);
 
             function updateJoystickCenter() {
                 const rect = joystickBase.getBoundingClientRect();
@@ -1254,6 +1382,15 @@
 
             function setJoystickThumb(dx, dy) {
                 joystickThumb.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            }
+
+            // 将屏幕向量 (sx, sy) 映射到世界 XZ 向量
+            // sx：右为正；sy：上为正（注意屏幕 Y 已反转）
+            function screenToWorldDir(sx, sy) {
+                return {
+                    x: sx * rightX + sy * forwardX,
+                    z: sx * rightZ + sy * forwardZ
+                };
             }
 
             function joystickStart(e) {
@@ -1276,26 +1413,20 @@
                 }
                 setJoystickThumb(dx, dy);
 
-                // 将屏幕方向 (dx, dy) 映射到世界 XZ 方向
-                // 相机 alpha = -PI/4，看向 +X/-Z 方向。屏幕上"上"对应世界 +X-Z 方向
                 const magnitude = Math.min(dist / JOYSTICK_RADIUS, 1);
-                // 归一化屏幕向量（屏幕 Y 反转：屏幕向上 = 世界向前）
+                if (magnitude < 0.05) {
+                    moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
+                    return;
+                }
+                // 屏幕归一化向量（屏幕上"上推"= sy > 0）
                 const sx = dx / JOYSTICK_RADIUS;
                 const sy = -dy / JOYSTICK_RADIUS;
-                // 相机偏航 45 度，做 2D 旋转
-                const cos45 = Math.cos(Math.PI / 4);
-                const sin45 = Math.sin(Math.PI / 4);
-                // 屏幕向前(sy>0) → 世界 +X/-Z；屏幕向右(sx>0) → 世界 +X/+Z
-                const worldX = sx * cos45 + sy * cos45;
-                const worldZ = sx * sin45 - sy * sin45;
-                const inputMag = Math.min(Math.sqrt(worldX * worldX + worldZ * worldZ), 1);
-                if (inputMag > 0.001) {
-                    moveInput.x = worldX / Math.max(inputMag, 0.001) * magnitude;
-                    moveInput.z = worldZ / Math.max(inputMag, 0.001) * magnitude;
-                    moveInput.magnitude = magnitude;
-                } else {
-                    moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
-                }
+                const world = screenToWorldDir(sx, sy);
+                // 归一化世界方向，再乘强度
+                const wlen = Math.sqrt(world.x * world.x + world.z * world.z) || 1;
+                moveInput.x = world.x / wlen * magnitude;
+                moveInput.z = world.z / wlen * magnitude;
+                moveInput.magnitude = magnitude;
             }
 
             function joystickEnd(e) {
