@@ -1082,7 +1082,9 @@
             let isWalking = false;    // 是否正在行走
             let walkDirection = 1;    // 行走方向：1: 向右, -1: 向左
             let atFork = false;       // 是否到达岔路口
+            let atLotteryShop = false; // 是否到达彩票店
             let selectedPath = null;  // 选择的路径：'lottery' 或 'continue'
+            let currentScene = 'street'; // 当前场景：'street' 或 'shop'
 
             // PC端：鼠标点击控制
             canvas.addEventListener('click', () => {
@@ -1129,6 +1131,219 @@
                 atFork = false;
             });
 
+            // ========== 场景切换函数 ==========
+            let shopSceneObjects = []; // 存储杂货铺场景的物体
+            let streetSceneObjects = []; // 存储街道场景的物体
+            
+            // 切换到杂货铺场景
+            function switchToShopScene() {
+                currentScene = 'shop';
+                atLotteryShop = false;
+                lotteryShopButton.style.display = 'none';
+                
+                // 隐藏街道场景物体
+                streetSceneObjects.forEach(obj => obj.setEnabled(false));
+                
+                // 创建杂货铺场景
+                createShopScene();
+                
+                // 显示彩票店界面
+                lotteryShop.style.display = 'block';
+                updateBalance();
+            }
+            
+            // 切换到街道场景
+            function switchToStreetScene() {
+                currentScene = 'street';
+                lotteryShop.style.display = 'none';
+                
+                // 销毁杂货铺场景物体
+                shopSceneObjects.forEach(obj => {
+                    if (obj.dispose) obj.dispose();
+                });
+                shopSceneObjects = [];
+                
+                // 显示街道场景物体
+                streetSceneObjects.forEach(obj => obj.setEnabled(true));
+                
+                // 重置角色位置到彩票店前
+                if (walker) {
+                    walker.position.x = LOTTERY_SHOP_X - 1;
+                }
+                
+                // 恢复行走状态
+                isWalking = false;
+            }
+            
+            // 创建杂货铺3D场景
+            function createShopScene() {
+                // 杂货铺房间
+                const roomWidth = 12;
+                const roomDepth = 10;
+                const roomHeight = 4;
+                
+                // 地板
+                const floor = BABYLON.MeshBuilder.CreateGround(
+                    "shopFloor",
+                    { width: roomWidth, height: roomDepth },
+                    scene
+                );
+                floor.position.y = 0;
+                const floorMat = new BABYLON.StandardMaterial("shopFloorMat", scene);
+                floorMat.diffuseColor = new BABYLON.Color3(0.6, 0.5, 0.4);
+                floor.material = floorMat;
+                shopSceneObjects.push(floor);
+                
+                // 墙壁
+                const wallMat = new BABYLON.StandardMaterial("shopWallMat", scene);
+                wallMat.diffuseColor = new BABYLON.Color3(0.9, 0.85, 0.75);
+                
+                // 后墙
+                const backWall = BABYLON.MeshBuilder.CreateBox(
+                    "backWall",
+                    { width: roomWidth, height: roomHeight, depth: 0.2 },
+                    scene
+                );
+                backWall.position.set(0, roomHeight / 2, -roomDepth / 2);
+                backWall.material = wallMat;
+                shopSceneObjects.push(backWall);
+                
+                // 左墙
+                const leftWall = BABYLON.MeshBuilder.CreateBox(
+                    "leftWall",
+                    { width: 0.2, height: roomHeight, depth: roomDepth },
+                    scene
+                );
+                leftWall.position.set(-roomWidth / 2, roomHeight / 2, 0);
+                leftWall.material = wallMat;
+                shopSceneObjects.push(leftWall);
+                
+                // 右墙
+                const rightWall = BABYLON.MeshBuilder.CreateBox(
+                    "rightWall",
+                    { width: 0.2, height: roomHeight, depth: roomDepth },
+                    scene
+                );
+                rightWall.position.set(roomWidth / 2, roomHeight / 2, 0);
+                rightWall.material = wallMat;
+                shopSceneObjects.push(rightWall);
+                
+                // 天花板
+                const ceiling = BABYLON.MeshBuilder.CreateBox(
+                    "ceiling",
+                    { width: roomWidth, height: 0.2, depth: roomDepth },
+                    scene
+                );
+                ceiling.position.set(0, roomHeight, 0);
+                ceiling.material = wallMat;
+                shopSceneObjects.push(ceiling);
+                
+                // 创建刮刮乐展示柜
+                createScratchCardDisplay(-3, 0, -roomDepth / 2 + 1, 5, 1000);
+                createScratchCardDisplay(0, 0, -roomDepth / 2 + 1, 10, 2000);
+                createScratchCardDisplay(3, 0, -roomDepth / 2 + 1, 20, 5000);
+                
+                // 杂货铺灯光
+                const shopLight = new BABYLON.HemisphericLight(
+                    "shopLight",
+                    new BABYLON.Vector3(0, 1, 0),
+                    scene
+                );
+                shopLight.intensity = 0.9;
+                shopLight.groundColor = new BABYLON.Color3(0.3, 0.3, 0.35);
+                shopSceneObjects.push(shopLight);
+                
+                // 调整相机位置以查看杂货铺
+                camera.target = new BABYLON.Vector3(0, 1.5, 0);
+                camera.position = new BABYLON.Vector3(0, 3, 6);
+            }
+            
+            // 创建刮刮乐展示柜
+            function createScratchCardDisplay(x, y, z, price, maxPrize) {
+                // 柜台
+                const counter = BABYLON.MeshBuilder.CreateBox(
+                    "counter" + price,
+                    { width: 2.5, height: 1, depth: 1 },
+                    scene
+                );
+                counter.position.set(x, y + 0.5, z);
+                const counterMat = new BABYLON.StandardMaterial("counterMat" + price, scene);
+                counterMat.diffuseColor = new BABYLON.Color3(0.7, 0.6, 0.5);
+                counter.material = counterMat;
+                shopSceneObjects.push(counter);
+                
+                // 柜台顶板
+                const counterTop = BABYLON.MeshBuilder.CreateBox(
+                    "counterTop" + price,
+                    { width: 2.8, height: 0.1, depth: 1.2 },
+                    scene
+                );
+                counterTop.position.set(x, y + 1.05, z);
+                const topMat = new BABYLON.StandardMaterial("counterTopMat" + price, scene);
+                topMat.diffuseColor = new BABYLON.Color3(0.5, 0.4, 0.3);
+                counterTop.material = topMat;
+                shopSceneObjects.push(counterTop);
+                
+                // 刮刮乐卡片展示
+                const cardCount = 5;
+                for (let i = 0; i < cardCount; i++) {
+                    const card = BABYLON.MeshBuilder.CreateBox(
+                        "card" + price + "_" + i,
+                        { width: 0.4, height: 0.5, depth: 0.05 },
+                        scene
+                    );
+                    card.position.set(x - 0.6 + i * 0.3, y + 1.2, z);
+                    
+                    const cardMat = new BABYLON.StandardMaterial("cardMat" + price + "_" + i, scene);
+                    if (price === 5) {
+                        cardMat.diffuseColor = new BABYLON.Color3(1, 0.3, 0.3);
+                    } else if (price === 10) {
+                        cardMat.diffuseColor = new BABYLON.Color3(0.3, 0.5, 1);
+                    } else {
+                        cardMat.diffuseColor = new BABYLON.Color3(1, 0.8, 0.2);
+                    }
+                    cardMat.emissiveColor = cardMat.diffuseColor.scale(0.2);
+                    card.material = cardMat;
+                    shopSceneObjects.push(card);
+                }
+                
+                // 价格标签
+                const priceLabel = BABYLON.MeshBuilder.CreatePlane(
+                    "priceLabel" + price,
+                    { width: 1, height: 0.4 },
+                    scene
+                );
+                priceLabel.position.set(x, y + 1.7, z);
+                priceLabel.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+                
+                const labelMat = new BABYLON.StandardMaterial("labelMat" + price, scene);
+                labelMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+                labelMat.emissiveColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+                priceLabel.material = labelMat;
+                shopSceneObjects.push(priceLabel);
+            }
+            
+            // 初始化街道场景物体列表
+            function initStreetSceneObjects() {
+                // 收集所有街道场景的物体（建筑、道路等）
+                scene.meshes.forEach(mesh => {
+                    if (mesh.name !== "shopFloor" && 
+                        mesh.name !== "backWall" && 
+                        mesh.name !== "leftWall" && 
+                        mesh.name !== "rightWall" && 
+                        mesh.name !== "ceiling" &&
+                        !mesh.name.startsWith("counter") &&
+                        !mesh.name.startsWith("counterTop") &&
+                        !mesh.name.startsWith("card") &&
+                        !mesh.name.startsWith("priceLabel")) {
+                        streetSceneObjects.push(mesh);
+                    }
+                });
+            }
+            
+            // 在场景创建完成后初始化
+            setTimeout(initStreetSceneObjects, 1000);
+
             // ========== 彩票店控制 ==========
             const lotteryShopButton = document.getElementById('lotteryShopButton');
             const lotteryShop = document.getElementById('lotteryShop');
@@ -1149,16 +1364,14 @@
                 balanceDisplay.textContent = balance;
             }
 
-            // 打开彩票店
+            // 打开彩票店（切换到杂货铺场景）
             lotteryShopButton.addEventListener('click', () => {
-                lotteryShop.style.display = 'block';
-                isWalking = false;
-                updateBalance();
+                switchToShopScene();
             });
 
-            // 关闭彩票店
+            // 关闭彩票店（返回街道场景）
             closeShop.addEventListener('click', () => {
-                lotteryShop.style.display = 'none';
+                switchToStreetScene();
             });
 
             // 刮刮乐奖项配置（真实刮刮乐玩法）
@@ -1441,9 +1654,18 @@
                     }
                 });
 
-                // 移动角色
-                if (isWalking) {
+                // 移动角色（只在街道场景中移动）
+                if (isWalking && currentScene === 'street') {
                     const newX = walker.position.x + walkDirection * WALK_SPEED;
+                    
+                    // 检测是否到达彩票店
+                    const distanceToShop = Math.abs(walker.position.x - LOTTERY_SHOP_X);
+                    if (distanceToShop < 0.5 && walkDirection > 0) {
+                        // 到达彩票店，停止并显示进入按钮
+                        atLotteryShop = true;
+                        isWalking = false;
+                        lotteryShopButton.style.display = 'block';
+                    }
                     
                     // 检测是否到达岔路口
                     const distanceToFork = Math.abs(walker.position.x - FORK_X);
@@ -1481,17 +1703,9 @@
                 // 相机跟随（横向平移）
                 camera.target.x = walker.position.x;
 
-                // 检测是否靠近彩票店
-                const distanceToShop = Math.abs(walker.position.x - LOTTERY_SHOP_X);
-                if (distanceToShop < TRIGGER_DISTANCE) {
-                    lotteryShopButton.style.display = 'block';
-                } else {
-                    lotteryShopButton.style.display = 'none';
-                }
-
                 // 检测是否靠近抽奖触发点（只有选择了抽奖路径才显示按钮）
                 const distanceToLottery = Math.abs(walker.position.x - LOTTERY_X);
-                if (distanceToLottery < TRIGGER_DISTANCE && selectedPath === 'lottery') {
+                if (distanceToLottery < TRIGGER_DISTANCE && selectedPath === 'lottery' && currentScene === 'street') {
                     lotteryButton.style.display = 'block';
                 } else {
                     lotteryButton.style.display = 'none';
