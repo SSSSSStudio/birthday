@@ -262,6 +262,206 @@
         .path-continue {
             background: linear-gradient(135deg, #3498DB, #2ECC71);
         }
+
+        /* 彩票店按钮 */
+        #lotteryShopButton {
+            display: none;
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            font-size: 1.5em;
+            background: linear-gradient(135deg, #9B59B6, #8E44AD);
+            border: none;
+            border-radius: 50px;
+            color: #FFF;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4);
+            animation: pulse 1.5s ease-in-out infinite;
+            z-index: 100;
+        }
+
+        /* 彩票店界面 */
+        #lotteryShop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 300;
+            overflow-y: auto;
+        }
+
+        .shop-container {
+            background: linear-gradient(135deg, #2C3E50, #34495E);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .shop-title {
+            color: #FFD700;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .balance-display {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 30px;
+            font-size: 1.5em;
+            color: #FFD700;
+        }
+
+        .scratch-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .scratch-card-option {
+            background: linear-gradient(135deg, #E74C3C, #C0392B);
+            border: none;
+            border-radius: 15px;
+            padding: 20px;
+            color: #FFF;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            text-align: left;
+        }
+
+        .scratch-card-option:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+        }
+
+        .card-title {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+
+        .card-price {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card-prize {
+            font-size: 1em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* 刮刮乐界面 */
+        #scratchCard {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 400;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .scratch-container {
+            background: linear-gradient(135deg, #2C3E50, #34495E);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+            max-width: 90%;
+        }
+
+        .scratch-canvas-container {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            margin: 20px auto;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #FFF;
+        }
+
+        .scratch-result {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            font-weight: bold;
+            color: #E74C3C;
+            background: linear-gradient(135deg, #FFF5E6, #FFE4CC);
+        }
+
+        .scratch-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .scratch-message {
+            color: #FFD700;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .close-shop-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: #E74C3C;
+            border: none;
+            border-radius: 50%;
+            color: #FFF;
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .close-shop-button:hover {
+            background: #C0392B;
+        }
+
+        .insufficient-funds {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(231, 76, 60, 0.95);
+            color: #FFF;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            z-index: 500;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -276,8 +476,56 @@
         </div>
     </div>
     
+    <!-- 彩票店按钮 -->
+    <button id="lotteryShopButton">🏪 进入彩票店</button>
+    
     <!-- 抽奖按钮 -->
     <button id="lotteryButton">🎰 抽奖</button>
+    
+    <!-- 彩票店界面 -->
+    <div id="lotteryShop">
+        <div class="shop-container">
+            <button class="close-shop-button" id="closeShop">×</button>
+            <h2 class="shop-title">🏪 幸运彩票店</h2>
+            <div class="balance-display">
+                余额: <span id="balance">100</span> 元
+            </div>
+            <div class="scratch-cards">
+                <button class="scratch-card-option" data-price="5" data-max-prize="1000">
+                    <div class="card-title">🎫 基础刮刮乐</div>
+                    <div class="card-price">价格: 5元</div>
+                    <div class="card-prize">大奖: 1000元</div>
+                </button>
+                <button class="scratch-card-option" data-price="10" data-max-prize="2000">
+                    <div class="card-title">🎫 进阶刮刮乐</div>
+                    <div class="card-price">价格: 10元</div>
+                    <div class="card-prize">大奖: 2000元</div>
+                </button>
+                <button class="scratch-card-option" data-price="20" data-max-prize="5000">
+                    <div class="card-title">🎫 豪华刮刮乐</div>
+                    <div class="card-price">价格: 20元</div>
+                    <div class="card-prize">大奖: 5000元</div>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 刮刮乐界面 -->
+    <div id="scratchCard">
+        <div class="scratch-container">
+            <button class="close-shop-button" id="closeScratch">×</button>
+            <div class="scratch-message">刮开涂层查看结果</div>
+            <div class="scratch-canvas-container">
+                <div class="scratch-result" id="scratchResult">???</div>
+                <canvas class="scratch-overlay" id="scratchCanvas" width="300" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 余额不足提示 -->
+    <div class="insufficient-funds" id="insufficientFunds">
+        余额不足！
+    </div>
     
     <!-- 老虎机界面 -->
     <div id="slotMachine">
@@ -468,6 +716,66 @@
                 createStreetLamp(x, STREET_WIDTH / 2 + 0.3);
                 createStreetLamp(x, -(STREET_WIDTH / 2 + 0.3));
             }
+
+            // ========== 彩票店建筑 ==========
+            const LOTTERY_SHOP_X = -STREET_LENGTH / 4;  // 彩票店位置
+            const shopBuilding = BABYLON.MeshBuilder.CreateBox(
+                "shopBuilding",
+                { width: 4, height: 3, depth: 3 },
+                scene
+            );
+            shopBuilding.position.set(LOTTERY_SHOP_X, 1.5, -(STREET_WIDTH / 2 + SIDEWALK_WIDTH + 1.5));
+            const shopMat = new BABYLON.StandardMaterial("shopMat", scene);
+            shopMat.diffuseColor = new BABYLON.Color3(0.9, 0.7, 0.5);
+            shopMat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+            shopBuilding.material = shopMat;
+            ditheredMeshes.push(shopBuilding);
+
+            // 彩票店招牌
+            const shopSign = BABYLON.MeshBuilder.CreateBox(
+                "shopSign",
+                { width: 2.5, height: 0.8, depth: 0.1 },
+                scene
+            );
+            shopSign.position.set(LOTTERY_SHOP_X, 3.2, -(STREET_WIDTH / 2 + SIDEWALK_WIDTH + 0.1));
+            const signMat = new BABYLON.StandardMaterial("signMat", scene);
+            signMat.diffuseColor = new BABYLON.Color3(0.5, 0.3, 0.7);
+            signMat.emissiveColor = new BABYLON.Color3(0.2, 0.1, 0.3);
+            signMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+            shopSign.material = signMat;
+            ditheredMeshes.push(shopSign);
+
+            // 彩票店触发点（紫色Cube）
+            const lotteryShopTrigger = BABYLON.MeshBuilder.CreateBox(
+                "lotteryShopTrigger",
+                { size: 0.6 },
+                scene
+            );
+            lotteryShopTrigger.position.set(LOTTERY_SHOP_X, 0.3, 0);
+            const shopTriggerMat = new BABYLON.StandardMaterial("shopTriggerMat", scene);
+            shopTriggerMat.diffuseColor = new BABYLON.Color3(0.5, 0.3, 0.7);
+            shopTriggerMat.emissiveColor = new BABYLON.Color3(0.2, 0.1, 0.3);
+            shopTriggerMat.specularColor = new BABYLON.Color3(0.7, 0.5, 0.9);
+            lotteryShopTrigger.material = shopTriggerMat;
+
+            // 彩票店触发点光源 + 漂浮旋转动画
+            const shopLight = new BABYLON.PointLight(
+                "shopLight",
+                new BABYLON.Vector3(LOTTERY_SHOP_X, 1.2, 0),
+                scene
+            );
+            shopLight.diffuse = new BABYLON.Color3(0.5, 0.3, 0.7);
+            shopLight.intensity = 1.0;
+            shopLight.range = 4;
+
+            let shopTime = 0;
+            scene.registerBeforeRender(() => {
+                shopTime += 0.02;
+                lotteryShopTrigger.rotation.y += 0.03;
+                lotteryShopTrigger.rotation.x += 0.01;
+                lotteryShopTrigger.position.y = 0.5 + Math.sin(shopTime * 2.5) * 0.12;
+                shopLight.intensity = 0.8 + Math.sin(shopTime * 4) * 0.3;
+            });
 
             // ========== 标记点（Cube） ==========
             const marker = BABYLON.MeshBuilder.CreateBox(
@@ -687,6 +995,232 @@
                 atFork = false;
             });
 
+            // ========== 彩票店控制 ==========
+            const lotteryShopButton = document.getElementById('lotteryShopButton');
+            const lotteryShop = document.getElementById('lotteryShop');
+            const closeShop = document.getElementById('closeShop');
+            const balanceDisplay = document.getElementById('balance');
+            const scratchCardOptions = document.querySelectorAll('.scratch-card-option');
+            const scratchCard = document.getElementById('scratchCard');
+            const closeScratch = document.getElementById('closeScratch');
+            const scratchResult = document.getElementById('scratchResult');
+            const scratchCanvas = document.getElementById('scratchCanvas');
+            const insufficientFunds = document.getElementById('insufficientFunds');
+
+            // 余额系统
+            let balance = 100;
+
+            // 更新余额显示
+            function updateBalance() {
+                balanceDisplay.textContent = balance;
+            }
+
+            // 打开彩票店
+            lotteryShopButton.addEventListener('click', () => {
+                lotteryShop.style.display = 'block';
+                isWalking = false;
+                updateBalance();
+            });
+
+            // 关闭彩票店
+            closeShop.addEventListener('click', () => {
+                lotteryShop.style.display = 'none';
+            });
+
+            // 刮刮乐奖项配置
+            const scratchCardPrizes = {
+                5: {
+                    prizes: [
+                        { amount: 1000, probability: 0.005 },
+                        { amount: 50, probability: 0.05 },
+                        { amount: 10, probability: 0.15 },
+                        { amount: 5, probability: 0.395 }
+                    ],
+                    totalWinProbability: 0.6
+                },
+                10: {
+                    prizes: [
+                        { amount: 2000, probability: 0.004 },
+                        { amount: 100, probability: 0.04 },
+                        { amount: 20, probability: 0.156 },
+                        { amount: 10, probability: 0.4 }
+                    ],
+                    totalWinProbability: 0.6
+                },
+                20: {
+                    prizes: [
+                        { amount: 5000, probability: 0.003 },
+                        { amount: 200, probability: 0.035 },
+                        { amount: 50, probability: 0.162 },
+                        { amount: 20, probability: 0.4 }
+                    ],
+                    totalWinProbability: 0.6
+                }
+            };
+
+            // 计算刮刮乐结果
+            function calculatePrize(price) {
+                const config = scratchCardPrizes[price];
+                const random = Math.random();
+                
+                if (random < config.totalWinProbability) {
+                    // 中奖，根据概率计算具体奖项
+                    let cumulativeProbability = 0;
+                    for (const prize of config.prizes) {
+                        cumulativeProbability += prize.probability;
+                        if (random < cumulativeProbability) {
+                            return prize.amount;
+                        }
+                    }
+                }
+                
+                return 0; // 未中奖
+            }
+
+            // 初始化刮刮乐画布
+            function initScratchCanvas() {
+                const ctx = scratchCanvas.getContext('2d');
+                
+                // 绘制灰色涂层
+                ctx.fillStyle = '#CCCCCC';
+                ctx.fillRect(0, 0, scratchCanvas.width, scratchCanvas.height);
+                
+                // 添加纹理效果
+                for (let i = 0; i < 1000; i++) {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.3})`;
+                    ctx.beginPath();
+                    ctx.arc(
+                        Math.random() * scratchCanvas.width,
+                        Math.random() * scratchCanvas.height,
+                        Math.random() * 2,
+                        0,
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+                
+                // 添加"刮开"文字
+                ctx.fillStyle = '#666666';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('刮开涂层', scratchCanvas.width / 2, scratchCanvas.height / 2);
+            }
+
+            // 刮刮乐触摸/鼠标事件
+            let isScratching = false;
+
+            function scratch(x, y) {
+                const ctx = scratchCanvas.getContext('2d');
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath();
+                ctx.arc(x, y, 20, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 检查刮开比例
+                const imageData = ctx.getImageData(0, 0, scratchCanvas.width, scratchCanvas.height);
+                let transparentPixels = 0;
+                for (let i = 3; i < imageData.data.length; i += 4) {
+                    if (imageData.data[i] === 0) {
+                        transparentPixels++;
+                    }
+                }
+                const scratchPercentage = transparentPixels / (imageData.data.length / 4);
+                
+                // 如果刮开超过50%，自动显示全部结果
+                if (scratchPercentage > 0.5) {
+                    scratchCanvas.style.display = 'none';
+                }
+            }
+
+            // 鼠标事件
+            scratchCanvas.addEventListener('mousedown', (e) => {
+                isScratching = true;
+                const rect = scratchCanvas.getBoundingClientRect();
+                scratch(e.clientX - rect.left, e.clientY - rect.top);
+            });
+
+            scratchCanvas.addEventListener('mousemove', (e) => {
+                if (isScratching) {
+                    const rect = scratchCanvas.getBoundingClientRect();
+                    scratch(e.clientX - rect.left, e.clientY - rect.top);
+                }
+            });
+
+            scratchCanvas.addEventListener('mouseup', () => {
+                isScratching = false;
+            });
+
+            scratchCanvas.addEventListener('mouseleave', () => {
+                isScratching = false;
+            });
+
+            // 触摸事件（手机）
+            scratchCanvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                isScratching = true;
+                const rect = scratchCanvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                scratch(touch.clientX - rect.left, touch.clientY - rect.top);
+            });
+
+            scratchCanvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (isScratching) {
+                    const rect = scratchCanvas.getBoundingClientRect();
+                    const touch = e.touches[0];
+                    scratch(touch.clientX - rect.left, touch.clientY - rect.top);
+                }
+            });
+
+            scratchCanvas.addEventListener('touchend', () => {
+                isScratching = false;
+            });
+
+            // 关闭刮刮乐界面
+            closeScratch.addEventListener('click', () => {
+                scratchCard.style.display = 'none';
+                scratchCanvas.style.display = 'block';
+            });
+
+            // 点击刮刮乐选项
+            scratchCardOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    const price = parseInt(option.dataset.price);
+                    
+                    // 检查余额
+                    if (balance < price) {
+                        insufficientFunds.style.display = 'block';
+                        setTimeout(() => {
+                            insufficientFunds.style.display = 'none';
+                        }, 2000);
+                        return;
+                    }
+                    
+                    // 扣除金额
+                    balance -= price;
+                    updateBalance();
+                    
+                    // 计算结果
+                    const prize = calculatePrize(price);
+                    
+                    // 显示刮刮乐界面
+                    scratchCard.style.display = 'flex';
+                    scratchResult.textContent = prize > 0 ? `+${prize}元` : '未中奖';
+                    scratchResult.style.color = prize > 0 ? '#E74C3C' : '#95A5A6';
+                    
+                    // 初始化刮刮乐画布
+                    scratchCanvas.style.display = 'block';
+                    initScratchCanvas();
+                    
+                    // 如果中奖，添加到余额
+                    if (prize > 0) {
+                        balance += prize;
+                        updateBalance();
+                    }
+                });
+            });
+
             // ========== 抽奖按钮控制 ==========
             const lotteryButton = document.getElementById('lotteryButton');
             const slotMachine = document.getElementById('slotMachine');
@@ -823,6 +1357,14 @@
 
                 // 相机跟随（横向平移）
                 camera.target.x = walker.position.x;
+
+                // 检测是否靠近彩票店
+                const distanceToShop = Math.abs(walker.position.x - LOTTERY_SHOP_X);
+                if (distanceToShop < TRIGGER_DISTANCE) {
+                    lotteryShopButton.style.display = 'block';
+                } else {
+                    lotteryShopButton.style.display = 'none';
+                }
 
                 // 检测是否靠近抽奖触发点（只有选择了抽奖路径才显示按钮）
                 const distanceToLottery = Math.abs(walker.position.x - LOTTERY_X);
