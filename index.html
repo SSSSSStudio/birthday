@@ -462,6 +462,142 @@
             z-index: 500;
             display: none;
         }
+
+        .scratch-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 20px auto;
+            max-width: 350px;
+        }
+
+        .scratch-cell {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #CCCCCC, #AAAAAA);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .scratch-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .scratch-cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+            pointer-events: none;
+        }
+
+        .scratch-cell.scratched {
+            background: linear-gradient(135deg, #FFF5E6, #FFE4CC);
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .scratch-cell.win {
+            animation: winPulse 0.5s ease-in-out;
+        }
+
+        @keyframes winPulse {
+            0%, 100% { transform: scale(1.1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .scratch-total {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 1.5em;
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .shop-container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .shop-title {
+                font-size: 1.5em;
+            }
+
+            .balance-display {
+                font-size: 1.2em;
+                padding: 10px;
+            }
+
+            .scratch-card-option {
+                padding: 15px;
+            }
+
+            .card-title {
+                font-size: 1.1em;
+            }
+
+            .card-price {
+                font-size: 1em;
+            }
+
+            .card-prize {
+                font-size: 0.9em;
+            }
+
+            .scratch-grid {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 5px;
+                max-width: 300px;
+            }
+
+            .scratch-cell {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5em;
+            }
+
+            .scratch-total {
+                font-size: 1.2em;
+                padding: 10px;
+            }
+
+            .scratch-message {
+                font-size: 1.2em;
+            }
+
+            #pathSelector {
+                bottom: 10%;
+            }
+
+            .path-button {
+                padding: 15px 30px;
+                font-size: 1.1em;
+            }
+
+            #lotteryButton,
+            #lotteryShopButton {
+                padding: 12px 30px;
+                font-size: 1.2em;
+                bottom: 15%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -514,11 +650,9 @@
     <div id="scratchCard">
         <div class="scratch-container">
             <button class="close-shop-button" id="closeScratch">×</button>
-            <div class="scratch-message">刮开涂层查看结果</div>
-            <div class="scratch-canvas-container">
-                <div class="scratch-result" id="scratchResult">???</div>
-                <canvas class="scratch-overlay" id="scratchCanvas" width="300" height="200"></canvas>
-            </div>
+            <div class="scratch-message">刮开格子查看结果</div>
+            <div class="scratch-grid" id="scratchGrid"></div>
+            <div class="scratch-total" id="scratchTotal">总奖金: 0元</div>
         </div>
     </div>
     
@@ -1027,160 +1161,142 @@
                 lotteryShop.style.display = 'none';
             });
 
-            // 刮刮乐奖项配置
+            // 刮刮乐奖项配置（真实刮刮乐玩法）
             const scratchCardPrizes = {
                 5: {
+                    gridCount: 15,  // 15个格子
+                    winCount: 9,    // 9个中奖格子（60%）
                     prizes: [
-                        { amount: 1000, probability: 0.005 },
-                        { amount: 50, probability: 0.05 },
-                        { amount: 10, probability: 0.15 },
-                        { amount: 5, probability: 0.395 }
+                        { symbol: '💎', amount: 1000, count: 1 },
+                        { symbol: '🌟', amount: 50, count: 2 },
+                        { symbol: '⭐', amount: 10, count: 3 },
+                        { symbol: '✨', amount: 5, count: 3 }
                     ],
-                    totalWinProbability: 0.6
+                    loseSymbol: '❌'
                 },
                 10: {
+                    gridCount: 20,  // 20个格子
+                    winCount: 12,   // 12个中奖格子（60%）
                     prizes: [
-                        { amount: 2000, probability: 0.004 },
-                        { amount: 100, probability: 0.04 },
-                        { amount: 20, probability: 0.156 },
-                        { amount: 10, probability: 0.4 }
+                        { symbol: '💎', amount: 2000, count: 1 },
+                        { symbol: '🌟', amount: 100, count: 2 },
+                        { symbol: '⭐', amount: 20, count: 4 },
+                        { symbol: '✨', amount: 10, count: 5 }
                     ],
-                    totalWinProbability: 0.6
+                    loseSymbol: '❌'
                 },
                 20: {
+                    gridCount: 25,  // 25个格子
+                    winCount: 15,   // 15个中奖格子（60%）
                     prizes: [
-                        { amount: 5000, probability: 0.003 },
-                        { amount: 200, probability: 0.035 },
-                        { amount: 50, probability: 0.162 },
-                        { amount: 20, probability: 0.4 }
+                        { symbol: '💎', amount: 5000, count: 1 },
+                        { symbol: '🌟', amount: 200, count: 2 },
+                        { symbol: '⭐', amount: 50, count: 5 },
+                        { symbol: '✨', amount: 20, count: 7 }
                     ],
-                    totalWinProbability: 0.6
+                    loseSymbol: '❌'
                 }
             };
 
-            // 计算刮刮乐结果
-            function calculatePrize(price) {
+            // 生成刮刮乐格子
+            function generateScratchGrid(price) {
                 const config = scratchCardPrizes[price];
-                const random = Math.random();
+                const grid = [];
                 
-                if (random < config.totalWinProbability) {
-                    // 中奖，根据概率计算具体奖项
-                    let cumulativeProbability = 0;
-                    for (const prize of config.prizes) {
-                        cumulativeProbability += prize.probability;
-                        if (random < cumulativeProbability) {
-                            return prize.amount;
+                // 添加中奖格子
+                for (const prize of config.prizes) {
+                    for (let i = 0; i < prize.count; i++) {
+                        grid.push({
+                            symbol: prize.symbol,
+                            amount: prize.amount,
+                            isWin: true,
+                            scratched: false
+                        });
+                    }
+                }
+                
+                // 添加未中奖格子
+                while (grid.length < config.gridCount) {
+                    grid.push({
+                        symbol: config.loseSymbol,
+                        amount: 0,
+                        isWin: false,
+                        scratched: false
+                    });
+                }
+                
+                // 随机打乱格子顺序
+                for (let i = grid.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [grid[i], grid[j]] = [grid[j], grid[i]];
+                }
+                
+                return grid;
+            }
+
+            // 当前刮刮乐状态
+            let currentScratchGrid = [];
+            let currentScratchPrice = 0;
+            let totalPrize = 0;
+
+            // 创建刮刮乐格子
+            function createScratchGrid(grid) {
+                const gridContainer = document.getElementById('scratchGrid');
+                gridContainer.innerHTML = '';
+                totalPrize = 0;
+                document.getElementById('scratchTotal').textContent = '总奖金: 0元';
+                
+                grid.forEach((cell, index) => {
+                    const cellElement = document.createElement('div');
+                    cellElement.className = 'scratch-cell';
+                    cellElement.dataset.index = index;
+                    cellElement.textContent = '?';
+                    
+                    // 点击刮开格子
+                    cellElement.addEventListener('click', () => {
+                        if (cellElement.classList.contains('scratched')) return;
+                        
+                        cellElement.classList.add('scratched');
+                        cellElement.textContent = cell.symbol;
+                        
+                        if (cell.isWin) {
+                            cellElement.classList.add('win');
+                            totalPrize += cell.amount;
+                            document.getElementById('scratchTotal').textContent = `总奖金: ${totalPrize}元`;
                         }
-                    }
-                }
-                
-                return 0; // 未中奖
+                        
+                        grid[index].scratched = true;
+                    });
+                    
+                    // 触摸事件（手机）
+                    cellElement.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        if (cellElement.classList.contains('scratched')) return;
+                        
+                        cellElement.classList.add('scratched');
+                        cellElement.textContent = cell.symbol;
+                        
+                        if (cell.isWin) {
+                            cellElement.classList.add('win');
+                            totalPrize += cell.amount;
+                            document.getElementById('scratchTotal').textContent = `总奖金: ${totalPrize}元`;
+                        }
+                        
+                        grid[index].scratched = true;
+                    });
+                    
+                    gridContainer.appendChild(cellElement);
+                });
             }
-
-            // 初始化刮刮乐画布
-            function initScratchCanvas() {
-                const ctx = scratchCanvas.getContext('2d');
-                
-                // 绘制灰色涂层
-                ctx.fillStyle = '#CCCCCC';
-                ctx.fillRect(0, 0, scratchCanvas.width, scratchCanvas.height);
-                
-                // 添加纹理效果
-                for (let i = 0; i < 1000; i++) {
-                    ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.3})`;
-                    ctx.beginPath();
-                    ctx.arc(
-                        Math.random() * scratchCanvas.width,
-                        Math.random() * scratchCanvas.height,
-                        Math.random() * 2,
-                        0,
-                        Math.PI * 2
-                    );
-                    ctx.fill();
-                }
-                
-                // 添加"刮开"文字
-                ctx.fillStyle = '#666666';
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('刮开涂层', scratchCanvas.width / 2, scratchCanvas.height / 2);
-            }
-
-            // 刮刮乐触摸/鼠标事件
-            let isScratching = false;
-
-            function scratch(x, y) {
-                const ctx = scratchCanvas.getContext('2d');
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.beginPath();
-                ctx.arc(x, y, 20, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 检查刮开比例
-                const imageData = ctx.getImageData(0, 0, scratchCanvas.width, scratchCanvas.height);
-                let transparentPixels = 0;
-                for (let i = 3; i < imageData.data.length; i += 4) {
-                    if (imageData.data[i] === 0) {
-                        transparentPixels++;
-                    }
-                }
-                const scratchPercentage = transparentPixels / (imageData.data.length / 4);
-                
-                // 如果刮开超过50%，自动显示全部结果
-                if (scratchPercentage > 0.5) {
-                    scratchCanvas.style.display = 'none';
-                }
-            }
-
-            // 鼠标事件
-            scratchCanvas.addEventListener('mousedown', (e) => {
-                isScratching = true;
-                const rect = scratchCanvas.getBoundingClientRect();
-                scratch(e.clientX - rect.left, e.clientY - rect.top);
-            });
-
-            scratchCanvas.addEventListener('mousemove', (e) => {
-                if (isScratching) {
-                    const rect = scratchCanvas.getBoundingClientRect();
-                    scratch(e.clientX - rect.left, e.clientY - rect.top);
-                }
-            });
-
-            scratchCanvas.addEventListener('mouseup', () => {
-                isScratching = false;
-            });
-
-            scratchCanvas.addEventListener('mouseleave', () => {
-                isScratching = false;
-            });
-
-            // 触摸事件（手机）
-            scratchCanvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                isScratching = true;
-                const rect = scratchCanvas.getBoundingClientRect();
-                const touch = e.touches[0];
-                scratch(touch.clientX - rect.left, touch.clientY - rect.top);
-            });
-
-            scratchCanvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                if (isScratching) {
-                    const rect = scratchCanvas.getBoundingClientRect();
-                    const touch = e.touches[0];
-                    scratch(touch.clientX - rect.left, touch.clientY - rect.top);
-                }
-            });
-
-            scratchCanvas.addEventListener('touchend', () => {
-                isScratching = false;
-            });
 
             // 关闭刮刮乐界面
             closeScratch.addEventListener('click', () => {
+                // 如果有中奖，添加到余额
+                if (totalPrize > 0) {
+                    balance += totalPrize;
+                    updateBalance();
+                }
                 scratchCard.style.display = 'none';
-                scratchCanvas.style.display = 'block';
             });
 
             // 点击刮刮乐选项
@@ -1201,23 +1317,13 @@
                     balance -= price;
                     updateBalance();
                     
-                    // 计算结果
-                    const prize = calculatePrize(price);
+                    // 生成刮刮乐格子
+                    currentScratchGrid = generateScratchGrid(price);
+                    currentScratchPrice = price;
                     
                     // 显示刮刮乐界面
                     scratchCard.style.display = 'flex';
-                    scratchResult.textContent = prize > 0 ? `+${prize}元` : '未中奖';
-                    scratchResult.style.color = prize > 0 ? '#E74C3C' : '#95A5A6';
-                    
-                    // 初始化刮刮乐画布
-                    scratchCanvas.style.display = 'block';
-                    initScratchCanvas();
-                    
-                    // 如果中奖，添加到余额
-                    if (prize > 0) {
-                        balance += prize;
-                        updateBalance();
-                    }
+                    createScratchGrid(currentScratchGrid);
                 });
             });
 
