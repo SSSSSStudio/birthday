@@ -224,6 +224,120 @@
             }
         }
 
+        /* 敲门过渡动画 */
+        #doorOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            z-index: 800;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        #doorOverlay.visible {
+            display: flex;
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .door-frame {
+            width: 240px;
+            height: 340px;
+            background: linear-gradient(180deg, #8B4513, #654321);
+            border: 6px solid #3d2612;
+            border-radius: 6px 6px 0 0;
+            position: relative;
+            box-shadow: 0 0 40px rgba(255, 180, 80, 0.3);
+            overflow: hidden;
+        }
+        .door-panel {
+            position: absolute;
+            left: 10%;
+            top: 8%;
+            width: 80%;
+            height: 38%;
+            background: rgba(0,0,0,0.2);
+            border: 3px solid #3d2612;
+            border-radius: 4px;
+        }
+        .door-panel.bottom {
+            top: 54%;
+        }
+        .door-knob {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            width: 18px;
+            height: 18px;
+            background: #FFD700;
+            border-radius: 50%;
+            border: 2px solid #B8860B;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+        }
+        .door-number {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #FFD700;
+            font-size: 1.8em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+        }
+        /* 敲门手势动画 */
+        .door-hand {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 4em;
+            animation: knock 0.5s ease-in-out infinite;
+            z-index: 2;
+        }
+        @keyframes knock {
+            0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+            25% { transform: translateX(-50%) translateY(-10px) rotate(-10deg); }
+            50% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+            75% { transform: translateX(-50%) translateY(-10px) rotate(10deg); }
+        }
+        .door-text {
+            margin-top: 30px;
+            color: #FFD700;
+            font-size: 1.4em;
+            letter-spacing: 0.3em;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+        /* 开门：门朝内旋转打开 */
+        .door-frame.opening {
+            animation: doorOpen 0.9s ease-in forwards;
+            transform-origin: left center;
+        }
+        @keyframes doorOpen {
+            0%   { transform: perspective(800px) rotateY(0deg); }
+            100% { transform: perspective(800px) rotateY(-85deg); opacity: 0.3; }
+        }
+        /* 淡出到白：开门后用白光覆盖整屏 */
+        #doorFlash {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.9) 50%, transparent 100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #doorFlash.flash {
+            animation: flashWhite 0.6s ease-out forwards;
+        }
+        @keyframes flashWhite {
+            0%   { opacity: 0; }
+            60%  { opacity: 1; }
+            100% { opacity: 1; }
+        }
+
         /* 虚拟摇杆（操纵圆盘） */
         #joystickBase {
             position: fixed;
@@ -617,8 +731,21 @@
         <div id="joystickThumb"></div>
     </div>
 
+    <!-- 敲门过渡动画 -->
+    <div id="doorOverlay">
+        <div class="door-frame" id="doorFrame">
+            <div class="door-number">幸运</div>
+            <div class="door-panel"></div>
+            <div class="door-panel bottom"></div>
+            <div class="door-knob"></div>
+            <div class="door-hand" id="doorHand">✊</div>
+        </div>
+        <div class="door-text" id="doorText">咚 咚 咚...</div>
+        <div id="doorFlash"></div>
+    </div>
+
     <!-- 彩票店按钮 -->
-    <button id="lotteryShopButton">🏪 进入彩票店</button>
+    <button id="lotteryShopButton">🚪 敲门进入彩票店</button>
     
     <!-- 抽奖按钮 -->
     <button id="lotteryButton">🎰 抽奖</button>
@@ -1442,227 +1569,337 @@
             joystickBase.addEventListener('pointerup', joystickEnd);
             joystickBase.addEventListener('pointercancel', joystickEnd);
 
-            // ========== 场景切换函数 ==========
-            let shopSceneObjects = []; // 存储杂货铺场景的物体
-            let streetSceneObjects = []; // 存储街道场景的物体
-            
-            // 切换到杂货铺场景
-            function switchToShopScene() {
-                currentScene = 'shop';
-                atLotteryShop = false;
-                lotteryShopButton.style.display = 'none';
-                
-                // 隐藏街道场景物体
-                streetSceneObjects.forEach(obj => obj.setEnabled(false));
-                
-                // 创建杂货铺场景
-                createShopScene();
-                
-                // 显示彩票店界面
-                lotteryShop.style.display = 'block';
-                updateBalance();
+            // ========== 场景切换（带敲门过渡动画） ==========
+            let shopSceneObjects = []; // 店内场景 mesh 集合
+            let shopSceneLights = [];  // 店内场景灯光集合
+            // 店内"出门点"坐标（角色走到这里返回街道）
+            let SHOP_EXIT_X = 0, SHOP_EXIT_Z = 8;
+            // 店内活动边界
+            const SHOP_BOUND_X = 6.5, SHOP_BOUND_Z = 8.5;
+
+            const doorOverlay = document.getElementById('doorOverlay');
+            const doorFrame = document.getElementById('doorFrame');
+            const doorHand = document.getElementById('doorHand');
+            const doorText = document.getElementById('doorText');
+            const doorFlash = document.getElementById('doorFlash');
+
+            // 使用 WebAudio 合成"咚咚"敲门音（无需外部音频文件）
+            let audioCtx = null;
+            function playKnockSound() {
+                try {
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const times = [0, 0.2, 0.45];
+                    times.forEach(t => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(120, audioCtx.currentTime + t);
+                        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + t);
+                        gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + t + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t + 0.15);
+                        osc.connect(gain); gain.connect(audioCtx.destination);
+                        osc.start(audioCtx.currentTime + t);
+                        osc.stop(audioCtx.currentTime + t + 0.2);
+                    });
+                } catch (e) { /* 忽略音频错误 */ }
             }
-            
-            // 切换到街道场景
+
+            // 执行敲门过渡：敲门 → 开门 → 白光 → 回调
+            function playDoorTransition(onMidway, onComplete) {
+                // 重置状态
+                doorFrame.classList.remove('opening');
+                doorFlash.classList.remove('flash');
+                doorHand.style.display = 'block';
+                doorText.textContent = '咚 咚 咚...';
+                doorOverlay.classList.add('visible');
+
+                // 0.1s 后开始播敲门声
+                setTimeout(() => playKnockSound(), 100);
+
+                // 1.0s：敲门完成，开门
+                setTimeout(() => {
+                    doorHand.style.display = 'none';
+                    doorText.textContent = '门开了...';
+                    doorFrame.classList.add('opening');
+                }, 1200);
+
+                // 1.7s：白光覆盖，此时切换 3D 场景
+                setTimeout(() => {
+                    doorFlash.classList.add('flash');
+                    if (typeof onMidway === 'function') onMidway();
+                }, 1700);
+
+                // 2.5s：完成过渡，收起遮罩
+                setTimeout(() => {
+                    doorOverlay.classList.remove('visible');
+                    doorFrame.classList.remove('opening');
+                    doorFlash.classList.remove('flash');
+                    if (typeof onComplete === 'function') onComplete();
+                }, 2500);
+            }
+
+            // 切换到店内场景（带敲门动画）
+            function switchToShopScene() {
+                if (currentScene !== 'street') return;
+                // 先锁输入，避免过渡中继续移动
+                moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
+                lotteryShopButton.style.display = 'none';
+
+                playDoorTransition(
+                    // 白光时刻：真正切换场景
+                    () => {
+                        currentScene = 'shop';
+                        atLotteryShop = false;
+
+                        // 隐藏街道物体
+                        streetSceneObjects.forEach(obj => obj.setEnabled(false));
+                        // 创建店内场景
+                        createShopScene();
+
+                        // 角色放在门口（出门触发点）内侧
+                        if (walker) {
+                            walker.position.x = SHOP_EXIT_X;
+                            walker.position.z = SHOP_EXIT_Z - 2;
+                            walker.rotation.y = Math.PI; // 面向房间内部
+                        }
+                        // 相机切到房间中心
+                        camera.target = new BABYLON.Vector3(walker.position.x, 0.5, walker.position.z);
+                    },
+                    // 过渡完成：恢复控制
+                    () => { /* no-op */ }
+                );
+            }
+
+            // 切换回街道场景（带敲门动画）
             function switchToStreetScene() {
-                currentScene = 'street';
-                lotteryShop.style.display = 'none';
-                
-                // 销毁杂货铺场景物体
-                shopSceneObjects.forEach(obj => {
-                    if (obj.dispose) obj.dispose();
-                });
-                shopSceneObjects = [];
-                
-                // 显示街道场景物体
-                streetSceneObjects.forEach(obj => obj.setEnabled(true));
-                
-                // 重置角色位置到彩票店前方（稍微远离触发点避免立刻再触发）
-                if (walker) {
-                    walker.position.x = LOTTERY_SHOP_X;
-                    walker.position.z = LOTTERY_SHOP_Z + TRIGGER_DISTANCE + 1;
+                if (currentScene !== 'shop') return;
+                moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
+
+                playDoorTransition(
+                    () => {
+                        currentScene = 'street';
+                        // 销毁店内物体
+                        shopSceneObjects.forEach(obj => { if (obj.dispose) obj.dispose(); });
+                        shopSceneObjects = [];
+                        shopSceneLights.forEach(l => { if (l.dispose) l.dispose(); });
+                        shopSceneLights = [];
+
+                        // 恢复街道
+                        streetSceneObjects.forEach(obj => obj.setEnabled(true));
+
+                        // 角色回到彩票店门口（外侧）
+                        if (walker) {
+                            walker.position.x = LOTTERY_SHOP_X;
+                            walker.position.z = LOTTERY_SHOP_Z + TRIGGER_DISTANCE + 1;
+                        }
+                        camera.target = new BABYLON.Vector3(walker.position.x, 0.5, walker.position.z);
+                        camera.alpha = -Math.PI / 4;
+                        camera.beta = Math.PI / 3.2;
+                        camera.radius = 22;
+
+                        atLotteryShop = false;
+                        lotteryShopButton.style.display = 'none';
+                    },
+                    () => { /* no-op */ }
+                );
+            }
+
+            // 创建店内 3D 场景（乐高风格空房间）
+            function createShopScene() {
+                const ROOM_W = 14, ROOM_D = 18, ROOM_H = 4.5;
+
+                // 地板（木纹黄色乐高板）
+                const floor = BABYLON.MeshBuilder.CreateBox("shopFloor",
+                    { width: ROOM_W, height: 0.2, depth: ROOM_D }, scene);
+                floor.position.y = 0.1;
+                floor.material = legoMat("shopFloorMat", LEGO_COLORS.tan);
+                shopSceneObjects.push(floor);
+
+                // 地板 studs
+                for (let x = -ROOM_W / 2 + 1; x < ROOM_W / 2; x += 1.3) {
+                    for (let z = -ROOM_D / 2 + 1; z < ROOM_D / 2; z += 1.3) {
+                        const s = createStud(x, z, LEGO_COLORS.tan, 0.2);
+                        shopSceneObjects.push(s);
+                    }
                 }
 
-                // 恢复相机朝向主场景
-                camera.target = new BABYLON.Vector3(walker ? walker.position.x : 0, 0.5, walker ? walker.position.z : 0);
-                camera.alpha = -Math.PI / 4;
-                camera.beta = Math.PI / 3.2;
-                camera.radius = 22;
-
-                // 清空摇杆输入
-                moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
-                atLotteryShop = false;
-                lotteryShopButton.style.display = 'none';
-            }
-            
-            // 创建杂货铺3D场景
-            function createShopScene() {
-                // 杂货铺房间
-                const roomWidth = 12;
-                const roomDepth = 10;
-                const roomHeight = 4;
-                
-                // 地板
-                const floor = BABYLON.MeshBuilder.CreateGround(
-                    "shopFloor",
-                    { width: roomWidth, height: roomDepth },
-                    scene
-                );
-                floor.position.y = 0;
-                const floorMat = new BABYLON.StandardMaterial("shopFloorMat", scene);
-                floorMat.diffuseColor = new BABYLON.Color3(0.6, 0.5, 0.4);
-                floor.material = floorMat;
-                shopSceneObjects.push(floor);
-                
-                // 墙壁
-                const wallMat = new BABYLON.StandardMaterial("shopWallMat", scene);
-                wallMat.diffuseColor = new BABYLON.Color3(0.9, 0.85, 0.75);
-                
-                // 后墙
-                const backWall = BABYLON.MeshBuilder.CreateBox(
-                    "backWall",
-                    { width: roomWidth, height: roomHeight, depth: 0.2 },
-                    scene
-                );
-                backWall.position.set(0, roomHeight / 2, -roomDepth / 2);
+                // 三面墙（后、左、右） —— 前墙留开门处
+                const wallMat = legoMat("shopWallMat", LEGO_COLORS.white);
+                const backWall = BABYLON.MeshBuilder.CreateBox("shopBackWall",
+                    { width: ROOM_W, height: ROOM_H, depth: 0.3 }, scene);
+                backWall.position.set(0, ROOM_H / 2, -ROOM_D / 2);
                 backWall.material = wallMat;
                 shopSceneObjects.push(backWall);
-                
-                // 左墙
-                const leftWall = BABYLON.MeshBuilder.CreateBox(
-                    "leftWall",
-                    { width: 0.2, height: roomHeight, depth: roomDepth },
-                    scene
-                );
-                leftWall.position.set(-roomWidth / 2, roomHeight / 2, 0);
+
+                const leftWall = BABYLON.MeshBuilder.CreateBox("shopLeftWall",
+                    { width: 0.3, height: ROOM_H, depth: ROOM_D }, scene);
+                leftWall.position.set(-ROOM_W / 2, ROOM_H / 2, 0);
                 leftWall.material = wallMat;
                 shopSceneObjects.push(leftWall);
-                
-                // 右墙
-                const rightWall = BABYLON.MeshBuilder.CreateBox(
-                    "rightWall",
-                    { width: 0.2, height: roomHeight, depth: roomDepth },
-                    scene
-                );
-                rightWall.position.set(roomWidth / 2, roomHeight / 2, 0);
+
+                const rightWall = BABYLON.MeshBuilder.CreateBox("shopRightWall",
+                    { width: 0.3, height: ROOM_H, depth: ROOM_D }, scene);
+                rightWall.position.set(ROOM_W / 2, ROOM_H / 2, 0);
                 rightWall.material = wallMat;
                 shopSceneObjects.push(rightWall);
-                
-                // 天花板
-                const ceiling = BABYLON.MeshBuilder.CreateBox(
-                    "ceiling",
-                    { width: roomWidth, height: 0.2, depth: roomDepth },
-                    scene
-                );
-                ceiling.position.set(0, roomHeight, 0);
-                ceiling.material = wallMat;
-                shopSceneObjects.push(ceiling);
-                
-                // 创建刮刮乐展示柜
-                createScratchCardDisplay(-3, 0, -roomDepth / 2 + 1, 5, 1000);
-                createScratchCardDisplay(0, 0, -roomDepth / 2 + 1, 10, 2000);
-                createScratchCardDisplay(3, 0, -roomDepth / 2 + 1, 20, 5000);
-                
-                // 杂货铺灯光
-                const shopLight = new BABYLON.HemisphericLight(
-                    "shopLight",
-                    new BABYLON.Vector3(0, 1, 0),
-                    scene
-                );
-                shopLight.intensity = 0.9;
-                shopLight.groundColor = new BABYLON.Color3(0.3, 0.3, 0.35);
-                shopSceneObjects.push(shopLight);
-                
-                // 调整相机位置以查看杂货铺
-                camera.target = new BABYLON.Vector3(0, 1.5, 0);
-                camera.position = new BABYLON.Vector3(0, 3, 6);
-            }
-            
-            // 创建刮刮乐展示柜
-            function createScratchCardDisplay(x, y, z, price, maxPrize) {
-                // 柜台
-                const counter = BABYLON.MeshBuilder.CreateBox(
-                    "counter" + price,
-                    { width: 2.5, height: 1, depth: 1 },
-                    scene
-                );
-                counter.position.set(x, y + 0.5, z);
-                const counterMat = new BABYLON.StandardMaterial("counterMat" + price, scene);
-                counterMat.diffuseColor = new BABYLON.Color3(0.7, 0.6, 0.5);
-                counter.material = counterMat;
-                shopSceneObjects.push(counter);
-                
-                // 柜台顶板
-                const counterTop = BABYLON.MeshBuilder.CreateBox(
-                    "counterTop" + price,
-                    { width: 2.8, height: 0.1, depth: 1.2 },
-                    scene
-                );
-                counterTop.position.set(x, y + 1.05, z);
-                const topMat = new BABYLON.StandardMaterial("counterTopMat" + price, scene);
-                topMat.diffuseColor = new BABYLON.Color3(0.5, 0.4, 0.3);
-                counterTop.material = topMat;
-                shopSceneObjects.push(counterTop);
-                
-                // 刮刮乐卡片展示
-                const cardCount = 5;
-                for (let i = 0; i < cardCount; i++) {
-                    const card = BABYLON.MeshBuilder.CreateBox(
-                        "card" + price + "_" + i,
-                        { width: 0.4, height: 0.5, depth: 0.05 },
-                        scene
-                    );
-                    card.position.set(x - 0.6 + i * 0.3, y + 1.2, z);
-                    
-                    const cardMat = new BABYLON.StandardMaterial("cardMat" + price + "_" + i, scene);
-                    if (price === 5) {
-                        cardMat.diffuseColor = new BABYLON.Color3(1, 0.3, 0.3);
-                    } else if (price === 10) {
-                        cardMat.diffuseColor = new BABYLON.Color3(0.3, 0.5, 1);
-                    } else {
-                        cardMat.diffuseColor = new BABYLON.Color3(1, 0.8, 0.2);
+
+                // 前墙（分两段，中间留门）
+                const doorW = 2.4;
+                const frontLeft = BABYLON.MeshBuilder.CreateBox("shopFrontLeft",
+                    { width: (ROOM_W - doorW) / 2, height: ROOM_H, depth: 0.3 }, scene);
+                frontLeft.position.set(-(ROOM_W / 2 + doorW / 2) / 2 - 0, ROOM_H / 2, ROOM_D / 2);
+                frontLeft.position.x = -(ROOM_W / 4 + doorW / 4);
+                frontLeft.material = wallMat;
+                shopSceneObjects.push(frontLeft);
+
+                const frontRight = BABYLON.MeshBuilder.CreateBox("shopFrontRight",
+                    { width: (ROOM_W - doorW) / 2, height: ROOM_H, depth: 0.3 }, scene);
+                frontRight.position.set(ROOM_W / 4 + doorW / 4, ROOM_H / 2, ROOM_D / 2);
+                frontRight.material = wallMat;
+                shopSceneObjects.push(frontRight);
+
+                // 门上方横梁
+                const lintel = BABYLON.MeshBuilder.CreateBox("shopLintel",
+                    { width: doorW + 0.4, height: 0.6, depth: 0.3 }, scene);
+                lintel.position.set(0, ROOM_H - 0.3, ROOM_D / 2);
+                lintel.material = legoMat("lintelMat", LEGO_COLORS.red);
+                shopSceneObjects.push(lintel);
+
+                // 出门触发点（绿色浮动积木，位于门前）
+                SHOP_EXIT_X = 0;
+                SHOP_EXIT_Z = ROOM_D / 2 - 1.2;
+                const exitTrigger = BABYLON.MeshBuilder.CreateBox("shopExitTrigger",
+                    { width: 0.9, height: 0.4, depth: 0.9 }, scene);
+                exitTrigger.position.set(SHOP_EXIT_X, 0.45, SHOP_EXIT_Z);
+                const exitMat = legoMat("exitMat", LEGO_COLORS.green);
+                exitMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.1);
+                exitTrigger.material = exitMat;
+                shopSceneObjects.push(exitTrigger);
+                // 触发点突点
+                for (let sx = -0.22; sx <= 0.22; sx += 0.44) {
+                    for (let sz = -0.22; sz <= 0.22; sz += 0.44) {
+                        const s = createStud(SHOP_EXIT_X + sx, SHOP_EXIT_Z + sz, LEGO_COLORS.green, 0.65);
+                        shopSceneObjects.push(s);
                     }
-                    cardMat.emissiveColor = cardMat.diffuseColor.scale(0.2);
-                    card.material = cardMat;
-                    shopSceneObjects.push(card);
                 }
-                
-                // 价格标签
-                const priceLabel = BABYLON.MeshBuilder.CreatePlane(
-                    "priceLabel" + price,
-                    { width: 1, height: 0.4 },
-                    scene
-                );
-                priceLabel.position.set(x, y + 1.7, z);
-                priceLabel.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
-                
-                const labelMat = new BABYLON.StandardMaterial("labelMat" + price, scene);
-                labelMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
-                labelMat.emissiveColor = new BABYLON.Color3(0.8, 0.8, 0.8);
-                priceLabel.material = labelMat;
-                shopSceneObjects.push(priceLabel);
+                // exit 触发点动画
+                exitTrigger._animTime = 0;
+                exitTrigger._animObserver = scene.onBeforeRenderObservable.add(() => {
+                    if (currentScene !== 'shop') return;
+                    exitTrigger._animTime += 0.02;
+                    exitTrigger.rotation.y += 0.02;
+                    exitTrigger.position.y = 0.55 + Math.sin(exitTrigger._animTime * 2.5) * 0.1;
+                });
+                exitTrigger.onDispose = () => {
+                    if (exitTrigger._animObserver) {
+                        scene.onBeforeRenderObservable.remove(exitTrigger._animObserver);
+                    }
+                };
+
+                // 墙上一些装饰（窗户）
+                const winMat = legoMat("shopWinMat", LEGO_COLORS.blue);
+                [-3, 3].forEach(wx => {
+                    const win = BABYLON.MeshBuilder.CreateBox("shopWin",
+                        { width: 1.2, height: 1, depth: 0.1 }, scene);
+                    win.position.set(wx, 2.2, -ROOM_D / 2 + 0.2);
+                    win.material = winMat;
+                    shopSceneObjects.push(win);
+                });
+
+                // 柜台：3 个刮刮乐展示柜（后墙前方）—— 和刮刮乐价格对应
+                const counterConfigs = [
+                    { x: -4, price: 5,  color: LEGO_COLORS.red },
+                    { x: 0,  price: 10, color: LEGO_COLORS.blue },
+                    { x: 4,  price: 20, color: LEGO_COLORS.yellow }
+                ];
+                counterConfigs.forEach(cfg => {
+                    const counter = BABYLON.MeshBuilder.CreateBox("counter_" + cfg.price,
+                        { width: 2.4, height: 1.0, depth: 1.2 }, scene);
+                    counter.position.set(cfg.x, 0.6, -ROOM_D / 2 + 1.5);
+                    counter.material = legoMat("counterMat_" + cfg.price, LEGO_COLORS.darkGray);
+                    shopSceneObjects.push(counter);
+
+                    const top = BABYLON.MeshBuilder.CreateBox("counterTop_" + cfg.price,
+                        { width: 2.6, height: 0.12, depth: 1.4 }, scene);
+                    top.position.set(cfg.x, 1.16, -ROOM_D / 2 + 1.5);
+                    top.material = legoMat("counterTopMat_" + cfg.price, cfg.color);
+                    shopSceneObjects.push(top);
+
+                    // 柜台顶部 studs
+                    for (let ix = -1; ix <= 1; ix += 1) {
+                        for (let iz = -0.3; iz <= 0.3; iz += 0.6) {
+                            const s = createStud(cfg.x + ix * 0.9, -ROOM_D / 2 + 1.5 + iz, cfg.color, 1.22);
+                            shopSceneObjects.push(s);
+                        }
+                    }
+
+                    // 展示的彩票（5 张小卡片立在柜台上）
+                    for (let k = 0; k < 5; k++) {
+                        const card = BABYLON.MeshBuilder.CreateBox("ticket_" + cfg.price + "_" + k,
+                            { width: 0.35, height: 0.5, depth: 0.04 }, scene);
+                        card.position.set(cfg.x - 0.8 + k * 0.4, 1.55, -ROOM_D / 2 + 1.5);
+                        const cm = legoMat("ticketMat_" + cfg.price + "_" + k, cfg.color);
+                        cm.emissiveColor = cfg.color.scale(0.3);
+                        card.material = cm;
+                        shopSceneObjects.push(card);
+                    }
+
+                    // 价格牌
+                    const priceTag = BABYLON.MeshBuilder.CreateBox("priceTag_" + cfg.price,
+                        { width: 1.2, height: 0.5, depth: 0.1 }, scene);
+                    priceTag.position.set(cfg.x, 2.2, -ROOM_D / 2 + 0.5);
+                    const pm = legoMat("priceTagMat_" + cfg.price, LEGO_COLORS.white);
+                    pm.emissiveColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+                    priceTag.material = pm;
+                    shopSceneObjects.push(priceTag);
+
+                    // 点击柜台直接打开对应刮刮乐（可选）—— 让角色走近触发
+                    counter._priceValue = cfg.price;
+                });
+
+                // 店内灯光：三盏吊灯
+                for (let lx of [-4, 0, 4]) {
+                    const pl = new BABYLON.PointLight("shopPL_" + lx,
+                        new BABYLON.Vector3(lx, ROOM_H - 0.5, 0), scene);
+                    pl.diffuse = new BABYLON.Color3(1, 0.95, 0.8);
+                    pl.intensity = 0.8;
+                    pl.range = 10;
+                    shopSceneLights.push(pl);
+
+                    // 灯罩
+                    const bulb = BABYLON.MeshBuilder.CreateSphere("bulb_" + lx,
+                        { diameter: 0.5 }, scene);
+                    bulb.position.set(lx, ROOM_H - 0.3, 0);
+                    const bulbMat = legoMat("bulbMat_" + lx, LEGO_COLORS.yellow);
+                    bulbMat.emissiveColor = new BABYLON.Color3(0.9, 0.8, 0.3);
+                    bulb.material = bulbMat;
+                    shopSceneObjects.push(bulb);
+                }
+
+                // 店内环境光（整体变亮）
+                const shopAmb = new BABYLON.HemisphericLight("shopAmb",
+                    new BABYLON.Vector3(0, 1, 0), scene);
+                shopAmb.intensity = 0.6;
+                shopAmb.groundColor = new BABYLON.Color3(0.4, 0.35, 0.3);
+                shopSceneLights.push(shopAmb);
             }
-            
-            // 初始化街道场景物体列表
+
+            // 初始化街道场景物体列表（在所有街道内容创建完成后再注册）
             function initStreetSceneObjects() {
-                // 收集所有街道场景的物体（建筑、道路等）
                 scene.meshes.forEach(mesh => {
-                    if (mesh.name !== "shopFloor" && 
-                        mesh.name !== "backWall" && 
-                        mesh.name !== "leftWall" && 
-                        mesh.name !== "rightWall" && 
-                        mesh.name !== "ceiling" &&
-                        !mesh.name.startsWith("counter") &&
-                        !mesh.name.startsWith("counterTop") &&
-                        !mesh.name.startsWith("card") &&
-                        !mesh.name.startsWith("priceLabel")) {
+                    // 过滤掉角色（走到哪都在）和 UI 辅助节点
+                    if (mesh.name && mesh.name.indexOf("character") === -1) {
                         streetSceneObjects.push(mesh);
                     }
                 });
+                // 街道灯光也加入（但角色走到店内后要临时关闭街道光）
+                scene.lights.forEach(l => {
+                    // 不加入角色所属 lights——目前所有 lights 都属于街道
+                    streetSceneObjects.push(l);
+                });
             }
-            
-            // 在场景创建完成后初始化
-            setTimeout(initStreetSceneObjects, 1000);
+            // 场景创建完后延迟注册
+            setTimeout(initStreetSceneObjects, 300);
 
             // ========== 彩票店控制 ==========
             const lotteryShopButton = document.getElementById('lotteryShopButton');
@@ -1892,10 +2129,30 @@
             // 图标列表
             const icons = ['🍎', '🍊', '🍋', '🍇', '🍒', '💎', '⭐', '🌟'];
 
-            // 点击抽奖按钮打开老虎机
+            // 点击抽奖按钮
+            //   - 街道场景：打开老虎机
+            //   - 店内场景（柜台前）：根据 dataset.shopPrice 直接打开对应刮刮乐
             lotteryButton.addEventListener('click', () => {
+                const shopPrice = lotteryButton.dataset.shopPrice;
+                if (currentScene === 'shop' && shopPrice) {
+                    const price = parseInt(shopPrice);
+                    // 检查余额
+                    if (balance < price) {
+                        insufficientFunds.style.display = 'block';
+                        setTimeout(() => { insufficientFunds.style.display = 'none'; }, 2000);
+                        return;
+                    }
+                    balance -= price;
+                    updateBalance();
+                    currentScratchGrid = generateScratchGrid(price);
+                    currentScratchPrice = price;
+                    scratchCard.style.display = 'flex';
+                    createScratchGrid(currentScratchGrid);
+                    return;
+                }
+                // 街道：老虎机
                 slotMachine.style.display = 'flex';
-                isWalking = false; // 打开老虎机时停止行走
+                moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
                 resultMessage.textContent = '';
                 resultMessage.className = 'result-message';
             });
@@ -1957,67 +2214,68 @@
             scene.registerBeforeRender(() => {
                 if (!walker) return;
 
-                // ========== 合并键盘输入到 moveInput ==========
-                if (currentScene === 'street') {
+                // ========== 合并键盘输入到 moveInput（街道和店内都支持）==========
+                if (currentScene === 'street' || currentScene === 'shop') {
                     let kx = 0, kz = 0;
-                    if (keyState.up) kz -= 1;     // W/↑ → 屏幕向前 → 世界 +X,-Z（见下方旋转）
+                    if (keyState.up) kz -= 1;
                     if (keyState.down) kz += 1;
                     if (keyState.left) kx -= 1;
                     if (keyState.right) kx += 1;
 
                     if (kx !== 0 || kz !== 0) {
-                        // 和摇杆一样，做 45 度旋转
                         const len = Math.sqrt(kx * kx + kz * kz);
-                        const sx = kx / len, sy = -kz / len; // kz 取反对应屏幕向上
-                        const cos45 = Math.cos(Math.PI / 4);
-                        const sin45 = Math.sin(Math.PI / 4);
-                        const worldX = sx * cos45 + sy * cos45;
-                        const worldZ = sx * sin45 - sy * sin45;
-                        moveInput.x = worldX;
-                        moveInput.z = worldZ;
+                        const sx = kx / len, sy = -kz / len;
+                        const world = screenToWorldDir(sx, sy);
+                        const wlen = Math.sqrt(world.x * world.x + world.z * world.z) || 1;
+                        moveInput.x = world.x / wlen;
+                        moveInput.z = world.z / wlen;
                         moveInput.magnitude = 1;
                     } else if (!joystickActive) {
                         moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
                     }
                 }
 
-                // ========== 角色移动（XZ 平面） ==========
-                const isMoving = moveInput.magnitude > 0.05 && currentScene === 'street';
-                if (isMoving) {
+                // ========== 角色移动（XZ 平面）==========
+                const canMove = moveInput.magnitude > 0.05 && (currentScene === 'street' || currentScene === 'shop');
+                if (canMove) {
                     const dx = moveInput.x * WALK_SPEED;
                     const dz = moveInput.z * WALK_SPEED;
                     const newX = walker.position.x + dx;
                     const newZ = walker.position.z + dz;
 
-                    // 边界限制（矩形）
-                    if (Math.abs(newX) <= WALK_BOUND_X) walker.position.x = newX;
-                    if (Math.abs(newZ) <= WALK_BOUND_Z) walker.position.z = newZ;
+                    // 根据场景选择边界
+                    const boundX = currentScene === 'shop' ? SHOP_BOUND_X : WALK_BOUND_X;
+                    const boundZ = currentScene === 'shop' ? SHOP_BOUND_Z : WALK_BOUND_Z;
+                    if (Math.abs(newX) <= boundX) walker.position.x = newX;
+                    if (Math.abs(newZ) <= boundZ) walker.position.z = newZ;
 
                     walkTime += 0.2 * moveInput.magnitude;
-
-                    // 面向移动方向（atan2 得到 Y 轴旋转角）
                     walker.rotation.y = Math.atan2(moveInput.x, moveInput.z);
 
-                    // 占位角色腿部摆动
                     if (walkerLegs) {
                         walkerLegs.legL.rotation.x = Math.sin(walkTime) * 0.6;
                         walkerLegs.legR.rotation.x = -Math.sin(walkTime) * 0.6;
+                        // 手臂摆动（反向）
+                        if (walkerLegs.armL) walkerLegs.armL.rotation.x = -Math.sin(walkTime) * 0.4;
+                        if (walkerLegs.armR) walkerLegs.armR.rotation.x = Math.sin(walkTime) * 0.4;
                         walker.position.y = Math.abs(Math.sin(walkTime * 2)) * 0.05;
                     }
                 } else {
                     if (walkerLegs) {
                         walkerLegs.legL.rotation.x = 0;
                         walkerLegs.legR.rotation.x = 0;
+                        if (walkerLegs.armL) walkerLegs.armL.rotation.x = 0;
+                        if (walkerLegs.armR) walkerLegs.armR.rotation.x = 0;
                         walker.position.y = 0;
                     }
                 }
 
-                // ========== 相机跟随（XZ 平面平移，保持 2.5D 角度） ==========
+                // ========== 相机跟随 ==========
                 camera.target.x = walker.position.x;
                 camera.target.z = walker.position.z;
                 camera.target.y = 0.5;
 
-                // ========== 触发点检测（XZ 平面距离） ==========
+                // ========== 触发点检测 ==========
                 if (currentScene === 'street') {
                     // 彩票店
                     const dxShop = walker.position.x - LOTTERY_SHOP_X;
@@ -2038,6 +2296,42 @@
                     if (distLot < TRIGGER_DISTANCE) {
                         lotteryButton.style.display = 'block';
                     } else {
+                        lotteryButton.style.display = 'none';
+                    }
+                } else if (currentScene === 'shop') {
+                    // 店内：检测是否走到门口（出门）
+                    const dxExit = walker.position.x - SHOP_EXIT_X;
+                    const dzExit = walker.position.z - SHOP_EXIT_Z;
+                    const distExit = Math.sqrt(dxExit * dxExit + dzExit * dzExit);
+                    if (distExit < 1.2) {
+                        // 自动出门
+                        switchToStreetScene();
+                        return;
+                    }
+
+                    // 检测是否靠近柜台（显示"购买 Xx 元刮刮乐"按钮）
+                    let nearestPrice = null;
+                    let nearestDist = 2.0;
+                    [ -4, 0, 4 ].forEach((cx, idx) => {
+                        const prices = [5, 10, 20];
+                        const dxC = walker.position.x - cx;
+                        const dzC = walker.position.z - (-18 / 2 + 1.5 + 1); // 柜台前方
+                        const distC = Math.sqrt(dxC * dxC + dzC * dzC);
+                        if (distC < nearestDist) {
+                            nearestDist = distC;
+                            nearestPrice = prices[idx];
+                        }
+                    });
+                    if (nearestPrice) {
+                        lotteryButton.style.display = 'block';
+                        lotteryButton.textContent = `🎫 购买 ${nearestPrice} 元刮刮乐`;
+                        lotteryButton.dataset.shopPrice = nearestPrice;
+                    } else {
+                        if (lotteryButton.dataset.shopPrice) {
+                            // 离开柜台，恢复原来文案
+                            lotteryButton.textContent = '🎰 抽奖';
+                            delete lotteryButton.dataset.shopPrice;
+                        }
                         lotteryButton.style.display = 'none';
                     }
                 }
