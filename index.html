@@ -60,13 +60,245 @@
             font-size: 1em;
             opacity: 0.7;
         }
-        
 
+        /* 抽奖按钮 */
+        #lotteryButton {
+            display: none;
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            font-size: 1.5em;
+            background: linear-gradient(135deg, #FF6B6B, #FFD700);
+            border: none;
+            border-radius: 50px;
+            color: #FFF;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            animation: pulse 1.5s ease-in-out infinite;
+            z-index: 100;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: translateX(-50%) scale(1);
+                box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            }
+            50% {
+                transform: translateX(-50%) scale(1.05);
+                box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+            }
+        }
+
+        /* 老虎机界面 */
+        #slotMachine {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .slot-container {
+            background: linear-gradient(135deg, #2C3E50, #3498DB);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .slot-title {
+            color: #FFD700;
+            font-size: 2em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .slot-reels {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .slot-reel {
+            width: 100px;
+            height: 120px;
+            background: #FFF;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .slot-icon {
+            animation: none;
+        }
+
+        .slot-icon.spinning {
+            animation: spin 0.1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100%); }
+        }
+
+        .spin-button {
+            padding: 15px 50px;
+            font-size: 1.5em;
+            background: linear-gradient(135deg, #E74C3C, #C0392B);
+            border: none;
+            border-radius: 50px;
+            color: #FFF;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .spin-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+        }
+
+        .spin-button:disabled {
+            background: #95A5A6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: #E74C3C;
+            border: none;
+            border-radius: 50%;
+            color: #FFF;
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .close-button:hover {
+            background: #C0392B;
+        }
+
+        .result-message {
+            margin-top: 20px;
+            font-size: 1.5em;
+            color: #FFF;
+            min-height: 40px;
+        }
+
+        .result-message.win {
+            color: #FFD700;
+            animation: glow 0.5s ease-in-out infinite alternate;
+        }
+
+        .result-message.lose {
+            color: #E74C3C;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #FFD700, 0 0 20px #FFD700;
+            }
+            to {
+                text-shadow: 0 0 20px #FF6B6B, 0 0 30px #FF6B6B;
+            }
+        }
+
+        /* 路径选择界面 */
+        #pathSelector {
+            display: none;
+            position: fixed;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 150;
+        }
+
+        .path-options {
+            display: flex;
+            gap: 20px;
+        }
+
+        .path-button {
+            padding: 20px 40px;
+            font-size: 1.3em;
+            border: none;
+            border-radius: 15px;
+            color: #FFF;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .path-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .path-lottery {
+            background: linear-gradient(135deg, #FF6B6B, #FFD700);
+        }
+
+        .path-continue {
+            background: linear-gradient(135deg, #3498DB, #2ECC71);
+        }
     </style>
 </head>
 <body>
     <canvas id="renderCanvas"></canvas>
     <div class="loading" id="loadingText">正在加载...</div>
+    
+    <!-- 路径选择界面 -->
+    <div id="pathSelector">
+        <div class="path-options">
+            <button class="path-button path-lottery" id="pathLottery">🎰 抽奖</button>
+            <button class="path-button path-continue" id="pathContinue">➡️ 继续前进</button>
+        </div>
+    </div>
+    
+    <!-- 抽奖按钮 -->
+    <button id="lotteryButton">🎰 抽奖</button>
+    
+    <!-- 老虎机界面 -->
+    <div id="slotMachine">
+        <div class="slot-container">
+            <button class="close-button" id="closeSlotMachine">×</button>
+            <h2 class="slot-title">🎰 幸运抽奖</h2>
+            <div class="slot-reels">
+                <div class="slot-reel">
+                    <span class="slot-icon" id="reel1">🍎</span>
+                </div>
+                <div class="slot-reel">
+                    <span class="slot-icon" id="reel2">🍎</span>
+                </div>
+                <div class="slot-reel">
+                    <span class="slot-icon" id="reel3">🍎</span>
+                </div>
+            </div>
+            <button class="spin-button" id="spinButton">开始抽奖</button>
+            <div class="result-message" id="resultMessage"></div>
+        </div>
+    </div>
     
     <script>
         // Babylon.js 初始化
@@ -85,6 +317,8 @@
             const WALK_START_X = -STREET_LENGTH / 2 + 2;  // 角色起点
             const WALK_END_X = STREET_LENGTH / 2 - 4;     // 角色终点（标记点位置）
             const MARKER_X = WALK_END_X;    // 标记点位置（X 轴）
+            const LOTTERY_X = MARKER_X - 5;    // 抽奖触发点位置（X 轴）
+            const TRIGGER_DISTANCE = 3;        // 触发距离
 
             // ========== 相机：侧向跟随相机，呈现横向街道感 ==========
             const camera = new BABYLON.ArcRotateCamera(
@@ -266,6 +500,62 @@
                 markerLight.intensity = 1.0 + Math.sin(markerTime * 3) * 0.3;
             });
 
+            // ========== 岔路口标记 ==========
+            const FORK_X = LOTTERY_X - 2;  // 岔路口位置
+            const forkMarker = BABYLON.MeshBuilder.CreateBox(
+                "forkMarker",
+                { size: 0.5 },
+                scene
+            );
+            forkMarker.position.set(FORK_X, 0.25, 0);
+            const forkMat = new BABYLON.StandardMaterial("forkMat", scene);
+            forkMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 1);
+            forkMat.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.4);
+            forkMat.specularColor = new BABYLON.Color3(0.8, 0.8, 1);
+            forkMarker.material = forkMat;
+
+            // 岔路口光源
+            const forkLight = new BABYLON.PointLight(
+                "forkLight",
+                new BABYLON.Vector3(FORK_X, 1.0, 0),
+                scene
+            );
+            forkLight.diffuse = new BABYLON.Color3(0.5, 0.5, 1);
+            forkLight.intensity = 0.8;
+            forkLight.range = 3;
+
+            // ========== 抽奖触发点（金色Cube） ==========
+            const lotteryTrigger = BABYLON.MeshBuilder.CreateBox(
+                "lotteryTrigger",
+                { size: 0.6 },
+                scene
+            );
+            lotteryTrigger.position.set(LOTTERY_X, 0.3, 0);
+            const lotteryMat = new BABYLON.StandardMaterial("lotteryMat", scene);
+            lotteryMat.diffuseColor = new BABYLON.Color3(1, 0.84, 0);
+            lotteryMat.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0);
+            lotteryMat.specularColor = new BABYLON.Color3(1, 1, 0.8);
+            lotteryTrigger.material = lotteryMat;
+
+            // 抽奖触发点光源 + 漂浮旋转动画
+            const lotteryLight = new BABYLON.PointLight(
+                "lotteryLight",
+                new BABYLON.Vector3(LOTTERY_X, 1.2, 0),
+                scene
+            );
+            lotteryLight.diffuse = new BABYLON.Color3(1, 0.8, 0);
+            lotteryLight.intensity = 1.0;
+            lotteryLight.range = 4;
+
+            let lotteryTime = 0;
+            scene.registerBeforeRender(() => {
+                lotteryTime += 0.02;
+                lotteryTrigger.rotation.y += 0.03;
+                lotteryTrigger.rotation.x += 0.01;
+                lotteryTrigger.position.y = 0.5 + Math.sin(lotteryTime * 2.5) * 0.12;
+                lotteryLight.intensity = 0.8 + Math.sin(lotteryTime * 4) * 0.3;
+            });
+
             // ========== 占位角色（GLB 加载失败时使用） ==========
             function createPlaceholderCharacter() {
                 const characterGroup = new BABYLON.TransformNode("characterGroup", scene);
@@ -349,17 +639,130 @@
             // 控制变量
             let isWalking = false;    // 是否正在行走
             let walkDirection = 1;    // 行走方向：1: 向右, -1: 向左
+            let atFork = false;       // 是否到达岔路口
+            let selectedPath = null;  // 选择的路径：'lottery' 或 'continue'
 
             // PC端：鼠标点击控制
             canvas.addEventListener('click', () => {
-                isWalking = !isWalking; // 点击切换行走状态
+                if (atFork && !selectedPath) {
+                    // 在岔路口时，点击选择路径
+                    selectedPath = 'lottery'; // 默认选择抽奖路径
+                    isWalking = true;
+                    atFork = false;
+                } else {
+                    isWalking = !isWalking; // 点击切换行走状态
+                }
             });
 
             // 手机端：触摸控制
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                isWalking = !isWalking;
+                if (atFork && !selectedPath) {
+                    selectedPath = 'lottery';
+                    isWalking = true;
+                    atFork = false;
+                } else {
+                    isWalking = !isWalking;
+                }
             }, { passive: false });
+
+            // ========== 路径选择控制 ==========
+            const pathSelector = document.getElementById('pathSelector');
+            const pathLottery = document.getElementById('pathLottery');
+            const pathContinue = document.getElementById('pathContinue');
+
+            // 选择抽奖路径
+            pathLottery.addEventListener('click', () => {
+                selectedPath = 'lottery';
+                pathSelector.style.display = 'none';
+                isWalking = true;
+                atFork = false;
+            });
+
+            // 选择继续前进路径
+            pathContinue.addEventListener('click', () => {
+                selectedPath = 'continue';
+                pathSelector.style.display = 'none';
+                isWalking = true;
+                atFork = false;
+            });
+
+            // ========== 抽奖按钮控制 ==========
+            const lotteryButton = document.getElementById('lotteryButton');
+            const slotMachine = document.getElementById('slotMachine');
+            const closeSlotMachine = document.getElementById('closeSlotMachine');
+            const spinButton = document.getElementById('spinButton');
+            const resultMessage = document.getElementById('resultMessage');
+            const reels = [
+                document.getElementById('reel1'),
+                document.getElementById('reel2'),
+                document.getElementById('reel3')
+            ];
+
+            // 图标列表
+            const icons = ['🍎', '🍊', '🍋', '🍇', '🍒', '💎', '⭐', '🌟'];
+
+            // 点击抽奖按钮打开老虎机
+            lotteryButton.addEventListener('click', () => {
+                slotMachine.style.display = 'flex';
+                isWalking = false; // 打开老虎机时停止行走
+                resultMessage.textContent = '';
+                resultMessage.className = 'result-message';
+            });
+
+            // 关闭老虎机
+            closeSlotMachine.addEventListener('click', () => {
+                slotMachine.style.display = 'none';
+            });
+
+            // 开始抽奖
+            spinButton.addEventListener('click', () => {
+                spinButton.disabled = true;
+                resultMessage.textContent = '';
+                resultMessage.className = 'result-message';
+
+                // 随机决定是否中奖（10%概率）
+                const isWin = Math.random() < 0.1;
+
+                // 播放滚动动画
+                reels.forEach(reel => reel.classList.add('spinning'));
+
+                // 依次停止滚轮
+                const stopTimes = [1000, 2000, 3000];
+                reels.forEach((reel, index) => {
+                    setTimeout(() => {
+                        reel.classList.remove('spinning');
+                        if (isWin) {
+                            // 中奖：所有滚轮显示相同图标
+                            reel.textContent = icons[Math.floor(Math.random() * icons.length)];
+                        } else {
+                            // 未中奖：随机图标
+                            reel.textContent = icons[Math.floor(Math.random() * icons.length)];
+                        }
+                    }, stopTimes[index]);
+                });
+
+                // 显示结果
+                setTimeout(() => {
+                    spinButton.disabled = false;
+                    
+                    if (isWin) {
+                        // 确保三个图标相同
+                        const winningIcon = reels[0].textContent;
+                        reels[1].textContent = winningIcon;
+                        reels[2].textContent = winningIcon;
+                        
+                        resultMessage.textContent = '🎉 恭喜中奖！🎉';
+                        resultMessage.className = 'result-message win';
+                        
+                        // 播放烟花特效
+                        createFireworks();
+                    } else {
+                        resultMessage.textContent = '再接再厉！';
+                        resultMessage.className = 'result-message lose';
+                    }
+                }, 3500);
+            });
 
             scene.registerBeforeRender(() => {
                 if (!walker) return;
@@ -385,6 +788,15 @@
                 if (isWalking) {
                     const newX = walker.position.x + walkDirection * WALK_SPEED;
                     
+                    // 检测是否到达岔路口
+                    const distanceToFork = Math.abs(walker.position.x - FORK_X);
+                    if (distanceToFork < 0.5 && !selectedPath && walkDirection > 0) {
+                        // 到达岔路口，停止并显示路径选择界面
+                        atFork = true;
+                        isWalking = false;
+                        pathSelector.style.display = 'block';
+                    }
+                    
                     // 边界限制
                     if (newX >= MIN_X && newX <= MAX_X) {
                         walker.position.x = newX;
@@ -396,7 +808,7 @@
                         // 占位角色的走路效果：腿摆动 + 身体微跳
                         if (walkerLegs) {
                             walkerLegs.legL.rotation.x = Math.sin(walkTime) * 0.6;
-                            walkerLegs.legR.rotation.x = -Math.sin(walkTime) * 0.6;
+                            walkerLegs.legR.rotation.x = -Math.sin(walkTime * 0.6);
                             walker.position.y = Math.abs(Math.sin(walkTime * 2)) * 0.05;
                         }
                     }
@@ -411,7 +823,100 @@
 
                 // 相机跟随（横向平移）
                 camera.target.x = walker.position.x;
+
+                // 检测是否靠近抽奖触发点（只有选择了抽奖路径才显示按钮）
+                const distanceToLottery = Math.abs(walker.position.x - LOTTERY_X);
+                if (distanceToLottery < TRIGGER_DISTANCE && selectedPath === 'lottery') {
+                    lotteryButton.style.display = 'block';
+                } else {
+                    lotteryButton.style.display = 'none';
+                }
             });
+
+            // ========== 烟花粒子特效 ==========
+            function createFireworks() {
+                const fireworkColors = [
+                    new BABYLON.Color4(1, 0, 0, 1),
+                    new BABYLON.Color4(0, 1, 0, 1),
+                    new BABYLON.Color4(0, 0, 1, 1),
+                    new BABYLON.Color4(1, 1, 0, 1),
+                    new BABYLON.Color4(1, 0, 1, 1),
+                    new BABYLON.Color4(0, 1, 1, 1),
+                    new BABYLON.Color4(1, 0.5, 0, 1)
+                ];
+
+                // 创建多个烟花爆炸
+                for (let f = 0; f < 5; f++) {
+                    setTimeout(() => {
+                        const centerX = walker.position.x + (Math.random() - 0.5) * 6;
+                        const centerY = 5 + Math.random() * 3;
+                        const centerZ = (Math.random() - 0.5) * 4;
+
+                        const particleSystem = new BABYLON.ParticleSystem("firework" + f, 500, scene);
+                        
+                        // 创建圆形纹理
+                        const size = 32;
+                        const textureCanvas = document.createElement('canvas');
+                        textureCanvas.width = size;
+                        textureCanvas.height = size;
+                        const ctx = textureCanvas.getContext('2d');
+                        
+                        const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                        gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.8)');
+                        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                        
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        particleSystem.particleTexture = new BABYLON.Texture(textureCanvas.toDataURL(), scene);
+                        
+                        particleSystem.emitter = new BABYLON.Vector3(centerX, centerY, centerZ);
+                        particleSystem.minEmitBox = new BABYLON.Vector3(0, 0, 0);
+                        particleSystem.maxEmitBox = new BABYLON.Vector3(0, 0, 0);
+                        
+                        const color = fireworkColors[Math.floor(Math.random() * fireworkColors.length)];
+                        particleSystem.color1 = color;
+                        particleSystem.color2 = new BABYLON.Color4(color.r * 0.8, color.g * 0.8, color.b * 0.8, 1);
+                        particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+                        
+                        particleSystem.minSize = 0.1;
+                        particleSystem.maxSize = 0.3;
+                        
+                        particleSystem.minLifeTime = 1;
+                        particleSystem.maxLifeTime = 2;
+                        
+                        particleSystem.emitRate = 500;
+                        particleSystem.manualEmitCount = 500;
+                        
+                        particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+                        
+                        particleSystem.gravity = new BABYLON.Vector3(0, -5, 0);
+                        
+                        particleSystem.direction1 = new BABYLON.Vector3(-1, 0, -1);
+                        particleSystem.direction2 = new BABYLON.Vector3(1, 1, 1);
+                        
+                        particleSystem.minAngularSpeed = 0;
+                        particleSystem.maxAngularSpeed = Math.PI;
+                        
+                        particleSystem.minEmitPower = 8;
+                        particleSystem.maxEmitPower = 12;
+                        particleSystem.updateSpeed = 0.01;
+                        
+                        particleSystem.start();
+                        
+                        // 2秒后停止并销毁
+                        setTimeout(() => {
+                            particleSystem.stop();
+                            setTimeout(() => {
+                                particleSystem.dispose();
+                            }, 2000);
+                        }, 100);
+                    }, f * 300);
+                }
+            }
 
             return scene;
         };
