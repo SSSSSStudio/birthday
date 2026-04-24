@@ -1165,34 +1165,34 @@
             const scratchCardPrizes = {
                 5: {
                     gridCount: 15,  // 15个格子
-                    winCount: 9,    // 9个中奖格子（60%）
+                    winProbability: 0.25,  // 整体中奖概率25%
                     prizes: [
-                        { symbol: '💎', amount: 1000, count: 1 },
-                        { symbol: '🌟', amount: 50, count: 2 },
-                        { symbol: '⭐', amount: 10, count: 3 },
-                        { symbol: '✨', amount: 5, count: 3 }
+                        { symbol: '💎', amount: 1000, probability: 0.01 },
+                        { symbol: '🌟', amount: 50, probability: 0.05 },
+                        { symbol: '⭐', amount: 10, probability: 0.09 },
+                        { symbol: '✨', amount: 5, probability: 0.10 }
                     ],
                     loseSymbol: '❌'
                 },
                 10: {
                     gridCount: 20,  // 20个格子
-                    winCount: 12,   // 12个中奖格子（60%）
+                    winProbability: 0.30,  // 整体中奖概率30%
                     prizes: [
-                        { symbol: '💎', amount: 2000, count: 1 },
-                        { symbol: '🌟', amount: 100, count: 2 },
-                        { symbol: '⭐', amount: 20, count: 4 },
-                        { symbol: '✨', amount: 10, count: 5 }
+                        { symbol: '💎', amount: 2000, probability: 0.008 },
+                        { symbol: '🌟', amount: 100, probability: 0.04 },
+                        { symbol: '⭐', amount: 20, probability: 0.12 },
+                        { symbol: '✨', amount: 10, probability: 0.132 }
                     ],
                     loseSymbol: '❌'
                 },
                 20: {
                     gridCount: 25,  // 25个格子
-                    winCount: 15,   // 15个中奖格子（60%）
+                    winProbability: 0.35,  // 整体中奖概率35%
                     prizes: [
-                        { symbol: '💎', amount: 5000, count: 1 },
-                        { symbol: '🌟', amount: 200, count: 2 },
-                        { symbol: '⭐', amount: 50, count: 5 },
-                        { symbol: '✨', amount: 20, count: 7 }
+                        { symbol: '💎', amount: 5000, probability: 0.006 },
+                        { symbol: '🌟', amount: 200, probability: 0.035 },
+                        { symbol: '⭐', amount: 50, probability: 0.14 },
+                        { symbol: '✨', amount: 20, probability: 0.169 }
                     ],
                     loseSymbol: '❌'
                 }
@@ -1203,12 +1203,29 @@
                 const config = scratchCardPrizes[price];
                 const grid = [];
                 
-                // 添加中奖格子
-                for (const prize of config.prizes) {
-                    for (let i = 0; i < prize.count; i++) {
+                // 首先决定这张彩票是否中奖
+                const isTicketWin = Math.random() < config.winProbability;
+                
+                if (isTicketWin) {
+                    // 中奖彩票：根据概率生成具体奖项
+                    const random = Math.random();
+                    let cumulativeProbability = 0;
+                    let selectedPrize = null;
+                    
+                    for (const prize of config.prizes) {
+                        cumulativeProbability += prize.probability;
+                        if (random < cumulativeProbability) {
+                            selectedPrize = prize;
+                            break;
+                        }
+                    }
+                    
+                    // 添加中奖格子（1-3个）
+                    const winCount = Math.floor(Math.random() * 3) + 1;  // 1-3个中奖格子
+                    for (let i = 0; i < winCount; i++) {
                         grid.push({
-                            symbol: prize.symbol,
-                            amount: prize.amount,
+                            symbol: selectedPrize.symbol,
+                            amount: selectedPrize.amount,
                             isWin: true,
                             scratched: false
                         });
