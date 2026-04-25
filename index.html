@@ -224,6 +224,52 @@
             }
         }
 
+        /* 被车撞反馈：屏幕红色边框闪烁 */
+        #hitFlash {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 750;
+            background: radial-gradient(ellipse at center,
+                rgba(255, 0, 0, 0) 40%,
+                rgba(255, 0, 0, 0.55) 100%);
+            opacity: 0;
+            transition: opacity 0.18s ease-out;
+        }
+        #hitFlash.visible {
+            display: block;
+            opacity: 1;
+        }
+        #hitFlash.fadingOut {
+            opacity: 0;
+        }
+        #hitToast {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.6);
+            background: rgba(220, 38, 38, 0.92);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 22px;
+            font-weight: bold;
+            font-family: sans-serif;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 0 4px #fff inset;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 760;
+            transition: opacity 0.2s ease-out, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: none;
+        }
+        #hitToast.visible {
+            display: block;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.0);
+        }
+
         /* 敲门过渡动画 */
         #doorOverlay {
             display: none;
@@ -731,6 +777,10 @@
         <div id="joystickThumb"></div>
     </div>
 
+    <!-- 被车撞反馈蒙层 -->
+    <div id="hitFlash"></div>
+    <div id="hitToast">⚠️ 被车撞了！</div>
+
     <!-- 敲门过渡动画 -->
     <div id="doorOverlay">
         <div class="door-frame" id="doorFrame">
@@ -1030,19 +1080,23 @@
             }
 
             // ========== 人行横道（4 条斑马线，分布在十字路口的 4 个进站口） ==========
-            // 每条斑马线由若干白色平行短条组成
-            // 位置：路口外侧（紧贴人行道内沿）
+            // 真实人行横道：白色条纹与黑色间隔等宽，覆盖整条马路宽度
+            // 参数参考国标：单条宽 0.45m、间距 0.45m，整条横道沿马路方向占 ~3m 长度
+            //
+            // crossSpan: 斑马线"沿马路方向"占的总长度（行人脚下走的方向）
+            // alongAxis: 斑马线条纹的"延展方向"（横穿马路的方向）
+            //   'x' = 条纹沿 X 延展（在 Z 向马路两端的进站口，行人从北/南横穿）
+            //   'z' = 条纹沿 Z 延展（在 X 向马路两端的进站口，行人从东/西横穿）
             function createCrosswalk(centerX, centerZ, alongAxis) {
-                // alongAxis: 'x' 表示斑马线条沿 X 方向延展（行人横穿 Z 向道路），
-                //            'z' 表示沿 Z 方向延展
-                const crossLen = ROAD_WIDTH - 1.0; // 斑马线长度（覆盖马路宽度）
-                const stripeCount = 6;
-                const stripeW = 0.5;     // 单条宽度
-                const stripeGap = 0.45;  // 条间距
-                const totalW = stripeCount * stripeW + (stripeCount - 1) * stripeGap;
-                const startOffset = -totalW / 2 + stripeW / 2;
+                const crossLen = ROAD_WIDTH;     // 条纹长度（必须正好覆盖整条马路宽度）
+                const stripeW = 0.5;             // 单条宽度
+                const stripeGap = 0.5;           // 条间距（与条宽相等 = 真实人行横道）
+                const stripePitch = stripeW + stripeGap; // 一个完整周期 = 1.0
+                const stripeCount = 7;           // 条纹数量（覆盖约 6.5m 沿马路方向）
+                const totalSpan = stripeCount * stripeW + (stripeCount - 1) * stripeGap;
+                const startOffset = -totalSpan / 2 + stripeW / 2;
                 for (let i = 0; i < stripeCount; i++) {
-                    const offset = startOffset + i * (stripeW + stripeGap);
+                    const offset = startOffset + i * stripePitch;
                     const stripe = BABYLON.MeshBuilder.CreateBox(
                         "crosswalk_" + centerX + "_" + centerZ + "_" + i,
                         alongAxis === 'x'
@@ -1051,19 +1105,25 @@
                         scene
                     );
                     if (alongAxis === 'x') {
+                        // 条纹沿 X 延展，沿 Z 方向均匀排布
                         stripe.position.set(centerX, 0.07, centerZ + offset);
                     } else {
+                        // 条纹沿 Z 延展，沿 X 方向均匀排布
                         stripe.position.set(centerX + offset, 0.07, centerZ);
                     }
                     stripe.material = legoMat("crosswalkMat", LEGO_COLORS.white);
                 }
             }
-            // 4 条斑马线：北、南、东、西 4 个路口
-            const crosswalkInset = ROAD_WIDTH / 2 + 0.2; // 紧贴路口内侧
-            createCrosswalk(0, -crosswalkInset, 'x');  // 南口（横穿 X 向主路）
-            createCrosswalk(0,  crosswalkInset, 'x');  // 北口
-            createCrosswalk(-crosswalkInset, 0, 'z');  // 西口（横穿 Z 向次路）
-            createCrosswalk( crosswalkInset, 0, 'z');  // 东口
+            // 4 条斑马线：路口外侧 4 个进站口
+            // 北/南口：行人从 +Z/-Z 进入路口，要横穿"东西向 X 主路"，
+            //         斑马线在 X 主路上、靠近路口边缘，条纹沿 X 延展（行人脚下沿 Z 走）
+            // 东/西口：对称
+            // 把斑马线中心放在"人行道内侧 ± stripeSpan/2"位置，让斑马线刚好贴在路口外
+            const crosswalkCenter = ROAD_WIDTH / 2 + 1.5; // 斑马线中心距路中心的距离（在人行道内侧）
+            createCrosswalk(0, -crosswalkCenter, 'x');  // 南口斑马线（沿 X 延展，行人横穿）
+            createCrosswalk(0,  crosswalkCenter, 'x');  // 北口
+            createCrosswalk(-crosswalkCenter, 0, 'z');  // 西口
+            createCrosswalk( crosswalkCenter, 0, 'z');  // 东口
 
             // ========== 四个象限的草地突点 ==========
             // 草地区域：|x| > ROAD_WIDTH/2 + SIDEWALK 或 |z| > ROAD_WIDTH/2 + SIDEWALK
@@ -1164,22 +1224,30 @@
             }
 
             // 四个象限各放若干乐高建筑
+            // 建筑尺寸：宽 4 × 深 3.5（半宽 2、半深 1.75），间距至少 4 米才能避免重叠
+            // 注意避开：
+            //   - 彩票店建筑：中心 (LOTTERY_SHOP_X=-13, LOTTERY_SHOP_Z-2=-10.5)，占 [-15,-11] × [-12.25,-8.75]
+            //   - 抽奖触发器：(13, -8.5)，需要让玩家走得过去
+            //   - 终点标记：(0, 14)
             const buildingConfigs = [
-                // 象限 1 (+X, +Z)
-                { x: 10, z: 12, floors: 2, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.white },
-                { x: 16, z: 10, floors: 3, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.red },
-                { x: 10, z: 17, floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.yellow },
-                // 象限 2 (-X, +Z)
-                { x: -10, z: 12, floors: 3, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.blue },
-                { x: -16, z: 10, floors: 2, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red },
-                { x: -10, z: 17, floors: 2, wall: LEGO_COLORS.lime,   roof: LEGO_COLORS.green },
-                // 象限 3 (-X, -Z)
-                { x: -10, z: -12, floors: 2, wall: LEGO_COLORS.tan,    roof: LEGO_COLORS.darkGray },
-                { x: -16, z: -10, floors: 3, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.yellow },
-                { x: -10, z: -17, floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.white },
-                // 象限 4 (+X, -Z)
-                { x: 16, z: -10, floors: 2, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.blue },
-                { x: 10, z: -17, floors: 3, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red }
+                // 象限 1 (+X, +Z)：3 栋
+                { x:  10, z:  11, floors: 2, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.white },
+                { x:  17, z:  11, floors: 3, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.red },
+                { x:  10, z:  17, floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.yellow },
+                { x:  17, z:  17, floors: 2, wall: LEGO_COLORS.green,  roof: LEGO_COLORS.purple },
+                // 象限 2 (-X, +Z)：3 栋
+                { x: -10, z:  11, floors: 3, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.blue },
+                { x: -17, z:  11, floors: 2, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red },
+                { x: -10, z:  17, floors: 2, wall: LEGO_COLORS.lime,   roof: LEGO_COLORS.green },
+                { x: -17, z:  17, floors: 2, wall: LEGO_COLORS.purple, roof: LEGO_COLORS.white },
+                // 象限 3 (-X, -Z)：彩票店占了 (-13,-10.5)，仅在边缘和远处放
+                { x: -17, z: -16, floors: 3, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.yellow },
+                { x:  -9, z: -17, floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.white },
+                { x: -17, z:  -9, floors: 2, wall: LEGO_COLORS.tan,    roof: LEGO_COLORS.darkGray },
+                // 象限 4 (+X, -Z)：抽奖触发器在 (13,-8.5)，避开
+                { x:  10, z: -14, floors: 2, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.blue },
+                { x:  17, z: -14, floors: 3, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red },
+                { x:  10, z: -17, floors: 2, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.green }
             ];
             buildingConfigs.forEach(cfg => {
                 createLegoBuilding(cfg.x, cfg.z, cfg.floors, cfg.wall, cfg.roof);
@@ -1537,22 +1605,107 @@
                 markerLight.intensity = 0.9 + Math.sin(markerTime * 3) * 0.3;
             });
 
-            // ========== 抽奖触发点（金色乐高积木） ==========
-            const lotteryTrigger = BABYLON.MeshBuilder.CreateBox(
-                "lotteryTrigger",
-                { width: 0.9, height: 0.5, depth: 0.9 },
-                scene
-            );
-            lotteryTrigger.position.set(LOTTERY_X, 0.5, LOTTERY_Z);
-            const lotteryMat = legoMat("lotteryMat", LEGO_COLORS.yellow);
-            lotteryMat.emissiveColor = new BABYLON.Color3(0.4, 0.3, 0);
-            lotteryTrigger.material = lotteryMat;
-            for (let sx = -0.22; sx <= 0.22; sx += 0.44) {
-                for (let sz = -0.22; sz <= 0.22; sz += 0.44) {
-                    const stud = createStud(LOTTERY_X + sx, LOTTERY_Z + sz, LEGO_COLORS.yellow, 0.75);
-                    stud.parent = lotteryTrigger;
+            // ========== 抽奖触发点（老虎机造型） ==========
+            // 老虎机外观：底座柜体 + 屏幕窗口 + 3 个滚轮 + 顶部装饰灯 + 右侧拉杆
+            // 整体作为 TransformNode 组，便于做浮动动画和注册碰撞
+            const lotteryTrigger = new BABYLON.TransformNode("lotteryTrigger", scene);
+            lotteryTrigger.position.set(LOTTERY_X, 0, LOTTERY_Z);
+
+            // 兼容现有 lotteryTrigger.rotation/position 动画的代理：用一个隐藏的 root mesh 承载
+            // （TransformNode 已自带 rotation/position 属性，无需代理）
+
+            // 底座柜体（红色长方体，宽 1.4 × 高 1.6 × 深 0.9）
+            const slotBase = BABYLON.MeshBuilder.CreateBox("slotBase",
+                { width: 1.4, height: 1.6, depth: 0.9 }, scene);
+            slotBase.position.set(0, 0.8, 0);
+            const slotBaseMat = legoMat("slotBaseMat", LEGO_COLORS.red);
+            slotBaseMat.emissiveColor = new BABYLON.Color3(0.25, 0.05, 0.05);
+            slotBase.material = slotBaseMat;
+            slotBase.parent = lotteryTrigger;
+
+            // 顶部装饰罩（金色梯形，用稍小一圈的方块代替）
+            const slotTop = BABYLON.MeshBuilder.CreateBox("slotTop",
+                { width: 1.55, height: 0.35, depth: 1.0 }, scene);
+            slotTop.position.set(0, 1.78, 0);
+            const slotTopMat = legoMat("slotTopMat", LEGO_COLORS.yellow);
+            slotTopMat.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0);
+            slotTop.material = slotTopMat;
+            slotTop.parent = lotteryTrigger;
+
+            // 顶部装饰灯（3 个小球，红黄红交替闪烁）
+            const slotTopLamps = [];
+            [-0.45, 0, 0.45].forEach((dx, i) => {
+                const lampBall = BABYLON.MeshBuilder.CreateSphere("slotTopLamp" + i,
+                    { diameter: 0.18, segments: 10 }, scene);
+                lampBall.position.set(dx, 2.05, 0);
+                const color = i === 1 ? LEGO_COLORS.yellow : LEGO_COLORS.red;
+                const lampMat = legoMat("slotLampMat" + i, color);
+                lampMat.emissiveColor = color.scale(0.7);
+                lampBall.material = lampMat;
+                lampBall.parent = lotteryTrigger;
+                slotTopLamps.push({ mat: lampMat, baseColor: color });
+            });
+
+            // 屏幕窗口（黑色背板，前面贴 3 个滚轮）
+            const slotScreen = BABYLON.MeshBuilder.CreateBox("slotScreen",
+                { width: 1.05, height: 0.55, depth: 0.06 }, scene);
+            slotScreen.position.set(0, 1.15, 0.46);
+            slotScreen.material = legoMat("slotScreenMat", LEGO_COLORS.black);
+            slotScreen.parent = lotteryTrigger;
+
+            // 3 个滚轮（白色圆柱，水平方向，会绕自身轴旋转）
+            const slotReels = [];
+            const reelSymbolColors = [LEGO_COLORS.red, LEGO_COLORS.green, LEGO_COLORS.blue,
+                                     LEGO_COLORS.orange, LEGO_COLORS.purple, LEGO_COLORS.yellow];
+            [-0.32, 0, 0.32].forEach((dx, i) => {
+                const reel = BABYLON.MeshBuilder.CreateCylinder("slotReel" + i,
+                    { diameter: 0.42, height: 0.28, tessellation: 18 }, scene);
+                reel.rotation.z = Math.PI / 2; // 卧倒：轴沿 X，圆面朝前
+                reel.position.set(dx, 1.15, 0.5);
+                const reelMat = legoMat("slotReelMat" + i, LEGO_COLORS.white);
+                reel.material = reelMat;
+                reel.parent = lotteryTrigger;
+
+                // 在滚轮的"侧面圆周"上贴几个彩色符号方块（旋转时给玩家看到滚动效果）
+                const symbolCount = 6;
+                for (let s = 0; s < symbolCount; s++) {
+                    const angle = (s / symbolCount) * Math.PI * 2;
+                    const sym = BABYLON.MeshBuilder.CreateBox("slotSym" + i + "_" + s,
+                        { width: 0.15, height: 0.06, depth: 0.18 }, scene);
+                    // 符号在圆柱表面外侧
+                    const r = 0.21 + 0.03;
+                    sym.position.set(0, Math.cos(angle) * r, Math.sin(angle) * r);
+                    sym.rotation.x = angle;
+                    sym.material = legoMat("slotSymMat" + i + s, reelSymbolColors[(i * 2 + s) % reelSymbolColors.length]);
+                    sym.parent = reel;
                 }
-            }
+                slotReels.push(reel);
+            });
+
+            // 右侧拉杆（一根斜向圆柱 + 顶端红球）
+            const leverArm = BABYLON.MeshBuilder.CreateCylinder("slotLeverArm",
+                { diameter: 0.08, height: 0.7, tessellation: 8 }, scene);
+            leverArm.position.set(0.85, 1.4, 0);
+            leverArm.rotation.z = -0.3; // 略向外倾
+            leverArm.material = legoMat("slotLeverMat", LEGO_COLORS.darkGray);
+            leverArm.parent = lotteryTrigger;
+            const leverBall = BABYLON.MeshBuilder.CreateSphere("slotLeverBall",
+                { diameter: 0.22, segments: 12 }, scene);
+            leverBall.position.set(0.95, 1.7, 0);
+            const leverBallMat = legoMat("slotLeverBallMat", LEGO_COLORS.red);
+            leverBallMat.emissiveColor = new BABYLON.Color3(0.4, 0.05, 0.05);
+            leverBall.material = leverBallMat;
+            leverBall.parent = lotteryTrigger;
+
+            // 投币口（前下方的小黑色横槽）
+            const slotCoin = BABYLON.MeshBuilder.CreateBox("slotCoin",
+                { width: 0.5, height: 0.05, depth: 0.04 }, scene);
+            slotCoin.position.set(0, 0.35, 0.46);
+            slotCoin.material = legoMat("slotCoinMat", LEGO_COLORS.black);
+            slotCoin.parent = lotteryTrigger;
+
+            // 注册老虎机的碰撞 AABB（柜体半宽 0.7、半深 0.45）
+            registerStaticObstacle(LOTTERY_X, LOTTERY_Z, 0.7, 0.45, 0.2);
 
             const lotteryLight = new BABYLON.PointLight(
                 "lotteryLight",
@@ -1566,8 +1719,19 @@
             let lotteryTime = 0;
             scene.registerBeforeRender(() => {
                 lotteryTime += 0.02;
-                lotteryTrigger.rotation.y += 0.02;
-                lotteryTrigger.position.y = 0.6 + Math.sin(lotteryTime * 2.5) * 0.12;
+                // 老虎机贴地不动（不再整体浮动 + 自转），改为：
+                //   1. 顶部装饰灯：3 个灯交替闪烁
+                //   2. 3 个滚轮：持续旋转（让玩家看到滚动效果）
+                //   3. 底部光源：随节奏强弱呼吸
+                slotTopLamps.forEach((lamp, idx) => {
+                    const phase = lotteryTime * 6 + idx * 1.0;
+                    const bright = (Math.sin(phase) + 1) * 0.5; // 0~1
+                    lamp.mat.emissiveColor = lamp.baseColor.scale(0.2 + bright * 0.7);
+                });
+                slotReels.forEach((reel, idx) => {
+                    // 每个滚轮速度略不同，制造动感
+                    reel.rotation.x += 0.04 + idx * 0.015;
+                });
                 lotteryLight.intensity = 0.8 + Math.sin(lotteryTime * 4) * 0.3;
             });
 
@@ -1684,18 +1848,49 @@
                 headStud.material = headMat;
                 headStud.parent = characterGroup;
 
-                // --- 头发（深棕色方帽）---
-                const hair = BABYLON.MeshBuilder.CreateBox("hair",
-                    { width: 0.62, height: 0.22, depth: 0.62 }, scene);
-                hair.position.set(0, 2.02, 0);
-                hair.material = legoMat("hairMat", hairColor);
-                hair.parent = characterGroup;
-                // 前额刘海
+                // --- 秀发（飘逸的乐高发型）---
+                // 由 5 部分组成：头顶发盖 + 前额刘海 + 左右两侧鬓发 + 后脑长发
+                const hairMat = legoMat("hairMat", hairColor);
+
+                // 1. 头顶发盖（覆盖整个头顶并把 stud 隐藏）
+                const hairTop = BABYLON.MeshBuilder.CreateBox("hairTop",
+                    { width: 0.66, height: 0.32, depth: 0.66 }, scene);
+                hairTop.position.set(0, 2.10, 0);
+                hairTop.material = hairMat;
+                hairTop.parent = characterGroup;
+
+                // 2. 前额刘海（斜削的一块，靠前突出）
                 const bangs = BABYLON.MeshBuilder.CreateBox("bangs",
-                    { width: 0.56, height: 0.15, depth: 0.12 }, scene);
-                bangs.position.set(0, 1.95, 0.26);
-                bangs.material = hair.material;
+                    { width: 0.62, height: 0.18, depth: 0.16 }, scene);
+                bangs.position.set(0, 1.96, 0.28);
+                bangs.rotation.x = -0.15; // 向前微倾
+                bangs.material = hairMat;
                 bangs.parent = characterGroup;
+
+                // 3. 左右两侧鬓发（顺着脸颊垂下）
+                [-1, 1].forEach(side => {
+                    const sideHair = BABYLON.MeshBuilder.CreateBox("sideHair_" + side,
+                        { width: 0.12, height: 0.42, depth: 0.55 }, scene);
+                    sideHair.position.set(side * 0.32, 1.78, -0.02);
+                    sideHair.rotation.z = side * -0.05;
+                    sideHair.material = hairMat;
+                    sideHair.parent = characterGroup;
+                });
+
+                // 4. 后脑长发（垂到肩膀的一块）
+                const backHair = BABYLON.MeshBuilder.CreateBox("backHair",
+                    { width: 0.55, height: 0.55, depth: 0.18 }, scene);
+                backHair.position.set(0, 1.72, -0.28);
+                backHair.material = hairMat;
+                backHair.parent = characterGroup;
+
+                // 5. 顶部小发束（呆毛/挑染的一小撮，让发型更生动）
+                const tuft = BABYLON.MeshBuilder.CreateBox("hairTuft",
+                    { width: 0.16, height: 0.18, depth: 0.16 }, scene);
+                tuft.position.set(-0.12, 2.32, 0.05);
+                tuft.rotation.z = 0.3;
+                tuft.material = hairMat;
+                tuft.parent = characterGroup;
 
                 // --- 眼睛（两个黑色小点）---
                 const eyeMat = legoMat("eyeMat", LEGO_COLORS.black);
@@ -2396,12 +2591,75 @@
                 }, 3500);
             });
 
+            // ========== 车撞人系统 ==========
+            // 检测每辆车的 AABB 是否包含角色位置（XZ 平面）
+            // 撞到时：把角色击退到马路外（沿被撞方向反推到最近人行道边缘）+ 屏幕红色闪烁 + 短暂无敌
+            const hitFlashEl = document.getElementById('hitFlash');
+            const hitToastEl = document.getElementById('hitToast');
+            let invincibleUntil = 0; // 角色无敌截止时间（毫秒），防止持续被撞
+            let hitFlashTimer = null;
+            let hitToastTimer = null;
+            const SAFE_Z = ROAD_WIDTH / 2 + SIDEWALK_WIDTH + 0.6; // 马路外缘 + 一点缓冲
+            const SAFE_X = ROAD_WIDTH / 2 + SIDEWALK_WIDTH + 0.6;
+
+            function showHitFeedback() {
+                // 屏幕红色闪烁
+                hitFlashEl.classList.remove('fadingOut');
+                hitFlashEl.classList.add('visible');
+                if (hitFlashTimer) clearTimeout(hitFlashTimer);
+                hitFlashTimer = setTimeout(() => {
+                    hitFlashEl.classList.add('fadingOut');
+                    hitFlashEl.classList.remove('visible');
+                    setTimeout(() => hitFlashEl.classList.remove('fadingOut'), 250);
+                }, 200);
+                // 提示弹幕
+                hitToastEl.classList.add('visible');
+                if (hitToastTimer) clearTimeout(hitToastTimer);
+                hitToastTimer = setTimeout(() => {
+                    hitToastEl.classList.remove('visible');
+                }, 900);
+            }
+
+            function checkVehicleHit(now) {
+                if (!walker || currentScene !== 'street') return;
+                if (now < invincibleUntil) return; // 无敌期内跳过
+
+                const px = walker.position.x;
+                const pz = walker.position.z;
+                const r = 0.4; // 角色软碰撞半径
+
+                for (let i = 0; i < vehicles.length; i++) {
+                    const v = vehicles[i];
+                    const o = v.obstacle;
+                    if (px + r > o.minX && px - r < o.maxX &&
+                        pz + r > o.minZ && pz - r < o.maxZ) {
+                        // 撞到了！
+                        // 击退方向：垂直于车的行驶方向，把角色推到最近的马路外侧
+                        if (v.axis === 'x') {
+                            // X 向行驶的车，把角色沿 Z 推到人行道
+                            walker.position.z = pz >= 0 ? SAFE_Z : -SAFE_Z;
+                        } else {
+                            // Z 向行驶的车，把角色沿 X 推
+                            walker.position.x = px >= 0 ? SAFE_X : -SAFE_X;
+                        }
+                        // 防止击退后还在另一辆车里：再做一次 isPointBlocked 兜底（极小概率）
+                        // 给 0.8 秒无敌期，避免连续触发
+                        invincibleUntil = now + 800;
+                        showHitFeedback();
+                        return; // 一次只处理一辆车
+                    }
+                }
+            }
+
             scene.registerBeforeRender(() => {
                 // ========== 街道动态系统：车辆移动 + 红绿灯切换 + 动态 AABB 刷新 ==========
                 // 这些更新与角色是否存在/场景是否切换无关，每帧都跑（让街道始终活着）
                 updateVehicles();
                 updateTrafficLights(performance.now());
                 refreshDynamicObstacles();
+
+                // ========== 车撞人检测（在 AABB 刷新之后立即检测）==========
+                checkVehicleHit(performance.now());
 
                 if (!walker) return;
 
