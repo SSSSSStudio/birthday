@@ -1605,37 +1605,59 @@
             }
 
             // 执行敲门过渡：敲门 → 开门 → 白光 → 回调
+            // 保证：无论中间任何步骤异常，最后都会强制收起遮罩
             function playDoorTransition(onMidway, onComplete) {
-                // 重置状态
-                doorFrame.classList.remove('opening');
-                doorFlash.classList.remove('flash');
-                doorHand.style.display = 'block';
-                doorText.textContent = '咚 咚 咚...';
-                doorOverlay.classList.add('visible');
-
-                // 0.1s 后开始播敲门声
-                setTimeout(() => playKnockSound(), 100);
-
-                // 1.0s：敲门完成，开门
-                setTimeout(() => {
-                    doorHand.style.display = 'none';
-                    doorText.textContent = '门开了...';
-                    doorFrame.classList.add('opening');
-                }, 1200);
-
-                // 1.7s：白光覆盖，此时切换 3D 场景
-                setTimeout(() => {
-                    doorFlash.classList.add('flash');
-                    if (typeof onMidway === 'function') onMidway();
-                }, 1700);
-
-                // 2.5s：完成过渡，收起遮罩
-                setTimeout(() => {
+                let finished = false;
+                const finalize = () => {
+                    if (finished) return;
+                    finished = true;
+                    // 强制还原所有样式
                     doorOverlay.classList.remove('visible');
+                    doorOverlay.style.display = 'none';
+                    doorOverlay.style.opacity = '';
                     doorFrame.classList.remove('opening');
                     doorFlash.classList.remove('flash');
-                    if (typeof onComplete === 'function') onComplete();
-                }, 2500);
+                    if (typeof onComplete === 'function') {
+                        try { onComplete(); } catch (e) { console.error(e); }
+                    }
+                };
+
+                try {
+                    doorFrame.classList.remove('opening');
+                    doorFlash.classList.remove('flash');
+                    doorHand.style.display = 'block';
+                    doorText.textContent = '咚 咚 咚...';
+                    doorOverlay.classList.add('visible');
+                    doorOverlay.style.display = 'flex';
+                    doorOverlay.style.opacity = '1';
+
+                    setTimeout(() => playKnockSound(), 100);
+
+                    setTimeout(() => {
+                        doorHand.style.display = 'none';
+                        doorText.textContent = '门开了...';
+                        doorFrame.classList.add('opening');
+                    }, 1200);
+
+                    setTimeout(() => {
+                        doorFlash.classList.add('flash');
+                        if (typeof onMidway === 'function') {
+                            try { onMidway(); } catch (e) { console.error('[door midway error]', e); }
+                        }
+                    }, 1700);
+
+                    // 2.5s 后强制收起
+                    setTimeout(finalize, 2500);
+                    // 兜底：4s 后即使前面所有 setTimeout 全失败，也强制收起
+                    setTimeout(finalize, 4000);
+                } catch (e) {
+                    console.error('[door transition error]', e);
+                    // 失败时直接执行 midway + finalize
+                    if (typeof onMidway === 'function') {
+                        try { onMidway(); } catch (e2) { console.error(e2); }
+                    }
+                    finalize();
+                }
             }
 
             // 切换到店内场景（带敲门动画）
