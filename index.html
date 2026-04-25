@@ -826,8 +826,9 @@
 
             // ========== 街区参数（乐高风格方形地块） ==========
             const BLOCK_SIZE = 40;          // 方形地块边长（X 和 Z 方向）
-            const ROAD_WIDTH = 6;           // 道路宽度
+            const ROAD_WIDTH = 12;          // 道路宽度（双车道，比之前宽 1 倍）
             const SIDEWALK_WIDTH = 1.5;     // 人行道宽度
+            const LANE_HALF = ROAD_WIDTH / 4; // 车道中心线偏移（双车道：左侧车道中心在 -LANE_HALF，右侧在 +LANE_HALF）
             const STUD_SIZE = 0.5;          // 乐高突点（stud）直径
             const STUD_HEIGHT = 0.15;       // 乐高突点高度
             
@@ -837,11 +838,19 @@
             const WALK_BOUND_Z = BLOCK_SIZE / 2 - 2;       // 活动边界 Z
             
             // 关键地点坐标（XZ 平面）
-            const LOTTERY_SHOP_X = -8, LOTTERY_SHOP_Z = -6;   // 彩票店
-            const LOTTERY_X = 8, LOTTERY_Z = -6;              // 抽奖触发点
-            const MARKER_X = 12, MARKER_Z = 6;                // 终点标记
-            const FORK_X = 0, FORK_Z = 0;                     // 岔路口（中心）
-            const TRIGGER_DISTANCE = 2.5;                      // 触发距离
+            // 注意：马路加宽到 ROAD_WIDTH=12 后，|z|<=6 是车道、|z|<=7.5 是人行道范围
+            // 所有触发器/标记必须放在草地区域，且要避开建筑配置
+            // 建筑分布在 ±10/±16 (X) 和 ±10/±12/±17 (Z) 等位置；触发器要躲开这些
+            //
+            // 选址说明：
+            //   彩票店触发器：放 (-13, -8.5)，紧贴人行道外侧，建筑会建在 (-13, -10.5) → 避开 ±10 列建筑
+            //   抽奖触发器：放 ( 13, -8.5)，对称
+            //   终点标记：放 ( 0, 14)，正好在建筑配置 z=12/17 之间的空隙
+            const LOTTERY_SHOP_X = -13, LOTTERY_SHOP_Z = -8.5;  // 彩票店触发器
+            const LOTTERY_X      =  13, LOTTERY_Z      = -8.5;  // 抽奖触发器
+            const MARKER_X       =   0, MARKER_Z       =  14;   // 终点标记（建筑空隙处）
+            const FORK_X = 0, FORK_Z = 0;                       // 岔路口（中心）
+            const TRIGGER_DISTANCE = 2.5;                       // 触发距离
 
             // ========== 相机：固定 2.5D 等距视角 ==========
             const camera = new BABYLON.ArcRotateCamera(
@@ -876,6 +885,60 @@
 
             // Dither 透明化（仅保留数组以兼容后续代码）
             const ditheredMeshes = [];
+
+            // ========== 碰撞系统：所有静态/动态阻挡物的 AABB 列表 ==========
+            // 每项格式：{ minX, maxX, minZ, maxZ, mesh? }
+            // mesh 可选：如果是动态物体（如车辆），mesh 提供，会在 render loop 中刷新 AABB
+            // 角色移动时遍历此列表，发现命中则该轴方向被阻挡（允许另一轴滑动，避免被卡死）
+            const streetObstacles = [];
+
+            // 注册一个静态 AABB（基于 mesh 的位置和尺寸，加可选 padding）
+            function registerStaticObstacle(centerX, centerZ, halfW, halfD, padding) {
+                const p = padding || 0;
+                streetObstacles.push({
+                    minX: centerX - halfW - p,
+                    maxX: centerX + halfW + p,
+                    minZ: centerZ - halfD - p,
+                    maxZ: centerZ + halfD + p,
+                    isStatic: true
+                });
+            }
+
+            // 注册一个跟随 mesh 的动态 AABB（车辆等）
+            function registerDynamicObstacle(mesh, halfW, halfD, padding) {
+                const p = padding || 0;
+                const obs = {
+                    mesh, halfW: halfW + p, halfD: halfD + p,
+                    isStatic: false,
+                    minX: 0, maxX: 0, minZ: 0, maxZ: 0
+                };
+                streetObstacles.push(obs);
+                return obs;
+            }
+
+            function refreshDynamicObstacles() {
+                for (let i = 0; i < streetObstacles.length; i++) {
+                    const o = streetObstacles[i];
+                    if (o.isStatic) continue;
+                    o.minX = o.mesh.position.x - o.halfW;
+                    o.maxX = o.mesh.position.x + o.halfW;
+                    o.minZ = o.mesh.position.z - o.halfD;
+                    o.maxZ = o.mesh.position.z + o.halfD;
+                }
+            }
+
+            // 检查一个点是否落在任何障碍 AABB 内（角色用 0.45 半径作为软碰撞）
+            function isPointBlocked(x, z, radius) {
+                const r = radius || 0.45;
+                for (let i = 0; i < streetObstacles.length; i++) {
+                    const o = streetObstacles[i];
+                    if (x + r > o.minX && x - r < o.maxX &&
+                        z + r > o.minZ && z - r < o.maxZ) {
+                        return true;
+                    }
+                }
+                return false;
+            }
 
             // ========== 乐高配色（饱和鲜艳） ==========
             const LEGO_COLORS = {
@@ -941,28 +1004,66 @@
             roadZ.position.y = 0.025;
             roadZ.material = legoMat("roadMatZ", LEGO_COLORS.darkGray);
 
-            // 路面中线（黄色虚线 - X 方向）
+            // 路面中线（黄色虚线 - X 方向）：中心 ±7 范围让位给路口/斑马线
             for (let i = -10; i <= 10; i++) {
-                if (i === 0) continue;
+                const px = i * 1.8;
+                if (Math.abs(px) < 7) continue;
                 const dash = BABYLON.MeshBuilder.CreateBox(
                     "dashX" + i,
                     { width: 1, height: 0.02, depth: 0.18 },
                     scene
                 );
-                dash.position.set(i * 1.8, 0.06, 0);
+                dash.position.set(px, 0.06, 0);
                 dash.material = legoMat("dashMat", LEGO_COLORS.yellow);
             }
             // 路面中线（Z 方向）
             for (let i = -10; i <= 10; i++) {
-                if (i === 0) continue;
+                const pz = i * 1.8;
+                if (Math.abs(pz) < 7) continue;
                 const dash = BABYLON.MeshBuilder.CreateBox(
                     "dashZ" + i,
                     { width: 0.18, height: 0.02, depth: 1 },
                     scene
                 );
-                dash.position.set(0, 0.06, i * 1.8);
+                dash.position.set(0, 0.06, pz);
                 dash.material = legoMat("dashMatZ", LEGO_COLORS.yellow);
             }
+
+            // ========== 人行横道（4 条斑马线，分布在十字路口的 4 个进站口） ==========
+            // 每条斑马线由若干白色平行短条组成
+            // 位置：路口外侧（紧贴人行道内沿）
+            function createCrosswalk(centerX, centerZ, alongAxis) {
+                // alongAxis: 'x' 表示斑马线条沿 X 方向延展（行人横穿 Z 向道路），
+                //            'z' 表示沿 Z 方向延展
+                const crossLen = ROAD_WIDTH - 1.0; // 斑马线长度（覆盖马路宽度）
+                const stripeCount = 6;
+                const stripeW = 0.5;     // 单条宽度
+                const stripeGap = 0.45;  // 条间距
+                const totalW = stripeCount * stripeW + (stripeCount - 1) * stripeGap;
+                const startOffset = -totalW / 2 + stripeW / 2;
+                for (let i = 0; i < stripeCount; i++) {
+                    const offset = startOffset + i * (stripeW + stripeGap);
+                    const stripe = BABYLON.MeshBuilder.CreateBox(
+                        "crosswalk_" + centerX + "_" + centerZ + "_" + i,
+                        alongAxis === 'x'
+                            ? { width: crossLen, height: 0.02, depth: stripeW }
+                            : { width: stripeW, height: 0.02, depth: crossLen },
+                        scene
+                    );
+                    if (alongAxis === 'x') {
+                        stripe.position.set(centerX, 0.07, centerZ + offset);
+                    } else {
+                        stripe.position.set(centerX + offset, 0.07, centerZ);
+                    }
+                    stripe.material = legoMat("crosswalkMat", LEGO_COLORS.white);
+                }
+            }
+            // 4 条斑马线：北、南、东、西 4 个路口
+            const crosswalkInset = ROAD_WIDTH / 2 + 0.2; // 紧贴路口内侧
+            createCrosswalk(0, -crosswalkInset, 'x');  // 南口（横穿 X 向主路）
+            createCrosswalk(0,  crosswalkInset, 'x');  // 北口
+            createCrosswalk(-crosswalkInset, 0, 'z');  // 西口（横穿 Z 向次路）
+            createCrosswalk( crosswalkInset, 0, 'z');  // 东口
 
             // ========== 四个象限的草地突点 ==========
             // 草地区域：|x| > ROAD_WIDTH/2 + SIDEWALK 或 |z| > ROAD_WIDTH/2 + SIDEWALK
@@ -1056,6 +1157,9 @@
                     }
                 }
 
+                // 注册建筑 AABB 碰撞（半宽 w/2=2、半深 d/2=1.75，加 0.1 padding 防贴墙穿模）
+                registerStaticObstacle(x, z, w / 2, d / 2, 0.1);
+
                 return group;
             }
 
@@ -1103,6 +1207,9 @@
                     leaf.position.set(x, 1.4 + i * 0.6, z);
                     leaf.material = legoMat("leafMat", leafColors[i % 2]);
                 }
+
+                // 注册树干 AABB（树冠较松散不挡路，仅碰树干 0.2 半径 + padding）
+                registerStaticObstacle(x, z, 0.2, 0.2, 0.15);
             }
             // 草地上撒一些树
             const treePositions = [
@@ -1130,6 +1237,9 @@
                 const lampMat = legoMat("lampMat", LEGO_COLORS.yellow);
                 lampMat.emissiveColor = new BABYLON.Color3(0.6, 0.5, 0.1);
                 lamp.material = lampMat;
+
+                // 注册路灯杆 AABB
+                registerStaticObstacle(x, z, 0.12, 0.12, 0.18);
             }
             // 在十字路口四个角放置路灯
             const lampOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH - 0.3;
@@ -1140,6 +1250,208 @@
                 createLegoLamp(s * lampSpacing, -lampOffset);
                 createLegoLamp(lampOffset, s * lampSpacing);
                 createLegoLamp(-lampOffset, s * lampSpacing);
+            }
+
+            // ========== 红绿灯（路口外侧 4 角，每个由杆 + 灯箱 + 红黄绿 3 灯组成） ==========
+            // 灯状态机：所有红绿灯共享一个全局相位（让画面更协调），按 红 → 红黄 → 绿 → 黄 → 红 循环
+            const trafficLights = []; // { redMat, yellowMat, greenMat, redBall, yellowBall, greenBall }
+            function createTrafficLight(x, z, facingDeg) {
+                // facingDeg: 灯箱朝向（度数，0 = 朝 +Z，90 = 朝 +X）
+                const group = new BABYLON.TransformNode("trafficLight_" + x + "_" + z, scene);
+
+                // 杆（深灰圆柱）
+                const pole = BABYLON.MeshBuilder.CreateCylinder(
+                    "tl_pole", { diameter: 0.22, height: 3.4, tessellation: 10 }, scene
+                );
+                pole.position.set(x, 1.7, z);
+                pole.material = legoMat("tlPoleMat", LEGO_COLORS.darkGray);
+                pole.parent = group;
+
+                // 灯箱（黑色长方体）
+                const box = BABYLON.MeshBuilder.CreateBox(
+                    "tl_box", { width: 0.5, height: 1.5, depth: 0.45 }, scene
+                );
+                box.position.set(x, 3.6, z);
+                box.material = legoMat("tlBoxMat", LEGO_COLORS.black);
+                box.parent = group;
+
+                // 3 个灯（红、黄、绿，球形，初始全部暗淡）
+                function makeLamp(name, color, yOffset) {
+                    const ball = BABYLON.MeshBuilder.CreateSphere(name,
+                        { diameter: 0.32, segments: 12 }, scene);
+                    ball.position.set(x, 3.6 + yOffset, z + 0.25);
+                    const mat = legoMat(name + "Mat", color);
+                    mat.emissiveColor = color.scale(0.1); // 默认暗
+                    ball.material = mat;
+                    ball.parent = group;
+                    return { ball, mat, baseColor: color };
+                }
+                const red    = makeLamp("tl_red_" + x + z,    LEGO_COLORS.red,    0.45);
+                const yellow = makeLamp("tl_yellow_" + x + z, LEGO_COLORS.yellow, 0.0);
+                const green  = makeLamp("tl_green_" + x + z,  LEGO_COLORS.green, -0.45);
+
+                // 旋转灯箱朝向（仅旋转灯箱和 3 个球，杆是圆柱不需要）
+                const rad = facingDeg * Math.PI / 180;
+                // 简化处理：直接绕灯箱中心旋转 3 个球的位置
+                [red.ball, yellow.ball, green.ball, box].forEach(m => {
+                    if (m === box) {
+                        m.rotation.y = rad;
+                        return;
+                    }
+                    const dz = m.position.z - z;
+                    const dx = m.position.x - x;
+                    m.position.x = x + dx * Math.cos(rad) - dz * Math.sin(rad);
+                    m.position.z = z + dx * Math.sin(rad) + dz * Math.cos(rad);
+                });
+
+                // 杆：注册碰撞（半径 0.15 + 软 padding）
+                registerStaticObstacle(x, z, 0.15, 0.15, 0.2);
+
+                trafficLights.push({ red, yellow, green });
+            }
+            // 4 个红绿灯放在路口外侧 4 个角（紧贴人行道外沿）
+            const tlOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH + 0.4;
+            createTrafficLight( tlOffset,  tlOffset, 225);  // 东北角，灯朝西南
+            createTrafficLight(-tlOffset,  tlOffset, 135);  // 西北角，灯朝东南
+            createTrafficLight(-tlOffset, -tlOffset,  45);  // 西南角，灯朝东北
+            createTrafficLight( tlOffset, -tlOffset, 315);  // 东南角，灯朝西北
+
+            // 红绿灯状态机（全局共享，循环：红 4s → 红黄 1s → 绿 4s → 黄 1s → 红...）
+            // phase: 'red' | 'redYellow' | 'green' | 'yellow'
+            let trafficPhase = 'red';
+            let trafficPhaseStart = performance.now();
+            const TRAFFIC_DURATIONS = { red: 4000, redYellow: 1000, green: 4000, yellow: 1000 };
+            function setLampOn(lamp, on) {
+                lamp.mat.emissiveColor = on ? lamp.baseColor.scale(0.9) : lamp.baseColor.scale(0.08);
+            }
+            function applyTrafficPhase() {
+                const showRed = trafficPhase === 'red' || trafficPhase === 'redYellow';
+                const showYellow = trafficPhase === 'redYellow' || trafficPhase === 'yellow';
+                const showGreen = trafficPhase === 'green';
+                trafficLights.forEach(tl => {
+                    setLampOn(tl.red, showRed);
+                    setLampOn(tl.yellow, showYellow);
+                    setLampOn(tl.green, showGreen);
+                });
+            }
+            applyTrafficPhase();
+            function updateTrafficLights(now) {
+                const elapsed = now - trafficPhaseStart;
+                if (elapsed >= TRAFFIC_DURATIONS[trafficPhase]) {
+                    const order = { red: 'redYellow', redYellow: 'green', green: 'yellow', yellow: 'red' };
+                    trafficPhase = order[trafficPhase];
+                    trafficPhaseStart = now;
+                    applyTrafficPhase();
+                }
+            }
+
+            // ========== 车辆（乐高小车，沿马路循环行驶） ==========
+            // 每辆车有：方向（X 向 / Z 向）、车道（左/右）、速度、起始位置
+            // X 向左侧车道 z = -LANE_HALF（向 +X 行驶），X 向右侧车道 z = +LANE_HALF（向 -X 行驶）
+            // Z 向同理
+            const vehicles = []; // { group, axis, dir, speed, halfL, halfW, obstacle }
+            function createVehicle(axis, lane, speed, startOffset, bodyColor) {
+                // axis: 'x' | 'z'，行驶方向轴
+                // lane: -1 | +1，车道偏移（沿"前进方向右手"为 +1）
+                // 车身尺寸：长 1.8 × 宽 0.9 × 高 0.6
+                // 关键：mesh 永远按"车头朝 +Z"的本地坐标系创建（width=W 沿X，depth=L 沿Z），
+                // 然后通过 group.rotation.y 整体旋转到正确朝向，避免 mesh 朝向与 group 旋转混淆
+                const L = 1.8, W = 0.9, H = 0.6;
+                const group = new BABYLON.TransformNode("vehicle", scene);
+
+                // 车身（本地坐标：长边沿 Z，短边沿 X）
+                const body = BABYLON.MeshBuilder.CreateBox(
+                    "vBody", { width: W, height: H, depth: L }, scene
+                );
+                body.position.y = H / 2 + 0.15;
+                body.material = legoMat("vBodyMat_" + bodyColor.toHexString(), bodyColor);
+                body.parent = group;
+
+                // 车顶（驾驶舱，本地坐标同样长边沿 Z）
+                const cab = BABYLON.MeshBuilder.CreateBox(
+                    "vCab", { width: W * 0.85, height: 0.4, depth: L * 0.55 }, scene
+                );
+                cab.position.set(0, H + 0.35, -L * 0.05); // 略偏车尾，让车头看起来更长
+                cab.material = legoMat("vCabMat", LEGO_COLORS.white);
+                cab.parent = group;
+
+                // 车头大灯（白色小方块，贴在车头 +Z 端）
+                [-W * 0.3, W * 0.3].forEach((dx, i) => {
+                    const headlight = BABYLON.MeshBuilder.CreateBox(
+                        "vHead" + i, { width: 0.18, height: 0.15, depth: 0.05 }, scene
+                    );
+                    headlight.position.set(dx, H * 0.5 + 0.15, L / 2 + 0.025);
+                    const hlMat = legoMat("vHeadMat", LEGO_COLORS.yellow);
+                    hlMat.emissiveColor = new BABYLON.Color3(0.6, 0.55, 0.1);
+                    headlight.material = hlMat;
+                    headlight.parent = group;
+                });
+
+                // 4 个轮子（黑色矮圆柱，本地坐标四角对应车身长边沿 Z）
+                const wheelOffsets = [
+                    [-W * 0.45, -L * 0.35], [W * 0.45, -L * 0.35],
+                    [-W * 0.45,  L * 0.35], [W * 0.45,  L * 0.35]
+                ];
+                wheelOffsets.forEach(([dx, dz], i) => {
+                    const wheel = BABYLON.MeshBuilder.CreateCylinder(
+                        "vWheel" + i, { diameter: 0.32, height: 0.18, tessellation: 12 }, scene
+                    );
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(dx, 0.16, dz);
+                    wheel.material = legoMat("vWheelMat", LEGO_COLORS.black);
+                    wheel.parent = group;
+                });
+
+                // 决定初始位置、方向和朝向
+                // 右行交通规则：axis='x' 时左车道(z<0)向 +x 跑、右车道(z>0)向 -x 跑；axis='z' 同理
+                let dir, posX, posZ;
+                if (axis === 'x') {
+                    dir = lane < 0 ? 1 : -1;
+                    posZ = lane * LANE_HALF;
+                    posX = startOffset;
+                } else {
+                    dir = lane < 0 ? 1 : -1;
+                    posX = lane * LANE_HALF;
+                    posZ = startOffset;
+                }
+                group.position = new BABYLON.Vector3(posX, 0, posZ);
+
+                // AABB：根据 axis 决定占地的长边方向
+                // axis='x' 时车长边沿 X 方向 → halfL 对应 X、halfW 对应 Z
+                // axis='z' 时车长边沿 Z 方向 → halfL 对应 Z、halfW 对应 X
+                const halfX = (axis === 'x' ? L : W) / 2;
+                const halfZ = (axis === 'x' ? W : L) / 2;
+                const obstacle = registerDynamicObstacle(group, halfX, halfZ, 0.1);
+                vehicles.push({ group, axis, dir, speed, obstacle });
+            }
+
+            // 4 辆车：X 向 2 辆（一来一回），Z 向 2 辆（一来一回）
+            createVehicle('x', -1, 0.08,  -BLOCK_SIZE / 2 + 2, LEGO_COLORS.red);     // X 向左道，向 +x 跑
+            createVehicle('x',  1, 0.07,   BLOCK_SIZE / 2 - 8, LEGO_COLORS.blue);    // X 向右道，向 -x 跑
+            createVehicle('z', -1, 0.075, -BLOCK_SIZE / 2 + 5, LEGO_COLORS.yellow);  // Z 向左道，向 +z 跑
+            createVehicle('z',  1, 0.085,  BLOCK_SIZE / 2 - 4, LEGO_COLORS.orange);  // Z 向右道，向 -z 跑
+
+            const VEHICLE_LIMIT = BLOCK_SIZE / 2 + 2;
+            function updateVehicles() {
+                vehicles.forEach(v => {
+                    if (v.axis === 'x') {
+                        v.group.position.x += v.dir * v.speed;
+                        v.group.rotation.y = v.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+                        if (v.dir > 0 && v.group.position.x > VEHICLE_LIMIT) {
+                            v.group.position.x = -VEHICLE_LIMIT;
+                        } else if (v.dir < 0 && v.group.position.x < -VEHICLE_LIMIT) {
+                            v.group.position.x = VEHICLE_LIMIT;
+                        }
+                    } else {
+                        v.group.position.z += v.dir * v.speed;
+                        v.group.rotation.y = v.dir > 0 ? 0 : Math.PI;
+                        if (v.dir > 0 && v.group.position.z > VEHICLE_LIMIT) {
+                            v.group.position.z = -VEHICLE_LIMIT;
+                        } else if (v.dir < 0 && v.group.position.z < -VEHICLE_LIMIT) {
+                            v.group.position.z = VEHICLE_LIMIT;
+                        }
+                    }
+                });
             }
 
             // ========== 彩票店建筑（乐高风格） ==========
@@ -1583,6 +1895,29 @@
             const doorText = document.getElementById('doorText');
             const doorFlash = document.getElementById('doorFlash');
 
+            // 提前获取所有 UI 引用，避免在 switchToShopScene/switchToStreetScene 等函数内
+            // 因 TDZ（暂时性死区）抛 ReferenceError
+            const lotteryShopButton = document.getElementById('lotteryShopButton');
+            const lotteryButton = document.getElementById('lotteryButton');
+            const lotteryShop = document.getElementById('lotteryShop');
+            const closeShop = document.getElementById('closeShop');
+            const balanceDisplay = document.getElementById('balance');
+            const scratchCardOptions = document.querySelectorAll('.scratch-card-option');
+            const scratchCard = document.getElementById('scratchCard');
+            const closeScratch = document.getElementById('closeScratch');
+            const scratchResult = document.getElementById('scratchResult');
+            const scratchCanvas = document.getElementById('scratchCanvas');
+            const insufficientFunds = document.getElementById('insufficientFunds');
+            const slotMachine = document.getElementById('slotMachine');
+            const closeSlotMachine = document.getElementById('closeSlotMachine');
+            const spinButton = document.getElementById('spinButton');
+            const resultMessage = document.getElementById('resultMessage');
+            const reels = [
+                document.getElementById('reel1'),
+                document.getElementById('reel2'),
+                document.getElementById('reel3')
+            ];
+
             // 使用 WebAudio 合成"咚咚"敲门音（无需外部音频文件）
             let audioCtx = null;
             function playKnockSound() {
@@ -1660,269 +1995,60 @@
                 }
             }
 
-            // 切换到店内场景（带敲门动画）
+            // 切换到店内场景：播放敲门动画后跳转到独立的彩票店关卡页面 lottery_shop.html
+            // 余额通过 sessionStorage 在两个页面间传递
+            //
+            // 异步加载流程：
+            //   1. 提前把余额写入 sessionStorage，并预热（preconnect/prefetch）目标页
+            //   2. 播放完整敲门动画（不在白光时立即跳转，避免新页加载打断动画）
+            //   3. 等敲门动画完整播放完毕（onComplete）再跳转到 lottery_shop.html
+            //   4. 目标页有自己的 fadeOverlay loading 动画，会等场景 ready 后再淡出
+            //   这样用户看到的是：敲门 → 门开 → 白光 → 平滑切到"走进彩票店..."loading → 场景出现
             function switchToShopScene() {
                 if (currentScene !== 'street') return;
-                // 先锁输入，避免过渡中继续移动
+                // 锁住输入避免过渡中继续移动
                 moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
                 lotteryShopButton.style.display = 'none';
                 lotteryButton.style.display = 'none';
 
-                playDoorTransition(
-                    // 白光时刻：真正切换场景
-                    () => {
-                        currentScene = 'shop';
-                        atLotteryShop = false;
+                // 把当前余额存到 sessionStorage，让彩票店页面读取
+                try {
+                    sessionStorage.setItem('balance', String(balance));
+                } catch (e) { /* 忽略 storage 错误 */ }
 
-                        // 隐藏街道物体（双保险：再次过滤角色子节点）
-                        streetSceneObjects.forEach(obj => {
-                            if (!obj || !obj.setEnabled) return;
-                            // 排除角色及其子节点
-                            if (walker && (obj === walker || isDescendantOf(obj, walker))) return;
-                            obj.setEnabled(false);
-                        });
-                        // 确保角色一定是 enabled
-                        if (walker && walker.setEnabled) walker.setEnabled(true);
+                // 预热：让浏览器尽早开始解析/缓存目标页和资源
+                // （prefetch 是低优先级，不会阻塞当前渲染，但能让跳转更快）
+                try {
+                    const prefetchHtml = document.createElement('link');
+                    prefetchHtml.rel = 'prefetch';
+                    prefetchHtml.href = 'lottery_shop.html';
+                    document.head.appendChild(prefetchHtml);
+                    const prefetchCss = document.createElement('link');
+                    prefetchCss.rel = 'prefetch';
+                    prefetchCss.href = 'lottery_shop.css';
+                    document.head.appendChild(prefetchCss);
+                    const prefetchJs = document.createElement('link');
+                    prefetchJs.rel = 'prefetch';
+                    prefetchJs.href = 'lottery_shop.js';
+                    document.head.appendChild(prefetchJs);
+                } catch (e) { /* 忽略 prefetch 失败 */ }
 
-                        // 创建店内场景
-                        createShopScene();
-
-                        // 角色放在门口（出门触发点）内侧
-                        if (walker) {
-                            walker.position.x = SHOP_EXIT_X;
-                            walker.position.z = SHOP_EXIT_Z - 2.5;
-                            walker.rotation.y = Math.PI; // 面向房间内部
-                        }
-                        // 相机切到角色位置
-                        camera.target = new BABYLON.Vector3(walker.position.x, 0.5, walker.position.z);
-                    },
-                    () => { /* no-op */ }
-                );
-            }
-
-            // 切换回街道场景（带敲门动画）
-            function switchToStreetScene() {
-                if (currentScene !== 'shop') return;
-                moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
-                lotteryButton.style.display = 'none';
-
-                playDoorTransition(
-                    () => {
-                        currentScene = 'street';
-                        // 销毁店内物体
-                        shopSceneObjects.forEach(obj => { if (obj && obj.dispose) obj.dispose(); });
-                        shopSceneObjects = [];
-                        shopSceneLights.forEach(l => { if (l && l.dispose) l.dispose(); });
-                        shopSceneLights = [];
-
-                        // 恢复街道
-                        streetSceneObjects.forEach(obj => {
-                            if (!obj || !obj.setEnabled) return;
-                            if (walker && (obj === walker || isDescendantOf(obj, walker))) return;
-                            obj.setEnabled(true);
-                        });
-                        if (walker && walker.setEnabled) walker.setEnabled(true);
-
-                        // 角色回到彩票店门口（外侧）
-                        if (walker) {
-                            walker.position.x = LOTTERY_SHOP_X;
-                            walker.position.z = LOTTERY_SHOP_Z + TRIGGER_DISTANCE + 1.5;
-                        }
-                        camera.target = new BABYLON.Vector3(walker.position.x, 0.5, walker.position.z);
-                        camera.alpha = -Math.PI / 4;
-                        camera.beta = Math.PI / 3.2;
-                        camera.radius = 22;
-
-                        atLotteryShop = false;
-                        lotteryShopButton.style.display = 'none';
-                        if (lotteryButton.dataset.shopPrice) {
-                            delete lotteryButton.dataset.shopPrice;
-                            lotteryButton.textContent = '🎰 抽奖';
-                        }
-                    },
-                    () => { /* no-op */ }
-                );
-            }
-
-            // 创建店内 3D 场景（乐高风格空房间）
-            function createShopScene() {
-                const ROOM_W = 14, ROOM_D = 18, ROOM_H = 4.5;
-
-                // 地板（木纹黄色乐高板）
-                const floor = BABYLON.MeshBuilder.CreateBox("shopFloor",
-                    { width: ROOM_W, height: 0.2, depth: ROOM_D }, scene);
-                floor.position.y = 0.1;
-                floor.material = legoMat("shopFloorMat", LEGO_COLORS.tan);
-                shopSceneObjects.push(floor);
-
-                // 地板 studs
-                for (let x = -ROOM_W / 2 + 1; x < ROOM_W / 2; x += 1.3) {
-                    for (let z = -ROOM_D / 2 + 1; z < ROOM_D / 2; z += 1.3) {
-                        const s = createStud(x, z, LEGO_COLORS.tan, 0.2);
-                        shopSceneObjects.push(s);
-                    }
-                }
-
-                // 三面墙（后、左、右） —— 前墙留开门处
-                const wallMat = legoMat("shopWallMat", LEGO_COLORS.white);
-                const backWall = BABYLON.MeshBuilder.CreateBox("shopBackWall",
-                    { width: ROOM_W, height: ROOM_H, depth: 0.3 }, scene);
-                backWall.position.set(0, ROOM_H / 2, -ROOM_D / 2);
-                backWall.material = wallMat;
-                shopSceneObjects.push(backWall);
-
-                const leftWall = BABYLON.MeshBuilder.CreateBox("shopLeftWall",
-                    { width: 0.3, height: ROOM_H, depth: ROOM_D }, scene);
-                leftWall.position.set(-ROOM_W / 2, ROOM_H / 2, 0);
-                leftWall.material = wallMat;
-                shopSceneObjects.push(leftWall);
-
-                const rightWall = BABYLON.MeshBuilder.CreateBox("shopRightWall",
-                    { width: 0.3, height: ROOM_H, depth: ROOM_D }, scene);
-                rightWall.position.set(ROOM_W / 2, ROOM_H / 2, 0);
-                rightWall.material = wallMat;
-                shopSceneObjects.push(rightWall);
-
-                // 前墙（分两段，中间留门）
-                const doorW = 2.4;
-                const frontLeft = BABYLON.MeshBuilder.CreateBox("shopFrontLeft",
-                    { width: (ROOM_W - doorW) / 2, height: ROOM_H, depth: 0.3 }, scene);
-                frontLeft.position.set(-(ROOM_W / 2 + doorW / 2) / 2 - 0, ROOM_H / 2, ROOM_D / 2);
-                frontLeft.position.x = -(ROOM_W / 4 + doorW / 4);
-                frontLeft.material = wallMat;
-                shopSceneObjects.push(frontLeft);
-
-                const frontRight = BABYLON.MeshBuilder.CreateBox("shopFrontRight",
-                    { width: (ROOM_W - doorW) / 2, height: ROOM_H, depth: 0.3 }, scene);
-                frontRight.position.set(ROOM_W / 4 + doorW / 4, ROOM_H / 2, ROOM_D / 2);
-                frontRight.material = wallMat;
-                shopSceneObjects.push(frontRight);
-
-                // 门上方横梁
-                const lintel = BABYLON.MeshBuilder.CreateBox("shopLintel",
-                    { width: doorW + 0.4, height: 0.6, depth: 0.3 }, scene);
-                lintel.position.set(0, ROOM_H - 0.3, ROOM_D / 2);
-                lintel.material = legoMat("lintelMat", LEGO_COLORS.red);
-                shopSceneObjects.push(lintel);
-
-                // 出门触发点（绿色浮动积木，位于门前）
-                SHOP_EXIT_X = 0;
-                SHOP_EXIT_Z = ROOM_D / 2 - 1.2;
-                const exitTrigger = BABYLON.MeshBuilder.CreateBox("shopExitTrigger",
-                    { width: 0.9, height: 0.4, depth: 0.9 }, scene);
-                exitTrigger.position.set(SHOP_EXIT_X, 0.45, SHOP_EXIT_Z);
-                const exitMat = legoMat("exitMat", LEGO_COLORS.green);
-                exitMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.1);
-                exitTrigger.material = exitMat;
-                shopSceneObjects.push(exitTrigger);
-                // 触发点突点
-                for (let sx = -0.22; sx <= 0.22; sx += 0.44) {
-                    for (let sz = -0.22; sz <= 0.22; sz += 0.44) {
-                        const s = createStud(SHOP_EXIT_X + sx, SHOP_EXIT_Z + sz, LEGO_COLORS.green, 0.65);
-                        shopSceneObjects.push(s);
-                    }
-                }
-                // exit 触发点动画
-                exitTrigger._animTime = 0;
-                exitTrigger._animObserver = scene.onBeforeRenderObservable.add(() => {
-                    if (currentScene !== 'shop') return;
-                    exitTrigger._animTime += 0.02;
-                    exitTrigger.rotation.y += 0.02;
-                    exitTrigger.position.y = 0.55 + Math.sin(exitTrigger._animTime * 2.5) * 0.1;
-                });
-                exitTrigger.onDispose = () => {
-                    if (exitTrigger._animObserver) {
-                        scene.onBeforeRenderObservable.remove(exitTrigger._animObserver);
-                    }
+                let navigated = false;
+                const navigate = () => {
+                    if (navigated) return;
+                    navigated = true;
+                    window.location.href = 'lottery_shop.html';
                 };
 
-                // 墙上一些装饰（窗户）
-                const winMat = legoMat("shopWinMat", LEGO_COLORS.blue);
-                [-3, 3].forEach(wx => {
-                    const win = BABYLON.MeshBuilder.CreateBox("shopWin",
-                        { width: 1.2, height: 1, depth: 0.1 }, scene);
-                    win.position.set(wx, 2.2, -ROOM_D / 2 + 0.2);
-                    win.material = winMat;
-                    shopSceneObjects.push(win);
-                });
-
-                // 柜台：3 个刮刮乐展示柜（后墙前方）—— 和刮刮乐价格对应
-                const counterConfigs = [
-                    { x: -4, price: 5,  color: LEGO_COLORS.red },
-                    { x: 0,  price: 10, color: LEGO_COLORS.blue },
-                    { x: 4,  price: 20, color: LEGO_COLORS.yellow }
-                ];
-                counterConfigs.forEach(cfg => {
-                    const counter = BABYLON.MeshBuilder.CreateBox("counter_" + cfg.price,
-                        { width: 2.4, height: 1.0, depth: 1.2 }, scene);
-                    counter.position.set(cfg.x, 0.6, -ROOM_D / 2 + 1.5);
-                    counter.material = legoMat("counterMat_" + cfg.price, LEGO_COLORS.darkGray);
-                    shopSceneObjects.push(counter);
-
-                    const top = BABYLON.MeshBuilder.CreateBox("counterTop_" + cfg.price,
-                        { width: 2.6, height: 0.12, depth: 1.4 }, scene);
-                    top.position.set(cfg.x, 1.16, -ROOM_D / 2 + 1.5);
-                    top.material = legoMat("counterTopMat_" + cfg.price, cfg.color);
-                    shopSceneObjects.push(top);
-
-                    // 柜台顶部 studs
-                    for (let ix = -1; ix <= 1; ix += 1) {
-                        for (let iz = -0.3; iz <= 0.3; iz += 0.6) {
-                            const s = createStud(cfg.x + ix * 0.9, -ROOM_D / 2 + 1.5 + iz, cfg.color, 1.22);
-                            shopSceneObjects.push(s);
-                        }
-                    }
-
-                    // 展示的彩票（5 张小卡片立在柜台上）
-                    for (let k = 0; k < 5; k++) {
-                        const card = BABYLON.MeshBuilder.CreateBox("ticket_" + cfg.price + "_" + k,
-                            { width: 0.35, height: 0.5, depth: 0.04 }, scene);
-                        card.position.set(cfg.x - 0.8 + k * 0.4, 1.55, -ROOM_D / 2 + 1.5);
-                        const cm = legoMat("ticketMat_" + cfg.price + "_" + k, cfg.color);
-                        cm.emissiveColor = cfg.color.scale(0.3);
-                        card.material = cm;
-                        shopSceneObjects.push(card);
-                    }
-
-                    // 价格牌
-                    const priceTag = BABYLON.MeshBuilder.CreateBox("priceTag_" + cfg.price,
-                        { width: 1.2, height: 0.5, depth: 0.1 }, scene);
-                    priceTag.position.set(cfg.x, 2.2, -ROOM_D / 2 + 0.5);
-                    const pm = legoMat("priceTagMat_" + cfg.price, LEGO_COLORS.white);
-                    pm.emissiveColor = new BABYLON.Color3(0.4, 0.4, 0.4);
-                    priceTag.material = pm;
-                    shopSceneObjects.push(priceTag);
-
-                    // 点击柜台直接打开对应刮刮乐（可选）—— 让角色走近触发
-                    counter._priceValue = cfg.price;
-                });
-
-                // 店内灯光：三盏吊灯
-                for (let lx of [-4, 0, 4]) {
-                    const pl = new BABYLON.PointLight("shopPL_" + lx,
-                        new BABYLON.Vector3(lx, ROOM_H - 0.5, 0), scene);
-                    pl.diffuse = new BABYLON.Color3(1, 0.95, 0.8);
-                    pl.intensity = 0.8;
-                    pl.range = 10;
-                    shopSceneLights.push(pl);
-
-                    // 灯罩
-                    const bulb = BABYLON.MeshBuilder.CreateSphere("bulb_" + lx,
-                        { diameter: 0.5 }, scene);
-                    bulb.position.set(lx, ROOM_H - 0.3, 0);
-                    const bulbMat = legoMat("bulbMat_" + lx, LEGO_COLORS.yellow);
-                    bulbMat.emissiveColor = new BABYLON.Color3(0.9, 0.8, 0.3);
-                    bulb.material = bulbMat;
-                    shopSceneObjects.push(bulb);
-                }
-
-                // 店内环境光（整体变亮）
-                const shopAmb = new BABYLON.HemisphericLight("shopAmb",
-                    new BABYLON.Vector3(0, 1, 0), scene);
-                shopAmb.intensity = 0.6;
-                shopAmb.groundColor = new BABYLON.Color3(0.4, 0.35, 0.3);
-                shopSceneLights.push(shopAmb);
+                playDoorTransition(
+                    // 白光时刻：先不跳转，让动画继续播完
+                    () => { /* no-op，等 onComplete 再跳 */ },
+                    // 动画完整播完后再跳转，确保敲门 → 开门 → 白光过渡完整呈现
+                    () => { navigate(); }
+                );
             }
+
+            // 店内场景已迁移到独立的 lottery_shop.html 关卡
 
             // 初始化街道场景物体列表（必须在 walker 创建完成后再注册）
             // 使用 mesh.metadata.isStreet 标记法避免误把角色子 mesh 加入
@@ -1951,7 +2077,10 @@
                     streetSceneObjects.push(l);
                 });
             }
-            // 等 walker 创建完成后再注册（最多等待 3s）
+            // 等 walker 创建完成 *并且* 所有街道物体都建好后再注册
+            // 注意：tryInitStreet() 在 createScene 函数体执行流程中被声明，
+            // 但实际触发要等到 createScene 整个函数 return 之后（街道物体已全部 new 完）
+            // 所以用 setTimeout(0) 把它推到当前微任务之后执行。
             let _streetInitTries = 0;
             function tryInitStreet() {
                 if (walker) {
@@ -1962,27 +2091,31 @@
                     initStreetSceneObjects(); // 兜底
                 }
             }
-            tryInitStreet();
+            // 推迟到 createScene 返回 + 一帧渲染之后，确保街道全部物体已构建
+            setTimeout(tryInitStreet, 0);
+            // 双保险：渲染开始后再注册一次（此时 walker、街道一定都齐全）
+            scene.onReadyObservable.addOnce(() => {
+                _streetInitTries = 0;
+                tryInitStreet();
+            });
 
-            // ========== 彩票店控制 ==========
-            const lotteryShopButton = document.getElementById('lotteryShopButton');
-            const lotteryShop = document.getElementById('lotteryShop');
-            const closeShop = document.getElementById('closeShop');
-            const balanceDisplay = document.getElementById('balance');
-            const scratchCardOptions = document.querySelectorAll('.scratch-card-option');
-            const scratchCard = document.getElementById('scratchCard');
-            const closeScratch = document.getElementById('closeScratch');
-            const scratchResult = document.getElementById('scratchResult');
-            const scratchCanvas = document.getElementById('scratchCanvas');
-            const insufficientFunds = document.getElementById('insufficientFunds');
-
-            // 余额系统
+            // ========== 彩票店控制（UI 引用已在前面统一获取，这里只声明业务变量）==========
+            // 余额系统：优先从 sessionStorage 读取（从 lottery_shop.html 返回时保留余额）
             let balance = 100;
+            try {
+                const stored = sessionStorage.getItem('balance');
+                if (stored !== null && !isNaN(parseInt(stored, 10))) {
+                    balance = parseInt(stored, 10);
+                }
+            } catch (e) { /* 忽略 storage 错误 */ }
 
-            // 更新余额显示
+            // 更新余额显示，并同步到 sessionStorage
             function updateBalance() {
                 balanceDisplay.textContent = balance;
+                try { sessionStorage.setItem('balance', String(balance)); } catch (e) { /* ignore */ }
             }
+            // 初始化显示
+            updateBalance();
 
             // 打开彩票店（切换到杂货铺场景）
             lotteryShopButton.addEventListener('click', () => {
@@ -2177,18 +2310,7 @@
                 });
             });
 
-            // ========== 抽奖按钮控制 ==========
-            const lotteryButton = document.getElementById('lotteryButton');
-            const slotMachine = document.getElementById('slotMachine');
-            const closeSlotMachine = document.getElementById('closeSlotMachine');
-            const spinButton = document.getElementById('spinButton');
-            const resultMessage = document.getElementById('resultMessage');
-            const reels = [
-                document.getElementById('reel1'),
-                document.getElementById('reel2'),
-                document.getElementById('reel3')
-            ];
-
+            // ========== 抽奖按钮控制（UI 引用已在前面统一获取，这里只声明业务变量）==========
             // 图标列表
             const icons = ['🍎', '🍊', '🍋', '🍇', '🍒', '💎', '⭐', '🌟'];
 
@@ -2275,6 +2397,12 @@
             });
 
             scene.registerBeforeRender(() => {
+                // ========== 街道动态系统：车辆移动 + 红绿灯切换 + 动态 AABB 刷新 ==========
+                // 这些更新与角色是否存在/场景是否切换无关，每帧都跑（让街道始终活着）
+                updateVehicles();
+                updateTrafficLights(performance.now());
+                refreshDynamicObstacles();
+
                 if (!walker) return;
 
                 // ========== 合并键盘输入到 moveInput（街道和店内都支持）==========
@@ -2309,8 +2437,24 @@
                     // 根据场景选择边界
                     const boundX = currentScene === 'shop' ? SHOP_BOUND_X : WALK_BOUND_X;
                     const boundZ = currentScene === 'shop' ? SHOP_BOUND_Z : WALK_BOUND_Z;
-                    if (Math.abs(newX) <= boundX) walker.position.x = newX;
-                    if (Math.abs(newZ) <= boundZ) walker.position.z = newZ;
+
+                    // 街道场景：分轴检测障碍物 AABB（允许沿墙滑动，不会被卡住）
+                    // 店内场景：保持原边界检查（店内已有专门的墙体）
+                    if (currentScene === 'street') {
+                        const curX = walker.position.x;
+                        const curZ = walker.position.z;
+                        // 先尝试 X 轴：用 (newX, curZ) 检测
+                        if (Math.abs(newX) <= boundX && !isPointBlocked(newX, curZ)) {
+                            walker.position.x = newX;
+                        }
+                        // 再尝试 Z 轴：用 (新的 walker.x, newZ) 检测，已更新的 X 也算
+                        if (Math.abs(newZ) <= boundZ && !isPointBlocked(walker.position.x, newZ)) {
+                            walker.position.z = newZ;
+                        }
+                    } else {
+                        if (Math.abs(newX) <= boundX) walker.position.x = newX;
+                        if (Math.abs(newZ) <= boundZ) walker.position.z = newZ;
+                    }
 
                     walkTime += 0.2 * moveInput.magnitude;
                     walker.rotation.y = Math.atan2(moveInput.x, moveInput.z);

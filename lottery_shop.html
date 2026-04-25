@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🎰 彩票店 - 乐高小人</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/babylonjs/5.0.0/babylon.min.js"></script>
+    <link rel="stylesheet" href="lottery_shop.css">
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+
+    <div id="topBar">
+        <div id="title">🎰 幸运彩票店</div>
+        <div id="balanceBox">💰 余额：<span id="balanceText">100</span></div>
+    </div>
+
+    <div id="hint">用摇杆控制小人 · 走到柜台前购买 · 走到门口绿色积木处出门</div>
+
+    <div id="joystickBase">
+        <div id="joystickThumb"></div>
+    </div>
+
+    <button id="exitButton">🚪 出门</button>
+    <button id="buyButton">购买</button>
+
+    <div id="scratchModal">
+        <div class="scratchPanel">
+            <h2 id="scratchTitle">🎟️ 刮刮乐</h2>
+            <div class="priceText" id="scratchPrice"></div>
+            <div class="scratchWrap">
+                <canvas id="scratchPrizeCanvas" width="300" height="180"></canvas>
+                <canvas id="scratchCanvas" width="300" height="180"></canvas>
+            </div>
+            <div class="resultText" id="scratchResult"></div>
+            <button id="scratchClose">关闭</button>
+            <button id="scratchAgain" class="primary">再来一张</button>
+        </div>
+    </div>
+
+    <div id="fadeOverlay">
+        <div class="loadingBox">
+            <div class="loadingDoor">
+                <div class="doorLeaf left"></div>
+                <div class="doorLeaf right"></div>
+            </div>
+            <div class="loadingText">🎰 走进彩票店...</div>
+            <div class="loadingDots"><span></span><span></span><span></span></div>
+        </div>
+    </div>
+
+    <script src="lottery_shop.js"></script>
+</body>
+</html>
