@@ -874,18 +874,34 @@
             const scene = new BABYLON.Scene(engine);
             scene.clearColor = new BABYLON.Color4(0.55, 0.78, 0.92, 1); // 乐高明亮天空蓝
 
-            // ========== 街区参数（乐高风格方形地块） ==========
-            const BLOCK_SIZE = 40;          // 方形地块边长（X 和 Z 方向）
-            const ROAD_WIDTH = 12;          // 道路宽度（双车道，比之前宽 1 倍）
+            // ========== 街区参数（乐高风格网格化路网） ==========
+            // 网格化路网：横向 2 条主路 + 纵向 4 条次路 → 共 8 个十字路口
+            const ROAD_WIDTH = 12;          // 道路宽度（双车道）
             const SIDEWALK_WIDTH = 1.5;     // 人行道宽度
-            const LANE_HALF = ROAD_WIDTH / 4; // 车道中心线偏移（双车道：左侧车道中心在 -LANE_HALF，右侧在 +LANE_HALF）
+            const LANE_HALF = ROAD_WIDTH / 4; // 单车道中心偏移（一半马路宽的一半）
+
+            // 横向（X 方向）主路 z 坐标
+            const ROADS_X = [-25, 25];
+            // 纵向（Z 方向）次路 x 坐标
+            const ROADS_Z = [-45, -15, 15, 45];
+
+            // 地面尺寸（覆盖所有路网 + 边缘草地）
+            const GROUND_W = 130;           // X 方向总宽
+            const GROUND_D = 80;            // Z 方向总深
+            const BLOCK_SIZE = Math.max(GROUND_W, GROUND_D); // 兼容老代码
+
+            // 路网范围（车辆循环边界用）
+            const ROAD_MIN_X = ROADS_Z[0] - ROAD_WIDTH / 2 - 4;
+            const ROAD_MAX_X = ROADS_Z[ROADS_Z.length - 1] + ROAD_WIDTH / 2 + 4;
+            const ROAD_MIN_Z = ROADS_X[0] - ROAD_WIDTH / 2 - 4;
+            const ROAD_MAX_Z = ROADS_X[ROADS_X.length - 1] + ROAD_WIDTH / 2 + 4;
             const STUD_SIZE = 0.5;          // 乐高突点（stud）直径
             const STUD_HEIGHT = 0.15;       // 乐高突点高度
             
-            const WALK_START_X = -BLOCK_SIZE / 2 + 3;     // 角色起点 X
+            const WALK_START_X = -GROUND_W / 2 + 3;        // 角色起点 X
             const WALK_START_Z = 0;                        // 角色起点 Z
-            const WALK_BOUND_X = BLOCK_SIZE / 2 - 2;       // 活动边界 X
-            const WALK_BOUND_Z = BLOCK_SIZE / 2 - 2;       // 活动边界 Z
+            const WALK_BOUND_X = GROUND_W / 2 - 2;         // 活动边界 X
+            const WALK_BOUND_Z = GROUND_D / 2 - 2;         // 活动边界 Z
             
             // 关键地点坐标（XZ 平面）
             // 注意：马路加宽到 ROAD_WIDTH=12 后，|z|<=6 是车道、|z|<=7.5 是人行道范围
@@ -893,13 +909,15 @@
             // 建筑分布在 ±10/±16 (X) 和 ±10/±12/±17 (Z) 等位置；触发器要躲开这些
             //
             // 选址说明：
-            //   彩票店触发器：放 (-13, -8.5)，紧贴人行道外侧，建筑会建在 (-13, -10.5) → 避开 ±10 列建筑
-            //   抽奖触发器：放 ( 13, -8.5)，对称
-            //   终点标记：放 ( 0, 14)，正好在建筑配置 z=12/17 之间的空隙
-            const LOTTERY_SHOP_X = -13, LOTTERY_SHOP_Z = -8.5;  // 彩票店触发器
-            const LOTTERY_X      =  13, LOTTERY_Z      = -8.5;  // 抽奖触发器
-            const MARKER_X       =   0, MARKER_Z       =  14;   // 终点标记（建筑空隙处）
-            const FORK_X = 0, FORK_Z = 0;                       // 岔路口（中心）
+            //   新路网（横向 z=±25 主路 + 纵向 x=-45/-15/+15/+45 次路）：
+            //   关键地点都放在【中央带】(|z|<25 且 |x|<15)的人行道附近，玩家走在主路边能看到
+            //   彩票店触发器：(-30, 16) 西北街区（彩票店建筑会建在 z=12.5，紧贴 z=25 主路南侧人行道）
+            //   抽奖触发器：(30, 16) 东北对称
+            //   终点标记：(0, -16) 中央南侧街区（远离起点，引导玩家走完整张地图）
+            const LOTTERY_SHOP_X = -30, LOTTERY_SHOP_Z =  16;   // 彩票店触发器
+            const LOTTERY_X      =  30, LOTTERY_Z      =  16;   // 抽奖触发器
+            const MARKER_X       =   0, MARKER_Z       = -16;   // 终点标记（中央南街区空隙）
+            const FORK_X = 0, FORK_Z = 0;                       // 岔路口（中心，仅作记号）
             const TRIGGER_DISTANCE = 2.5;                       // 触发距离
 
             // ========== 相机：固定 2.5D 等距视角 ==========
@@ -1018,7 +1036,7 @@
             // ========== 乐高底板（草地）+ 突点 ==========
             const baseplate = BABYLON.MeshBuilder.CreateBox(
                 "baseplate",
-                { width: BLOCK_SIZE, height: 0.3, depth: BLOCK_SIZE },
+                { width: GROUND_W, height: 0.3, depth: GROUND_D },
                 scene
             );
             baseplate.position.y = -0.15;
@@ -1036,111 +1054,142 @@
                 return stud;
             }
 
-            // 道路（深灰色乐高路面）
-            // 十字路：X 方向主路 + Z 方向次路
-            const roadX = BABYLON.MeshBuilder.CreateBox(
-                "roadX",
-                { width: BLOCK_SIZE, height: 0.05, depth: ROAD_WIDTH },
-                scene
-            );
-            roadX.position.y = 0.025;
-            roadX.material = legoMat("roadMat", LEGO_COLORS.darkGray);
-
-            const roadZ = BABYLON.MeshBuilder.CreateBox(
-                "roadZ",
-                { width: ROAD_WIDTH, height: 0.05, depth: BLOCK_SIZE },
-                scene
-            );
-            roadZ.position.y = 0.025;
-            roadZ.material = legoMat("roadMatZ", LEGO_COLORS.darkGray);
-
-            // 路面中线（黄色虚线 - X 方向）：中心 ±7 范围让位给路口/斑马线
-            for (let i = -10; i <= 10; i++) {
-                const px = i * 1.8;
-                if (Math.abs(px) < 7) continue;
-                const dash = BABYLON.MeshBuilder.CreateBox(
-                    "dashX" + i,
-                    { width: 1, height: 0.02, depth: 0.18 },
+            // ========== 道路（深灰色乐高路面，网格化路网） ==========
+            // 横向主路（沿 X 延伸，宽度 = GROUND_W）
+            ROADS_X.forEach((zCoord, idx) => {
+                const road = BABYLON.MeshBuilder.CreateBox(
+                    "roadX_" + idx,
+                    { width: GROUND_W, height: 0.05, depth: ROAD_WIDTH },
                     scene
                 );
-                dash.position.set(px, 0.06, 0);
-                dash.material = legoMat("dashMat", LEGO_COLORS.yellow);
-            }
-            // 路面中线（Z 方向）
-            for (let i = -10; i <= 10; i++) {
-                const pz = i * 1.8;
-                if (Math.abs(pz) < 7) continue;
-                const dash = BABYLON.MeshBuilder.CreateBox(
-                    "dashZ" + i,
-                    { width: 0.18, height: 0.02, depth: 1 },
+                road.position.set(0, 0.025, zCoord);
+                road.material = legoMat("roadMat", LEGO_COLORS.darkGray);
+            });
+            // 纵向次路（沿 Z 延伸）
+            ROADS_Z.forEach((xCoord, idx) => {
+                const road = BABYLON.MeshBuilder.CreateBox(
+                    "roadZ_" + idx,
+                    { width: ROAD_WIDTH, height: 0.05, depth: GROUND_D },
                     scene
                 );
-                dash.position.set(0, 0.06, pz);
-                dash.material = legoMat("dashMatZ", LEGO_COLORS.yellow);
+                road.position.set(xCoord, 0.025, 0);
+                road.material = legoMat("roadMat", LEGO_COLORS.darkGray);
+            });
+
+            // 判断 (x, z) 是否在路口范围内（路口处不画中线）
+            function isAtIntersection(x, z) {
+                for (const rx of ROADS_Z) {
+                    for (const rz of ROADS_X) {
+                        if (Math.abs(x - rx) < ROAD_WIDTH / 2 + 1.5 &&
+                            Math.abs(z - rz) < ROAD_WIDTH / 2 + 1.5) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
             }
 
-            // ========== 人行横道（4 条斑马线，分布在十字路口的 4 个进站口） ==========
-            // 真实人行横道：白色条纹与黑色间隔等宽，覆盖整条马路宽度
-            // 参数参考国标：单条宽 0.45m、间距 0.45m，整条横道沿马路方向占 ~3m 长度
+            // 路面中线（黄色虚线，沿每条主路 X 方向）
+            ROADS_X.forEach(zCoord => {
+                for (let px = -GROUND_W / 2 + 1; px <= GROUND_W / 2; px += 1.8) {
+                    if (isAtIntersection(px, zCoord)) continue;
+                    const dash = BABYLON.MeshBuilder.CreateBox(
+                        "dashX",
+                        { width: 0.13, height: 0.02, depth: 0.18 },
+                        scene
+                    );
+                    dash.position.set(px, 0.06, zCoord);
+                    dash.material = legoMat("dashMat", LEGO_COLORS.yellow);
+                }
+            });
+            // 路面中线（沿每条次路 Z 方向）
+            ROADS_Z.forEach(xCoord => {
+                for (let pz = -GROUND_D / 2 + 1; pz <= GROUND_D / 2; pz += 1.8) {
+                    if (isAtIntersection(xCoord, pz)) continue;
+                    const dash = BABYLON.MeshBuilder.CreateBox(
+                        "dashZ",
+                        { width: 0.18, height: 0.02, depth: 0.13 },
+                        scene
+                    );
+                    dash.position.set(xCoord, 0.06, pz);
+                    dash.material = legoMat("dashMatZ", LEGO_COLORS.yellow);
+                }
+            });
+
+            // ========== 人行横道（斑马线） ==========
+            // 真实人行横道：条纹【垂直于车道方向】排布，每条白线都是行人脚下的"一步"
+            //   ──→ 车道方向（车开来）
+            //   ▮ ▮ ▮ ▮ ▮ ▮  ← 这些就是斑马线，每条的长边沿"行人横穿方向"延展，
+            //                    多条沿"车道方向"等距排列
             //
-            // crossSpan: 斑马线"沿马路方向"占的总长度（行人脚下走的方向）
-            // alongAxis: 斑马线条纹的"延展方向"（横穿马路的方向）
-            //   'x' = 条纹沿 X 延展（在 Z 向马路两端的进站口，行人从北/南横穿）
-            //   'z' = 条纹沿 Z 延展（在 X 向马路两端的进站口，行人从东/西横穿）
-            function createCrosswalk(centerX, centerZ, alongAxis) {
-                const crossLen = ROAD_WIDTH;     // 条纹长度（必须正好覆盖整条马路宽度）
-                const stripeW = 0.5;             // 单条宽度
-                const stripeGap = 0.5;           // 条间距（与条宽相等 = 真实人行横道）
-                const stripePitch = stripeW + stripeGap; // 一个完整周期 = 1.0
-                const stripeCount = 7;           // 条纹数量（覆盖约 6.5m 沿马路方向）
+            // crossRoadAxis: 这条斑马线所在的【马路】是哪个轴向（即车在哪个方向开）
+            //   'x' = 横向 X 主路（车沿 X 开），条纹的长边应沿 Z 延展（横穿马路），多条沿 X 排列
+            //   'z' = 纵向 Z 次路（车沿 Z 开），条纹的长边应沿 X 延展（横穿马路），多条沿 Z 排列
+            function createCrosswalk(centerX, centerZ, crossRoadAxis) {
+                const crossLen = ROAD_WIDTH / 4; // 条纹长度（行人横穿方向，覆盖马路宽度的四分之一）
+                const stripeW = 0.32;              // 单条宽度（沿车道方向）
+                const stripeGap = 0.32;            // 条间距（等于条宽 = 真实斑马线）
+                const stripePitch = stripeW + stripeGap;
+                const stripeCount = Math.floor(ROAD_WIDTH / stripePitch); // 根据街道宽度动态计算条纹数量
                 const totalSpan = stripeCount * stripeW + (stripeCount - 1) * stripeGap;
                 const startOffset = -totalSpan / 2 + stripeW / 2;
                 for (let i = 0; i < stripeCount; i++) {
                     const offset = startOffset + i * stripePitch;
                     const stripe = BABYLON.MeshBuilder.CreateBox(
-                        "crosswalk_" + centerX + "_" + centerZ + "_" + i,
-                        alongAxis === 'x'
-                            ? { width: crossLen, height: 0.02, depth: stripeW }
-                            : { width: stripeW, height: 0.02, depth: crossLen },
+                        "crosswalk",
+                        crossRoadAxis === 'x'
+                            // 横向 X 主路：条纹长边沿 Z 延展（横穿马路），多条沿 X 排列
+                            ? { width: stripeW, height: 0.02, depth: crossLen }
+                            // 纵向 Z 次路：条纹长边沿 X 延展（横穿马路），多条沿 Z 排列
+                            : { width: crossLen, height: 0.02, depth: stripeW },
                         scene
                     );
-                    if (alongAxis === 'x') {
-                        // 条纹沿 X 延展，沿 Z 方向均匀排布
-                        stripe.position.set(centerX, 0.07, centerZ + offset);
-                    } else {
-                        // 条纹沿 Z 延展，沿 X 方向均匀排布
+                    if (crossRoadAxis === 'x') {
+                        // 沿 X 方向排布
                         stripe.position.set(centerX + offset, 0.07, centerZ);
+                    } else {
+                        // 沿 Z 方向排布
+                        stripe.position.set(centerX, 0.07, centerZ + offset);
                     }
                     stripe.material = legoMat("crosswalkMat", LEGO_COLORS.white);
                 }
             }
-            // 4 条斑马线：路口外侧 4 个进站口
-            // 北/南口：行人从 +Z/-Z 进入路口，要横穿"东西向 X 主路"，
-            //         斑马线在 X 主路上、靠近路口边缘，条纹沿 X 延展（行人脚下沿 Z 走）
-            // 东/西口：对称
-            // 把斑马线中心放在"人行道内侧 ± stripeSpan/2"位置，让斑马线刚好贴在路口外
-            const crosswalkCenter = ROAD_WIDTH / 2 + 1.5; // 斑马线中心距路中心的距离（在人行道内侧）
-            createCrosswalk(0, -crosswalkCenter, 'x');  // 南口斑马线（沿 X 延展，行人横穿）
-            createCrosswalk(0,  crosswalkCenter, 'x');  // 北口
-            createCrosswalk(-crosswalkCenter, 0, 'z');  // 西口
-            createCrosswalk( crosswalkCenter, 0, 'z');  // 东口
 
-            // ========== 四个象限的草地突点 ==========
-            // 草地区域：|x| > ROAD_WIDTH/2 + SIDEWALK 或 |z| > ROAD_WIDTH/2 + SIDEWALK
-            const grassStart = ROAD_WIDTH / 2 + SIDEWALK_WIDTH + 0.5;
-            for (let x = -BLOCK_SIZE / 2 + 1; x < BLOCK_SIZE / 2; x += 1.2) {
-                for (let z = -BLOCK_SIZE / 2 + 1; z < BLOCK_SIZE / 2; z += 1.2) {
-                    // 仅在草地区域（远离道路）放置突点
-                    if (Math.abs(x) > grassStart && Math.abs(z) > grassStart) {
-                        // 稀疏随机
-                        if (Math.random() > 0.55) {
-                            createStud(x, z, LEGO_COLORS.green);
-                        }
+            // 在每个十字路口的 4 个进站口画斑马线
+            // 真实十字路口：斑马线紧贴人行道边缘，从人行道延伸到路口中心附近，形成井字形
+            // 把斑马线中心放在人行道边缘（马路与人行道交界处）
+            const crosswalkOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2; // 人行道边缘位置
+            for (const xCoord of ROADS_Z) {
+                for (const zCoord of ROADS_X) {
+                    // 北口/南口：横穿【横向 X 主路】 → crossRoadAxis = 'x'
+                    createCrosswalk(xCoord, zCoord + crosswalkOffset, 'x');
+                    createCrosswalk(xCoord, zCoord - crosswalkOffset, 'x');
+                    // 东口/西口：横穿【纵向 Z 次路】 → crossRoadAxis = 'z'
+                    createCrosswalk(xCoord + crosswalkOffset, zCoord, 'z');
+                    createCrosswalk(xCoord - crosswalkOffset, zCoord, 'z');
+                }
+            }
+
+            // ========== 草地突点（仅在远离所有道路与人行道的区域） ==========
+            const sidewalkBuffer = ROAD_WIDTH / 2 + SIDEWALK_WIDTH + 0.5;
+            function isOnGrass(x, z) {
+                for (const rz of ROADS_X) {
+                    if (Math.abs(z - rz) < sidewalkBuffer) return false;
+                }
+                for (const rx of ROADS_Z) {
+                    if (Math.abs(x - rx) < sidewalkBuffer) return false;
+                }
+                return true;
+            }
+            for (let x = -GROUND_W / 2 + 1; x < GROUND_W / 2; x += 1.4) {
+                for (let z = -GROUND_D / 2 + 1; z < GROUND_D / 2; z += 1.4) {
+                    if (isOnGrass(x, z) && Math.random() > 0.65) {
+                        createStud(x, z, LEGO_COLORS.green);
                     }
                 }
             }
 
-            // ========== 人行道（十字形环绕道路） ==========
+            // ========== 人行道（沿每条道路两侧） ==========
             function createSidewalkStrip(x, z, w, d) {
                 const sw = BABYLON.MeshBuilder.CreateBox(
                     "sidewalk",
@@ -1151,107 +1200,338 @@
                 sw.material = legoMat("sidewalkMat", LEGO_COLORS.white);
                 return sw;
             }
-            // X 向主路两侧
-            createSidewalkStrip(0, ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2, BLOCK_SIZE, SIDEWALK_WIDTH);
-            createSidewalkStrip(0, -(ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2), BLOCK_SIZE, SIDEWALK_WIDTH);
-            // Z 向次路两侧
-            createSidewalkStrip(ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2, 0, SIDEWALK_WIDTH, BLOCK_SIZE);
-            createSidewalkStrip(-(ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2), 0, SIDEWALK_WIDTH, BLOCK_SIZE);
+            // 横向主路两侧
+            ROADS_X.forEach(zCoord => {
+                createSidewalkStrip(0, zCoord + ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2, GROUND_W, SIDEWALK_WIDTH);
+                createSidewalkStrip(0, zCoord - ROAD_WIDTH / 2 - SIDEWALK_WIDTH / 2, GROUND_W, SIDEWALK_WIDTH);
+            });
+            // 纵向次路两侧
+            ROADS_Z.forEach(xCoord => {
+                createSidewalkStrip(xCoord + ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2, 0, SIDEWALK_WIDTH, GROUND_D);
+                createSidewalkStrip(xCoord - ROAD_WIDTH / 2 - SIDEWALK_WIDTH / 2, 0, SIDEWALK_WIDTH, GROUND_D);
+            });
 
-            // ========== 乐高风格建筑（方块 + 窗户 + 突点屋顶） ==========
-            function createLegoBuilding(x, z, floors, wallColor, roofColor) {
-                const group = new BABYLON.TransformNode("legoBuilding", scene);
-                const w = 4, d = 3.5;
-                const floorH = 1.6;
+            // ========== 乐高风格建筑（普通住宅 / 写字楼 / 商铺，可带招牌） ==========
+            // type: 'house' | 'office' | 'shop'
+            //   house: 默认 4×3.5 占地，多色屋顶，2 个窗户/层
+            //   office: 高层（5~8 层），整面玻璃幕墙效果（密集窗格），平顶
+            //   shop: 1 层 + 大招牌 + 大橱窗（底层全玻璃 + 招牌牌匾 + 顶部屋檐）
+            // signText: 商铺招牌文字（仅 shop 类型有效）
+            // signColor: 招牌底色（仅 shop 类型）
+            // facing: 招牌/橱窗朝向（'+z'|'-z'|'+x'|'-x'），决定哪面是"店面"
+            function createLegoBuilding(cfg) {
+                const { x, z, floors = 2, type = 'house',
+                        wall = LEGO_COLORS.white, roof = LEGO_COLORS.red,
+                        signText = '', signColor = LEGO_COLORS.red,
+                        facing = '+z', sizeW = 4, sizeD = 3.5 } = cfg;
+                const group = new BABYLON.TransformNode("legoBuilding_" + x + "_" + z, scene);
+                const w = sizeW, d = sizeD;
+                const floorH = type === 'shop' ? 2.4 : 1.6;
                 const totalH = floors * floorH;
 
                 // 主体墙
                 const body = BABYLON.MeshBuilder.CreateBox(
-                    "buildingBody",
-                    { width: w, height: totalH, depth: d },
-                    scene
+                    "buildingBody", { width: w, height: totalH, depth: d }, scene
                 );
                 body.position.set(x, totalH / 2, z);
-                body.material = legoMat("buildingMat_" + x + "_" + z, wallColor);
+                body.material = legoMat("buildingMat_" + x + "_" + z, wall);
                 body.parent = group;
 
-                // 窗户（每层 2 个）
-                for (let f = 0; f < floors; f++) {
-                    for (let k = -1; k <= 1; k += 2) {
-                        const win = BABYLON.MeshBuilder.CreateBox(
-                            "win",
-                            { width: 0.8, height: 0.8, depth: 0.05 },
-                            scene
-                        );
-                        win.position.set(x + k * 1.1, 0.5 + f * floorH + 0.4, z + d / 2 + 0.03);
-                        win.material = legoMat("winMat", LEGO_COLORS.blue);
-                        win.parent = group;
+                // 计算店面方向相关参数
+                const facingNormal = { '+z': [0, 1], '-z': [0, -1], '+x': [1, 0], '-x': [-1, 0] }[facing];
+                const facingDx = facingNormal[0], facingDz = facingNormal[1];
+                // 店面半深：往哪个方向凸出
+                const halfFront = facingDx !== 0 ? w / 2 : d / 2;
+                // 横向：店面平面内的水平宽度
+                const frontWidthHalf = facingDx !== 0 ? d / 2 : w / 2;
 
-                        // 窗框
-                        const frame = BABYLON.MeshBuilder.CreateBox(
-                            "frame",
-                            { width: 0.9, height: 0.9, depth: 0.04 },
-                            scene
+                if (type === 'office') {
+                    // ===== 写字楼：多层玻璃幕墙 =====
+                    // 4 个面都铺密集窗格
+                    const winRows = floors * 2; // 每层 2 排窗
+                    const winCols = 4;          // 每排 4 列
+                    const winW = (w - 0.4) / winCols * 0.85;
+                    const winH = totalH / winRows * 0.7;
+                    for (let row = 0; row < winRows; row++) {
+                        const wy = totalH * (row + 0.5) / winRows;
+                        for (let col = 0; col < winCols; col++) {
+                            const wx = -w / 2 + (col + 0.5) * (w / winCols);
+                            const dx = -d / 2 + (col + 0.5) * (d / winCols);
+                            // 前后两面（沿 Z）
+                            [-1, 1].forEach(sign => {
+                                const win = BABYLON.MeshBuilder.CreateBox("officeWin",
+                                    { width: winW, height: winH, depth: 0.04 }, scene);
+                                win.position.set(x + wx, wy, z + sign * (d / 2 + 0.025));
+                                win.material = legoMat("officeWinMat", LEGO_COLORS.blue);
+                                win.parent = group;
+                            });
+                            // 左右两面（沿 X）
+                            [-1, 1].forEach(sign => {
+                                const win = BABYLON.MeshBuilder.CreateBox("officeWinSide",
+                                    { width: 0.04, height: winH, depth: winW }, scene);
+                                win.position.set(x + sign * (w / 2 + 0.025), wy, z + dx);
+                                win.material = legoMat("officeWinMat", LEGO_COLORS.blue);
+                                win.parent = group;
+                            });
+                        }
+                    }
+                    // 平顶（无突点）
+                    const roofMesh = BABYLON.MeshBuilder.CreateBox("officeRoof",
+                        { width: w + 0.3, height: 0.4, depth: d + 0.3 }, scene);
+                    roofMesh.position.set(x, totalH + 0.2, z);
+                    roofMesh.material = legoMat("officeRoofMat", LEGO_COLORS.darkGray);
+                    roofMesh.parent = group;
+                    // 顶层小天台护栏（4 根短柱）
+                    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
+                        const post = BABYLON.MeshBuilder.CreateBox("officePost",
+                            { width: 0.2, height: 0.6, depth: 0.2 }, scene);
+                        post.position.set(x + sx * (w / 2 - 0.15), totalH + 0.7, z + sz * (d / 2 - 0.15));
+                        post.material = legoMat("officePostMat", LEGO_COLORS.white);
+                        post.parent = group;
+                    });
+                } else if (type === 'shop') {
+                    // ===== 商铺：底层大橱窗 + 招牌 =====
+                    // 橱窗（朝 facing 方向）
+                    const winWidth = frontWidthHalf * 1.5;
+                    const winHeight = floorH * 0.55;
+                    const win = BABYLON.MeshBuilder.CreateBox("shopWin",
+                        facingDx !== 0
+                            ? { width: 0.05, height: winHeight, depth: winWidth }
+                            : { width: winWidth, height: winHeight, depth: 0.05 },
+                        scene);
+                    win.position.set(
+                        x + facingDx * (halfFront + 0.03),
+                        winHeight / 2 + 0.3,
+                        z + facingDz * (halfFront + 0.03)
+                    );
+                    const winMat = legoMat("shopWinMat", LEGO_COLORS.blue);
+                    winMat.alpha = 0.6;
+                    win.material = winMat;
+                    win.parent = group;
+
+                    // 门（在橱窗一侧）
+                    const door = BABYLON.MeshBuilder.CreateBox("shopDoor",
+                        facingDx !== 0
+                            ? { width: 0.05, height: floorH * 0.7, depth: 0.7 }
+                            : { width: 0.7, height: floorH * 0.7, depth: 0.05 },
+                        scene);
+                    const doorOffset = frontWidthHalf - 0.5;
+                    door.position.set(
+                        x + facingDx * (halfFront + 0.03) - facingDz * doorOffset,
+                        floorH * 0.35,
+                        z + facingDz * (halfFront + 0.03) + facingDx * doorOffset
+                    );
+                    door.material = legoMat("shopDoorMat", LEGO_COLORS.darkGray);
+                    door.parent = group;
+
+                    // 招牌（牌匾贴在 facing 方向墙顶部）
+                    const signWidth = (facingDx !== 0 ? d : w) - 0.2;
+                    const signHeight = 0.7;
+                    const sign = BABYLON.MeshBuilder.CreateBox("shopSign",
+                        facingDx !== 0
+                            ? { width: 0.1, height: signHeight, depth: signWidth }
+                            : { width: signWidth, height: signHeight, depth: 0.1 },
+                        scene);
+                    sign.position.set(
+                        x + facingDx * (halfFront + 0.06),
+                        floorH - signHeight / 2 + 0.05,
+                        z + facingDz * (halfFront + 0.06)
+                    );
+                    const signMat = legoMat("shopSignMat_" + signText, signColor);
+                    signMat.emissiveColor = signColor.scale(0.4);
+                    sign.material = signMat;
+                    sign.parent = group;
+
+                    // 招牌文字（DynamicTexture 贴一层 plane 在招牌前）
+                    if (signText) {
+                        const txtPlane = BABYLON.MeshBuilder.CreatePlane("shopSignTxt",
+                            { width: signWidth - 0.1, height: signHeight - 0.15 }, scene);
+                        const txtTexture = new BABYLON.DynamicTexture("shopSignTex_" + x + z,
+                            { width: 256, height: 64 }, scene, false);
+                        const ctx = txtTexture.getContext();
+                        // 背景色 = 招牌底色（避免文字背景透出建筑墙体）
+                        ctx.fillStyle = '#' + signColor.toHexString().replace('#', '');
+                        ctx.fillRect(0, 0, 256, 64);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 38px Microsoft YaHei, Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(signText, 128, 36);
+                        txtTexture.update(false);
+                        const txtMat = new BABYLON.StandardMaterial("shopSignTxtMat_" + x + z, scene);
+                        txtMat.diffuseTexture = txtTexture;
+                        txtMat.emissiveTexture = txtTexture;
+                        txtMat.specularColor = new BABYLON.Color3(0, 0, 0);
+                        txtPlane.material = txtMat;
+                        txtPlane.position.set(
+                            x + facingDx * (halfFront + 0.12),
+                            floorH - signHeight / 2 + 0.05,
+                            z + facingDz * (halfFront + 0.12)
                         );
-                        frame.position.set(x + k * 1.1, 0.5 + f * floorH + 0.4, z + d / 2 + 0.01);
-                        frame.material = legoMat("frameMat", LEGO_COLORS.white);
-                        frame.parent = group;
+                        // plane 默认朝 +Z，需要根据 facing 旋转
+                        const facingRad = { '+z': 0, '-z': Math.PI, '+x': Math.PI / 2, '-x': -Math.PI / 2 }[facing];
+                        txtPlane.rotation.y = facingRad;
+                        txtPlane.parent = group;
+                    }
+
+                    // 楼上层（如有）：普通窗户
+                    for (let f = 1; f < floors; f++) {
+                        for (let k = -1; k <= 1; k += 2) {
+                            const upWin = BABYLON.MeshBuilder.CreateBox("shopUpWin",
+                                facingDx !== 0
+                                    ? { width: 0.05, height: 0.7, depth: 0.7 }
+                                    : { width: 0.7, height: 0.7, depth: 0.05 },
+                                scene);
+                            upWin.position.set(
+                                x + facingDx * (halfFront + 0.03) - facingDz * k * (frontWidthHalf - 0.6),
+                                f * floorH + 0.5,
+                                z + facingDz * (halfFront + 0.03) + facingDx * k * (frontWidthHalf - 0.6)
+                            );
+                            upWin.material = legoMat("shopUpWinMat", LEGO_COLORS.blue);
+                            upWin.parent = group;
+                        }
+                    }
+
+                    // 屋顶（带突点）
+                    const roofMesh = BABYLON.MeshBuilder.CreateBox("shopRoof",
+                        { width: w + 0.2, height: 0.3, depth: d + 0.2 }, scene);
+                    roofMesh.position.set(x, totalH + 0.15, z);
+                    roofMesh.material = legoMat("shopRoofMat", roof);
+                    roofMesh.parent = group;
+                    for (let sx = -w / 2 + 0.5; sx <= w / 2 - 0.5; sx += 1.0) {
+                        for (let sz = -d / 2 + 0.5; sz <= d / 2 - 0.5; sz += 1.0) {
+                            const stud = createStud(x + sx, z + sz, roof, totalH + 0.3);
+                            stud.parent = group;
+                        }
+                    }
+                } else {
+                    // ===== 普通住宅 =====
+                    for (let f = 0; f < floors; f++) {
+                        for (let k = -1; k <= 1; k += 2) {
+                            const win = BABYLON.MeshBuilder.CreateBox("win",
+                                { width: 0.8, height: 0.8, depth: 0.05 }, scene);
+                            win.position.set(x + k * 1.1, 0.5 + f * floorH + 0.4, z + d / 2 + 0.03);
+                            win.material = legoMat("winMat", LEGO_COLORS.blue);
+                            win.parent = group;
+                            const frame = BABYLON.MeshBuilder.CreateBox("frame",
+                                { width: 0.9, height: 0.9, depth: 0.04 }, scene);
+                            frame.position.set(x + k * 1.1, 0.5 + f * floorH + 0.4, z + d / 2 + 0.01);
+                            frame.material = legoMat("frameMat", LEGO_COLORS.white);
+                            frame.parent = group;
+                        }
+                    }
+                    const roofMesh = BABYLON.MeshBuilder.CreateBox("roof",
+                        { width: w + 0.2, height: 0.3, depth: d + 0.2 }, scene);
+                    roofMesh.position.set(x, totalH + 0.15, z);
+                    roofMesh.material = legoMat("roofMat", roof);
+                    roofMesh.parent = group;
+                    for (let sx = -0.9; sx <= 0.9; sx += 0.9) {
+                        for (let sz = -0.75; sz <= 0.75; sz += 0.75) {
+                            const stud = createStud(x + sx, z + sz, roof, totalH + 0.3);
+                            stud.parent = group;
+                        }
                     }
                 }
 
-                // 屋顶（稍小一圈的方块 + 突点）
-                const roof = BABYLON.MeshBuilder.CreateBox(
-                    "roof",
-                    { width: w + 0.2, height: 0.3, depth: d + 0.2 },
-                    scene
-                );
-                roof.position.set(x, totalH + 0.15, z);
-                roof.material = legoMat("roofMat", roofColor);
-                roof.parent = group;
-
-                // 屋顶突点（2x2 阵列）
-                for (let sx = -0.9; sx <= 0.9; sx += 0.9) {
-                    for (let sz = -0.75; sz <= 0.75; sz += 0.75) {
-                        const stud = createStud(x + sx, z + sz, roofColor, totalH + 0.3);
-                        stud.parent = group;
-                    }
-                }
-
-                // 注册建筑 AABB 碰撞（半宽 w/2=2、半深 d/2=1.75，加 0.1 padding 防贴墙穿模）
+                // 注册建筑 AABB 碰撞
                 registerStaticObstacle(x, z, w / 2, d / 2, 0.1);
-
                 return group;
             }
 
-            // 四个象限各放若干乐高建筑
-            // 建筑尺寸：宽 4 × 深 3.5（半宽 2、半深 1.75），间距至少 4 米才能避免重叠
-            // 注意避开：
-            //   - 彩票店建筑：中心 (LOTTERY_SHOP_X=-13, LOTTERY_SHOP_Z-2=-10.5)，占 [-15,-11] × [-12.25,-8.75]
-            //   - 抽奖触发器：(13, -8.5)，需要让玩家走得过去
-            //   - 终点标记：(0, 14)
+            // ========== 建筑布局（新网格化路网） ==========
+            // 路网：横向主路 z=±25，纵向次路 x=-45,-15,+15,+45
+            // 街区划分（中心区域避开彩票店/抽奖触发器/终点）：
+            //   保留区域（不放建筑）：
+            //   - 彩票店建筑：(LOTTERY_SHOP_X=-30, LOTTERY_SHOP_Z=-7) 周围 4×4
+            //   - 抽奖触发器：(LOTTERY_X=30, LOTTERY_Z=-7)
+            //   - 终点标记：(MARKER_X=0, MARKER_Z=-8)
+            //   - 角色起点附近（WALK_START_X=-62, WALK_START_Z=0）
+            //
+            // 街区：
+            //   北带（z > 25 + sidewalk + 4 ≈ z > 30）：写字楼群
+            //   中带（-25..25）：被路网/起点占用，少量商铺贴在中央十字附近
+            //   南带（z < -30）：商铺街
+            //
+            // 建筑前面（招牌方向）必须朝向最近的马路
             const buildingConfigs = [
-                // 象限 1 (+X, +Z)：3 栋
-                { x:  10, z:  11, floors: 2, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.white },
-                { x:  17, z:  11, floors: 3, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.red },
-                { x:  10, z:  17, floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.yellow },
-                { x:  17, z:  17, floors: 2, wall: LEGO_COLORS.green,  roof: LEGO_COLORS.purple },
-                // 象限 2 (-X, +Z)：3 栋
-                { x: -10, z:  11, floors: 3, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.blue },
-                { x: -17, z:  11, floors: 2, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red },
-                { x: -10, z:  17, floors: 2, wall: LEGO_COLORS.lime,   roof: LEGO_COLORS.green },
-                { x: -17, z:  17, floors: 2, wall: LEGO_COLORS.purple, roof: LEGO_COLORS.white },
-                // 象限 3 (-X, -Z)：彩票店占了 (-13,-10.5)，仅在边缘和远处放
-                { x: -17, z: -16, floors: 3, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.yellow },
-                { x:  -9, z: -17, floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.white },
-                { x: -17, z:  -9, floors: 2, wall: LEGO_COLORS.tan,    roof: LEGO_COLORS.darkGray },
-                // 象限 4 (+X, -Z)：抽奖触发器在 (13,-8.5)，避开
-                { x:  10, z: -14, floors: 2, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.blue },
-                { x:  17, z: -14, floors: 3, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red },
-                { x:  10, z: -17, floors: 2, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.green }
+                // ===== 北带（z > 30）：写字楼为主 =====
+                // 北边缘：z ≈ 33，距离 z=25 主路 1.5+sidewalk = 6.5（贴人行道外侧）
+                { x: -55, z: 34, type: 'office', floors: 5, wall: LEGO_COLORS.blue,   sizeW: 5, sizeD: 4 },
+                { x: -36, z: 34, type: 'office', floors: 6, wall: LEGO_COLORS.tan,    sizeW: 5, sizeD: 4 },
+                { x: -25, z: 34, type: 'shop',   floors: 1, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red,
+                  signText: '咖啡屋', signColor: LEGO_COLORS.orange, facing: '-z', sizeW: 5, sizeD: 4 },
+                { x:  -6, z: 34, type: 'office', floors: 7, wall: LEGO_COLORS.darkGray, sizeW: 5, sizeD: 4 },
+                { x:   6, z: 34, type: 'shop',   floors: 1, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.blue,
+                  signText: '便利店', signColor: LEGO_COLORS.red, facing: '-z', sizeW: 5, sizeD: 4 },
+                { x:  25, z: 34, type: 'office', floors: 8, wall: LEGO_COLORS.white,  sizeW: 5, sizeD: 4 },
+                { x:  36, z: 34, type: 'shop',   floors: 2, wall: LEGO_COLORS.purple, roof: LEGO_COLORS.yellow,
+                  signText: '银行',   signColor: LEGO_COLORS.blue, facing: '-z', sizeW: 5, sizeD: 4 },
+                { x:  55, z: 34, type: 'office', floors: 5, wall: LEGO_COLORS.lime,   sizeW: 5, sizeD: 4 },
+
+                // 北带后排（更靠后，z ≈ 38.5，住宅和小商铺）
+                { x: -55, z: 38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.white },
+                { x: -47, z: 38.5, type: 'house',  floors: 3, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.red },
+                { x: -36, z: 38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.green,  roof: LEGO_COLORS.purple },
+                { x: -16, z: 38.5, type: 'house',  floors: 3, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.blue },
+                { x:  -6, z: 38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.lime,   roof: LEGO_COLORS.green },
+                { x:   6, z: 38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.purple, roof: LEGO_COLORS.white },
+                { x:  16, z: 38.5, type: 'house',  floors: 3, wall: LEGO_COLORS.tan,    roof: LEGO_COLORS.darkGray },
+                { x:  36, z: 38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.yellow },
+                { x:  47, z: 38.5, type: 'house',  floors: 3, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red },
+                { x:  55, z: 38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.green },
+
+                // ===== 中央带商铺（在主路之间的街区，靠人行道）=====
+                // 在 -25 < z < 25 中央带，因为有路口，建筑只能放在街区角落里
+                // 街区中心：每两条纵路之间 + 横路之间形成的"格子"中央
+                // 仅放在远离起点(x=-62)、彩票店(-30,-7)、抽奖(30,-7)、终点(0,-8)的格子
+                // 街区 (-30, 5)：紧挨彩票店东侧
+                { x: -22, z:  6, type: 'shop',   floors: 2, wall: LEGO_COLORS.lime,   roof: LEGO_COLORS.white,
+                  signText: '水果店', signColor: LEGO_COLORS.green, facing: '+z', sizeW: 4, sizeD: 3.5 },
+                // 街区 (0, 6)：中央偏北
+                { x:  -8, z:  6, type: 'shop',   floors: 2, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.yellow,
+                  signText: '服装店', signColor: LEGO_COLORS.purple, facing: '+z', sizeW: 4, sizeD: 3.5 },
+                { x:   8, z:  6, type: 'shop',   floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.white,
+                  signText: '书店',   signColor: LEGO_COLORS.darkGray, facing: '+z', sizeW: 4, sizeD: 3.5 },
+                { x:  22, z:  6, type: 'shop',   floors: 2, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.red,
+                  signText: '面包店', signColor: LEGO_COLORS.tan, facing: '+z', sizeW: 4, sizeD: 3.5 },
+                // 街区 (x, -6)：中央偏南
+                { x:  -8, z: -16, type: 'house',  floors: 2, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.green },
+                { x:   8, z: -16, type: 'shop',   floors: 1, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red,
+                  signText: '花店',   signColor: LEGO_COLORS.red, facing: '-z', sizeW: 4, sizeD: 3.5 },
+                { x:  22, z: -16, type: 'shop',   floors: 2, wall: LEGO_COLORS.green,  roof: LEGO_COLORS.yellow,
+                  signText: '药店',   signColor: LEGO_COLORS.green, facing: '-z', sizeW: 4, sizeD: 3.5 },
+
+                // ===== 南带（z < -30）：商铺街 + 住宅 =====
+                { x: -55, z: -34, type: 'house',  floors: 2, wall: LEGO_COLORS.tan,    roof: LEGO_COLORS.darkGray },
+                { x: -45, z: -34, type: 'shop',   floors: 1, wall: LEGO_COLORS.purple, roof: LEGO_COLORS.yellow,
+                  signText: '玩具店', signColor: LEGO_COLORS.purple, facing: '+z', sizeW: 5, sizeD: 4 },
+                { x: -34, z: -34, type: 'shop',   floors: 2, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.blue,
+                  signText: '餐厅',   signColor: LEGO_COLORS.red, facing: '+z', sizeW: 5, sizeD: 4 },
+                { x: -16, z: -34, type: 'shop',   floors: 2, wall: LEGO_COLORS.lime,   roof: LEGO_COLORS.green,
+                  signText: '蛋糕店', signColor: LEGO_COLORS.orange, facing: '+z', sizeW: 5, sizeD: 4 },
+                { x:  -6, z: -34, type: 'shop',   floors: 1, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.white,
+                  signText: '电器店', signColor: LEGO_COLORS.blue, facing: '+z', sizeW: 5, sizeD: 4 },
+                { x:   6, z: -34, type: 'office', floors: 5, wall: LEGO_COLORS.gray,   sizeW: 5, sizeD: 4 },
+                { x:  16, z: -34, type: 'shop',   floors: 2, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.white,
+                  signText: '发型屋', signColor: LEGO_COLORS.red, facing: '+z', sizeW: 5, sizeD: 4 },
+                { x:  34, z: -34, type: 'shop',   floors: 2, wall: LEGO_COLORS.tan,    roof: LEGO_COLORS.darkGray,
+                  signText: '茶馆',   signColor: LEGO_COLORS.green, facing: '+z', sizeW: 5, sizeD: 4 },
+                { x:  45, z: -34, type: 'office', floors: 6, wall: LEGO_COLORS.white,  sizeW: 5, sizeD: 4 },
+                { x:  55, z: -34, type: 'house',  floors: 3, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.red },
+
+                // 南带后排
+                { x: -55, z: -38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.lime,   roof: LEGO_COLORS.green },
+                { x: -47, z: -38.5, type: 'house',  floors: 3, wall: LEGO_COLORS.purple, roof: LEGO_COLORS.white },
+                { x: -36, z: -38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.red,    roof: LEGO_COLORS.yellow },
+                { x: -16, z: -38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.blue,   roof: LEGO_COLORS.white },
+                { x:  -6, z: -38.5, type: 'house',  floors: 3, wall: LEGO_COLORS.tan,    roof: LEGO_COLORS.darkGray },
+                { x:   6, z: -38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.green,  roof: LEGO_COLORS.purple },
+                { x:  16, z: -38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.orange, roof: LEGO_COLORS.blue },
+                { x:  36, z: -38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.white,  roof: LEGO_COLORS.red },
+                { x:  47, z: -38.5, type: 'house',  floors: 3, wall: LEGO_COLORS.yellow, roof: LEGO_COLORS.blue },
+                { x:  55, z: -38.5, type: 'house',  floors: 2, wall: LEGO_COLORS.purple, roof: LEGO_COLORS.lime }
             ];
-            buildingConfigs.forEach(cfg => {
-                createLegoBuilding(cfg.x, cfg.z, cfg.floors, cfg.wall, cfg.roof);
-            });
+            buildingConfigs.forEach(cfg => createLegoBuilding(cfg));
 
             // ========== 乐高树木 ==========
             function createLegoTree(x, z) {
@@ -1279,12 +1559,37 @@
                 // 注册树干 AABB（树冠较松散不挡路，仅碰树干 0.2 半径 + padding）
                 registerStaticObstacle(x, z, 0.2, 0.2, 0.15);
             }
-            // 草地上撒一些树
+            // 草地上撒一些树（必须在草地区域 isOnGrass，且远离建筑/触发器，避免穿模）
+            // 关键避让点：彩票店(LOTTERY_SHOP_X, LOTTERY_SHOP_Z) (-30,16)
+            //            抽奖触发器(LOTTERY_X, LOTTERY_Z) (30,16)
+            //            终点 (MARKER_X, MARKER_Z) (0,-16)
+            //            起点 (WALK_START_X, WALK_START_Z) (-62, 0)
+            // 树木放在已有 buildingConfigs 的空隙、靠近边缘的草地上
             const treePositions = [
-                [-14, 14], [-18, 6], [-6, 18], [6, 18], [14, 14], [18, 6],
-                [-14, -14], [-18, -6], [-6, -18], [6, -18], [14, -14], [18, -6]
+                // 北带前沿（z 主路 25 北侧人行道 + 0.5 ≈ 27 处不能放，要 > 27.5）
+                // 注意 buildingConfigs 北带建筑 z=34 和 z=38.5，所以 z=29~32 是空草地
+                [-58, 30], [-50, 30], [-42, 30], [-30, 30], [-20, 30],
+                [-12, 30], [ 12, 30], [ 20, 30], [ 30, 30], [ 42, 30], [ 50, 30], [ 58, 30],
+                // 北带后沿（z=42，建筑后还有空草地）
+                [-58, 42], [-30, 42], [  0, 42], [ 30, 42], [ 58, 42],
+                // 南带前沿（z=-30）
+                [-58, -30], [-50, -30], [-42, -30], [-30, -30], [-22, -30],
+                [-12, -30], [ 12, -30], [ 22, -30], [ 30, -30], [ 42, -30], [ 50, -30], [ 58, -30],
+                // 南带后沿
+                [-58, -42], [-30, -42], [  0, -42], [ 30, -42], [ 58, -42],
+                // 中央带空白处（避开建筑）
+                // 街区(-15,-45)：x=-30 ± 7 (即 -37, -23)，z=±15 之间
+                [-37,  18], [-37,   0], [-37, -22], [-23,  18], [-23, -22],
+                [ 37,  18], [ 37,   0], [ 37, -22], [ 23,  18], [ 23, -22],
+                // 西边缘起点附近（玩家出生区域装饰，但不挡路）
+                [-62,  10], [-62,  20], [-62, -10], [-62, -20]
             ];
-            treePositions.forEach(([x, z]) => createLegoTree(x, z));
+            // 过滤掉与已注册障碍物（建筑/灯杆/触发器）距离过近的位置
+            treePositions.forEach(([x, z]) => {
+                if (!isPointBlocked(x, z, 1.5)) {
+                    createLegoTree(x, z);
+                }
+            });
 
             // ========== 乐高路灯（黄色圆柱 + 白色灯头） ==========
             function createLegoLamp(x, z) {
@@ -1309,22 +1614,21 @@
                 // 注册路灯杆 AABB
                 registerStaticObstacle(x, z, 0.12, 0.12, 0.18);
             }
-            // 在十字路口四个角放置路灯
-            const lampOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH - 0.3;
-            const lampSpacing = 8;
-            for (let s = -2; s <= 2; s++) {
-                if (s === 0) continue;
-                createLegoLamp(s * lampSpacing, lampOffset);
-                createLegoLamp(s * lampSpacing, -lampOffset);
-                createLegoLamp(lampOffset, s * lampSpacing);
-                createLegoLamp(-lampOffset, s * lampSpacing);
+            // 路灯：在所有十字路口的 4 个外角各放 1 盏（紧贴人行道外沿）
+            const lampOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH + 0.4;
+            for (const xCoord of ROADS_Z) {
+                for (const zCoord of ROADS_X) {
+                    createLegoLamp(xCoord + lampOffset, zCoord + lampOffset);
+                    createLegoLamp(xCoord - lampOffset, zCoord + lampOffset);
+                    createLegoLamp(xCoord + lampOffset, zCoord - lampOffset);
+                    createLegoLamp(xCoord - lampOffset, zCoord - lampOffset);
+                }
             }
 
-            // ========== 红绿灯（路口外侧 4 角，每个由杆 + 灯箱 + 红黄绿 3 灯组成） ==========
-            // 灯状态机：所有红绿灯共享一个全局相位（让画面更协调），按 红 → 红黄 → 绿 → 黄 → 红 循环
-            const trafficLights = []; // { redMat, yellowMat, greenMat, redBall, yellowBall, greenBall }
+            // ========== 红绿灯（每个路口外侧 4 角，每个由杆 + 灯箱 + 红黄绿 3 灯 + 倒计时面板） ==========
+            // 状态机：红 30s → 黄 5s → 绿 30s → 黄 5s → 红 ... 循环
+            const trafficLights = []; // { red, yellow, green, countdownTexture, countdownMat }
             function createTrafficLight(x, z, facingDeg) {
-                // facingDeg: 灯箱朝向（度数，0 = 朝 +Z，90 = 朝 +X）
                 const group = new BABYLON.TransformNode("trafficLight_" + x + "_" + z, scene);
 
                 // 杆（深灰圆柱）
@@ -1343,13 +1647,13 @@
                 box.material = legoMat("tlBoxMat", LEGO_COLORS.black);
                 box.parent = group;
 
-                // 3 个灯（红、黄、绿，球形，初始全部暗淡）
+                // 3 个灯（红、黄、绿）
                 function makeLamp(name, color, yOffset) {
                     const ball = BABYLON.MeshBuilder.CreateSphere(name,
                         { diameter: 0.32, segments: 12 }, scene);
                     ball.position.set(x, 3.6 + yOffset, z + 0.25);
                     const mat = legoMat(name + "Mat", color);
-                    mat.emissiveColor = color.scale(0.1); // 默认暗
+                    mat.emissiveColor = color.scale(0.1);
                     ball.material = mat;
                     ball.parent = group;
                     return { ball, mat, baseColor: color };
@@ -1358,13 +1662,29 @@
                 const yellow = makeLamp("tl_yellow_" + x + z, LEGO_COLORS.yellow, 0.0);
                 const green  = makeLamp("tl_green_" + x + z,  LEGO_COLORS.green, -0.45);
 
-                // 旋转灯箱朝向（仅旋转灯箱和 3 个球，杆是圆柱不需要）
+                // 倒计时面板：黑色平面 + DynamicTexture 显示数字
+                const countdownPlane = BABYLON.MeshBuilder.CreatePlane(
+                    "tl_countdown_" + x + "_" + z,
+                    { width: 0.6, height: 0.6 }, scene
+                );
+                countdownPlane.position.set(x, 2.6, z + 0.27);
+                const countdownTexture = new BABYLON.DynamicTexture(
+                    "tl_countdownTex_" + x + "_" + z,
+                    { width: 128, height: 128 }, scene, false
+                );
+                countdownTexture.hasAlpha = false;
+                const countdownMat = new BABYLON.StandardMaterial("tl_countdownMat_" + x + "_" + z, scene);
+                countdownMat.diffuseTexture = countdownTexture;
+                countdownMat.emissiveTexture = countdownTexture; // 自发光：让数字晚上也清晰
+                countdownMat.specularColor = new BABYLON.Color3(0, 0, 0);
+                countdownPlane.material = countdownMat;
+                countdownPlane.parent = group;
+
+                // 旋转灯箱朝向（绕路口中心轴）
                 const rad = facingDeg * Math.PI / 180;
-                // 简化处理：直接绕灯箱中心旋转 3 个球的位置
-                [red.ball, yellow.ball, green.ball, box].forEach(m => {
-                    if (m === box) {
+                [red.ball, yellow.ball, green.ball, box, countdownPlane].forEach(m => {
+                    if (m === box || m === countdownPlane) {
                         m.rotation.y = rad;
-                        return;
                     }
                     const dz = m.position.z - z;
                     const dx = m.position.x - x;
@@ -1372,62 +1692,100 @@
                     m.position.z = z + dx * Math.sin(rad) + dz * Math.cos(rad);
                 });
 
-                // 杆：注册碰撞（半径 0.15 + 软 padding）
                 registerStaticObstacle(x, z, 0.15, 0.15, 0.2);
-
-                trafficLights.push({ red, yellow, green });
+                trafficLights.push({ red, yellow, green, countdownTexture, lastSecond: -1, lastColor: '' });
             }
-            // 4 个红绿灯放在路口外侧 4 个角（紧贴人行道外沿）
+            // 在每个十字路口的 4 个外角放红绿灯
             const tlOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH + 0.4;
-            createTrafficLight( tlOffset,  tlOffset, 225);  // 东北角，灯朝西南
-            createTrafficLight(-tlOffset,  tlOffset, 135);  // 西北角，灯朝东南
-            createTrafficLight(-tlOffset, -tlOffset,  45);  // 西南角，灯朝东北
-            createTrafficLight( tlOffset, -tlOffset, 315);  // 东南角，灯朝西北
+            for (const xCoord of ROADS_Z) {
+                for (const zCoord of ROADS_X) {
+                    createTrafficLight(xCoord + tlOffset, zCoord + tlOffset, 225); // 东北角，灯朝西南
+                    createTrafficLight(xCoord - tlOffset, zCoord + tlOffset, 135); // 西北角，灯朝东南
+                    createTrafficLight(xCoord - tlOffset, zCoord - tlOffset,  45); // 西南角，灯朝东北
+                    createTrafficLight(xCoord + tlOffset, zCoord - tlOffset, 315); // 东南角，灯朝西北
+                }
+            }
 
-            // 红绿灯状态机（全局共享，循环：红 4s → 红黄 1s → 绿 4s → 黄 1s → 红...）
-            // phase: 'red' | 'redYellow' | 'green' | 'yellow'
+            // 红绿灯状态机（全局共享，循环：红 30s → 黄 5s → 绿 30s → 黄 5s → 红...）
             let trafficPhase = 'red';
             let trafficPhaseStart = performance.now();
-            const TRAFFIC_DURATIONS = { red: 4000, redYellow: 1000, green: 4000, yellow: 1000 };
+            const TRAFFIC_DURATIONS = { red: 30000, yellow: 5000, green: 30000 };
+            const PHASE_NEXT = { red: 'yellow', yellow_red: 'green', green: 'yellow_green', yellow_green: 'red', yellow: 'green' };
+            // 简化为 4 阶段轮换：red → yellow → green → yellow → red
+            // 用 nextAfterYellow 记录黄灯之后该走红还是绿
+            let nextAfterYellow = 'green';
+
             function setLampOn(lamp, on) {
                 lamp.mat.emissiveColor = on ? lamp.baseColor.scale(0.9) : lamp.baseColor.scale(0.08);
             }
             function applyTrafficPhase() {
-                const showRed = trafficPhase === 'red' || trafficPhase === 'redYellow';
-                const showYellow = trafficPhase === 'redYellow' || trafficPhase === 'yellow';
+                const showRed = trafficPhase === 'red';
+                const showYellow = trafficPhase === 'yellow';
                 const showGreen = trafficPhase === 'green';
                 trafficLights.forEach(tl => {
                     setLampOn(tl.red, showRed);
                     setLampOn(tl.yellow, showYellow);
                     setLampOn(tl.green, showGreen);
+                    tl.lastSecond = -1; // 强制下一帧刷新倒计时
                 });
             }
             applyTrafficPhase();
+
+            // 倒计时数字色
+            const PHASE_TEXT_COLOR = { red: '#ff3030', yellow: '#ffd700', green: '#30dd30' };
+            function drawCountdown(tl, secondsLeft, phase) {
+                if (tl.lastSecond === secondsLeft && tl.lastColor === phase) return;
+                tl.lastSecond = secondsLeft;
+                tl.lastColor = phase;
+                const ctx = tl.countdownTexture.getContext();
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, 128, 128);
+                ctx.fillStyle = PHASE_TEXT_COLOR[phase];
+                ctx.font = 'bold 86px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(secondsLeft), 64, 70);
+                tl.countdownTexture.update(false);
+            }
+
             function updateTrafficLights(now) {
                 const elapsed = now - trafficPhaseStart;
-                if (elapsed >= TRAFFIC_DURATIONS[trafficPhase]) {
-                    const order = { red: 'redYellow', redYellow: 'green', green: 'yellow', yellow: 'red' };
-                    trafficPhase = order[trafficPhase];
+                const total = TRAFFIC_DURATIONS[trafficPhase];
+                if (elapsed >= total) {
+                    if (trafficPhase === 'red') {
+                        trafficPhase = 'yellow'; nextAfterYellow = 'green';
+                    } else if (trafficPhase === 'green') {
+                        trafficPhase = 'yellow'; nextAfterYellow = 'red';
+                    } else { // yellow
+                        trafficPhase = nextAfterYellow;
+                    }
                     trafficPhaseStart = now;
                     applyTrafficPhase();
                 }
+                // 刷新倒计时数字
+                const remain = TRAFFIC_DURATIONS[trafficPhase] - (now - trafficPhaseStart);
+                const secondsLeft = Math.max(0, Math.ceil(remain / 1000));
+                trafficLights.forEach(tl => drawCountdown(tl, secondsLeft, trafficPhase));
             }
 
-            // ========== 车辆（乐高小车，沿马路循环行驶） ==========
-            // 每辆车有：方向（X 向 / Z 向）、车道（左/右）、速度、起始位置
-            // X 向左侧车道 z = -LANE_HALF（向 +X 行驶），X 向右侧车道 z = +LANE_HALF（向 -X 行驶）
-            // Z 向同理
-            const vehicles = []; // { group, axis, dir, speed, halfL, halfW, obstacle }
-            function createVehicle(axis, lane, speed, startOffset, bodyColor) {
-                // axis: 'x' | 'z'，行驶方向轴
-                // lane: -1 | +1，车道偏移（沿"前进方向右手"为 +1）
-                // 车身尺寸：长 1.8 × 宽 0.9 × 高 0.6
-                // 关键：mesh 永远按"车头朝 +Z"的本地坐标系创建（width=W 沿X，depth=L 沿Z），
-                // 然后通过 group.rotation.y 整体旋转到正确朝向，避免 mesh 朝向与 group 旋转混淆
+            // ========== 车辆（乐高小车，沿马路循环行驶，每条路 2 辆双向） ==========
+            // 一辆车的参数：
+            //   axis: 'x' | 'z'  车辆行驶轴向
+            //   roadCoord: 道路所在的"垂直于行驶方向"的坐标
+            //                axis='x' 时 roadCoord = z 坐标（横向主路 z）
+            //                axis='z' 时 roadCoord = x 坐标（纵向次路 x）
+            //   lane: -1 | +1  车道偏移（沿前进方向右手 +1）
+            //   dir: -1 | +1   实际行驶方向（按右行交通：lane=-1 走 +dir，lane=+1 走 -dir）
+            //   speed, startOffset, bodyColor
+            // 循环范围：
+            //   axis='x'：x ∈ [-GROUND_W/2-2, GROUND_W/2+2]
+            //   axis='z'：z ∈ [-GROUND_D/2-2, GROUND_D/2+2]
+            const vehicles = [];
+            function createVehicle(axis, roadCoord, lane, speed, startOffset, bodyColor) {
                 const L = 1.8, W = 0.9, H = 0.6;
                 const group = new BABYLON.TransformNode("vehicle", scene);
 
-                // 车身（本地坐标：长边沿 Z，短边沿 X）
+                // 车身（本地坐标：长边沿 Z，短边沿 X，车头朝 +Z）
                 const body = BABYLON.MeshBuilder.CreateBox(
                     "vBody", { width: W, height: H, depth: L }, scene
                 );
@@ -1435,15 +1793,15 @@
                 body.material = legoMat("vBodyMat_" + bodyColor.toHexString(), bodyColor);
                 body.parent = group;
 
-                // 车顶（驾驶舱，本地坐标同样长边沿 Z）
+                // 车顶（驾驶舱）
                 const cab = BABYLON.MeshBuilder.CreateBox(
                     "vCab", { width: W * 0.85, height: 0.4, depth: L * 0.55 }, scene
                 );
-                cab.position.set(0, H + 0.35, -L * 0.05); // 略偏车尾，让车头看起来更长
+                cab.position.set(0, H + 0.35, -L * 0.05);
                 cab.material = legoMat("vCabMat", LEGO_COLORS.white);
                 cab.parent = group;
 
-                // 车头大灯（白色小方块，贴在车头 +Z 端）
+                // 车头大灯
                 [-W * 0.3, W * 0.3].forEach((dx, i) => {
                     const headlight = BABYLON.MeshBuilder.CreateBox(
                         "vHead" + i, { width: 0.18, height: 0.15, depth: 0.05 }, scene
@@ -1455,7 +1813,7 @@
                     headlight.parent = group;
                 });
 
-                // 4 个轮子（黑色矮圆柱，本地坐标四角对应车身长边沿 Z）
+                // 4 个轮子
                 const wheelOffsets = [
                     [-W * 0.45, -L * 0.35], [W * 0.45, -L * 0.35],
                     [-W * 0.45,  L * 0.35], [W * 0.45,  L * 0.35]
@@ -1470,53 +1828,66 @@
                     wheel.parent = group;
                 });
 
-                // 决定初始位置、方向和朝向
-                // 右行交通规则：axis='x' 时左车道(z<0)向 +x 跑、右车道(z>0)向 -x 跑；axis='z' 同理
-                let dir, posX, posZ;
+                // 计算初始位置：lane 偏移加在 roadCoord 上
+                const dir = lane < 0 ? 1 : -1;
+                let posX, posZ;
                 if (axis === 'x') {
-                    dir = lane < 0 ? 1 : -1;
-                    posZ = lane * LANE_HALF;
+                    posZ = roadCoord + lane * LANE_HALF;
                     posX = startOffset;
                 } else {
-                    dir = lane < 0 ? 1 : -1;
-                    posX = lane * LANE_HALF;
+                    posX = roadCoord + lane * LANE_HALF;
                     posZ = startOffset;
                 }
                 group.position = new BABYLON.Vector3(posX, 0, posZ);
 
-                // AABB：根据 axis 决定占地的长边方向
-                // axis='x' 时车长边沿 X 方向 → halfL 对应 X、halfW 对应 Z
-                // axis='z' 时车长边沿 Z 方向 → halfL 对应 Z、halfW 对应 X
+                // AABB
                 const halfX = (axis === 'x' ? L : W) / 2;
                 const halfZ = (axis === 'x' ? W : L) / 2;
                 const obstacle = registerDynamicObstacle(group, halfX, halfZ, 0.1);
-                vehicles.push({ group, axis, dir, speed, obstacle });
+                vehicles.push({ group, axis, roadCoord, dir, speed, obstacle });
             }
 
-            // 4 辆车：X 向 2 辆（一来一回），Z 向 2 辆（一来一回）
-            createVehicle('x', -1, 0.08,  -BLOCK_SIZE / 2 + 2, LEGO_COLORS.red);     // X 向左道，向 +x 跑
-            createVehicle('x',  1, 0.07,   BLOCK_SIZE / 2 - 8, LEGO_COLORS.blue);    // X 向右道，向 -x 跑
-            createVehicle('z', -1, 0.075, -BLOCK_SIZE / 2 + 5, LEGO_COLORS.yellow);  // Z 向左道，向 +z 跑
-            createVehicle('z',  1, 0.085,  BLOCK_SIZE / 2 - 4, LEGO_COLORS.orange);  // Z 向右道，向 -z 跑
+            // 横向主路 2 辆/条（双向）
+            const xVehicleColors = [LEGO_COLORS.red, LEGO_COLORS.blue, LEGO_COLORS.green, LEGO_COLORS.orange];
+            ROADS_X.forEach((zCoord, idx) => {
+                // 左车道（z = zCoord - LANE_HALF）向 +X 跑
+                createVehicle('x', zCoord, -1, 0.08, -GROUND_W / 2 + idx * 8 + 2,
+                    xVehicleColors[(idx * 2) % xVehicleColors.length]);
+                // 右车道（z = zCoord + LANE_HALF）向 -X 跑
+                createVehicle('x', zCoord,  1, 0.07,  GROUND_W / 2 - idx * 8 - 5,
+                    xVehicleColors[(idx * 2 + 1) % xVehicleColors.length]);
+            });
 
-            const VEHICLE_LIMIT = BLOCK_SIZE / 2 + 2;
+            // 纵向次路 2 辆/条（双向）
+            const zVehicleColors = [LEGO_COLORS.yellow, LEGO_COLORS.purple, LEGO_COLORS.tan, LEGO_COLORS.lime];
+            ROADS_Z.forEach((xCoord, idx) => {
+                // 左车道向 +Z 跑
+                createVehicle('z', xCoord, -1, 0.075, -GROUND_D / 2 + idx * 5 + 2,
+                    zVehicleColors[(idx * 2) % zVehicleColors.length]);
+                // 右车道向 -Z 跑
+                createVehicle('z', xCoord,  1, 0.085,  GROUND_D / 2 - idx * 5 - 4,
+                    zVehicleColors[(idx * 2 + 1) % zVehicleColors.length]);
+            });
+
+            const VEHICLE_LIMIT_X = GROUND_W / 2 + 2;
+            const VEHICLE_LIMIT_Z = GROUND_D / 2 + 2;
             function updateVehicles() {
                 vehicles.forEach(v => {
                     if (v.axis === 'x') {
                         v.group.position.x += v.dir * v.speed;
                         v.group.rotation.y = v.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
-                        if (v.dir > 0 && v.group.position.x > VEHICLE_LIMIT) {
-                            v.group.position.x = -VEHICLE_LIMIT;
-                        } else if (v.dir < 0 && v.group.position.x < -VEHICLE_LIMIT) {
-                            v.group.position.x = VEHICLE_LIMIT;
+                        if (v.dir > 0 && v.group.position.x > VEHICLE_LIMIT_X) {
+                            v.group.position.x = -VEHICLE_LIMIT_X;
+                        } else if (v.dir < 0 && v.group.position.x < -VEHICLE_LIMIT_X) {
+                            v.group.position.x = VEHICLE_LIMIT_X;
                         }
                     } else {
                         v.group.position.z += v.dir * v.speed;
                         v.group.rotation.y = v.dir > 0 ? 0 : Math.PI;
-                        if (v.dir > 0 && v.group.position.z > VEHICLE_LIMIT) {
-                            v.group.position.z = -VEHICLE_LIMIT;
-                        } else if (v.dir < 0 && v.group.position.z < -VEHICLE_LIMIT) {
-                            v.group.position.z = VEHICLE_LIMIT;
+                        if (v.dir > 0 && v.group.position.z > VEHICLE_LIMIT_Z) {
+                            v.group.position.z = -VEHICLE_LIMIT_Z;
+                        } else if (v.dir < 0 && v.group.position.z < -VEHICLE_LIMIT_Z) {
+                            v.group.position.z = VEHICLE_LIMIT_Z;
                         }
                     }
                 });

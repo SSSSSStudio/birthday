@@ -660,6 +660,21 @@ function rollScratchCard(price) {
         }
     });
 
+    // ===== 保底机制：中奖时总奖金不低于购买金额（中奖最低 = 回本） =====
+    // 如果当前所有中奖格奖金加起来 < price，把差额补到第一个中奖格上
+    let totalAmt = 0;
+    winIndices.forEach(idx => { totalAmt += result[idx].prize.amt; });
+    if (totalAmt < price) {
+        const deficit = price - totalAmt;
+        const firstWinIdx = winIndices[0];
+        const newAmt = result[firstWinIdx].prize.amt + deficit;
+        // 创建新的 prize 对象（不修改 SCRATCH_SPEC 里的原始引用）
+        result[firstWinIdx].prize = Object.assign({}, result[firstWinIdx].prize, { amt: newAmt });
+        if (mode === 'lucky_number') {
+            result[firstWinIdx].displayAmt = newAmt;
+        }
+    }
+
     return { cells: result, spec, winNumber };
 }
 
