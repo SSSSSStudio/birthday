@@ -1644,6 +1644,7 @@
                 // 先锁输入，避免过渡中继续移动
                 moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
                 lotteryShopButton.style.display = 'none';
+                lotteryButton.style.display = 'none';
 
                 playDoorTransition(
                     // 白光时刻：真正切换场景
@@ -1651,21 +1652,28 @@
                         currentScene = 'shop';
                         atLotteryShop = false;
 
-                        // 隐藏街道物体
-                        streetSceneObjects.forEach(obj => obj.setEnabled(false));
+                        // 隐藏街道物体（双保险：再次过滤角色子节点）
+                        streetSceneObjects.forEach(obj => {
+                            if (!obj || !obj.setEnabled) return;
+                            // 排除角色及其子节点
+                            if (walker && (obj === walker || isDescendantOf(obj, walker))) return;
+                            obj.setEnabled(false);
+                        });
+                        // 确保角色一定是 enabled
+                        if (walker && walker.setEnabled) walker.setEnabled(true);
+
                         // 创建店内场景
                         createShopScene();
 
                         // 角色放在门口（出门触发点）内侧
                         if (walker) {
                             walker.position.x = SHOP_EXIT_X;
-                            walker.position.z = SHOP_EXIT_Z - 2;
+                            walker.position.z = SHOP_EXIT_Z - 2.5;
                             walker.rotation.y = Math.PI; // 面向房间内部
                         }
-                        // 相机切到房间中心
+                        // 相机切到角色位置
                         camera.target = new BABYLON.Vector3(walker.position.x, 0.5, walker.position.z);
                     },
-                    // 过渡完成：恢复控制
                     () => { /* no-op */ }
                 );
             }
@@ -1674,23 +1682,29 @@
             function switchToStreetScene() {
                 if (currentScene !== 'shop') return;
                 moveInput.x = 0; moveInput.z = 0; moveInput.magnitude = 0;
+                lotteryButton.style.display = 'none';
 
                 playDoorTransition(
                     () => {
                         currentScene = 'street';
                         // 销毁店内物体
-                        shopSceneObjects.forEach(obj => { if (obj.dispose) obj.dispose(); });
+                        shopSceneObjects.forEach(obj => { if (obj && obj.dispose) obj.dispose(); });
                         shopSceneObjects = [];
-                        shopSceneLights.forEach(l => { if (l.dispose) l.dispose(); });
+                        shopSceneLights.forEach(l => { if (l && l.dispose) l.dispose(); });
                         shopSceneLights = [];
 
                         // 恢复街道
-                        streetSceneObjects.forEach(obj => obj.setEnabled(true));
+                        streetSceneObjects.forEach(obj => {
+                            if (!obj || !obj.setEnabled) return;
+                            if (walker && (obj === walker || isDescendantOf(obj, walker))) return;
+                            obj.setEnabled(true);
+                        });
+                        if (walker && walker.setEnabled) walker.setEnabled(true);
 
                         // 角色回到彩票店门口（外侧）
                         if (walker) {
                             walker.position.x = LOTTERY_SHOP_X;
-                            walker.position.z = LOTTERY_SHOP_Z + TRIGGER_DISTANCE + 1;
+                            walker.position.z = LOTTERY_SHOP_Z + TRIGGER_DISTANCE + 1.5;
                         }
                         camera.target = new BABYLON.Vector3(walker.position.x, 0.5, walker.position.z);
                         camera.alpha = -Math.PI / 4;
@@ -1699,6 +1713,10 @@
 
                         atLotteryShop = false;
                         lotteryShopButton.style.display = 'none';
+                        if (lotteryButton.dataset.shopPrice) {
+                            delete lotteryButton.dataset.shopPrice;
+                            lotteryButton.textContent = '🎰 抽奖';
+                        }
                     },
                     () => { /* no-op */ }
                 );
@@ -1884,22 +1902,45 @@
                 shopSceneLights.push(shopAmb);
             }
 
-            // 初始化街道场景物体列表（在所有街道内容创建完成后再注册）
+            // 初始化街道场景物体列表（必须在 walker 创建完成后再注册）
+            // 使用 mesh.metadata.isStreet 标记法避免误把角色子 mesh 加入
+            // 这里采用快照方式：注册时刻，遍历所有 mesh，把"不属于 walker 子节点"的全部加入
+            function isDescendantOf(node, root) {
+                let cur = node.parent;
+                while (cur) {
+                    if (cur === root) return true;
+                    cur = cur.parent;
+                }
+                return false;
+            }
             function initStreetSceneObjects() {
+                streetSceneObjects.length = 0; // 防止重复注册
                 scene.meshes.forEach(mesh => {
-                    // 过滤掉角色（走到哪都在）和 UI 辅助节点
-                    if (mesh.name && mesh.name.indexOf("character") === -1) {
-                        streetSceneObjects.push(mesh);
-                    }
+                    // 排除角色及其所有子 mesh
+                    if (walker && (mesh === walker || isDescendantOf(mesh, walker))) return;
+                    streetSceneObjects.push(mesh);
                 });
-                // 街道灯光也加入（但角色走到店内后要临时关闭街道光）
+                scene.transformNodes.forEach(node => {
+                    // 排除角色 TransformNode 本身和其子 TransformNode
+                    if (walker && (node === walker || isDescendantOf(node, walker))) return;
+                    streetSceneObjects.push(node);
+                });
                 scene.lights.forEach(l => {
-                    // 不加入角色所属 lights——目前所有 lights 都属于街道
                     streetSceneObjects.push(l);
                 });
             }
-            // 场景创建完后延迟注册
-            setTimeout(initStreetSceneObjects, 300);
+            // 等 walker 创建完成后再注册（最多等待 3s）
+            let _streetInitTries = 0;
+            function tryInitStreet() {
+                if (walker) {
+                    initStreetSceneObjects();
+                } else if (_streetInitTries++ < 30) {
+                    setTimeout(tryInitStreet, 100);
+                } else {
+                    initStreetSceneObjects(); // 兜底
+                }
+            }
+            tryInitStreet();
 
             // ========== 彩票店控制 ==========
             const lotteryShopButton = document.getElementById('lotteryShopButton');
