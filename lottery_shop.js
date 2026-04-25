@@ -17,8 +17,13 @@ const camera = new BABYLON.ArcRotateCamera(
     "camera", -Math.PI / 4, Math.PI / 3.2, 16,
     new BABYLON.Vector3(0, 0.5, 0), scene
 );
-camera.lowerRadiusLimit = 12;
-camera.upperRadiusLimit = 22;
+// 禁止用户旋转视角，只允许缩放
+camera.inputs.remove(camera.inputs.attached.pointers);   // 移除触摸/鼠标拖拽
+camera.inputs.remove(camera.inputs.attached.keyboard);   // 移除键盘控制
+camera.attachControl(canvas, true);
+camera.wheelPrecision = 50; // 滚轮灵敏度
+camera.lowerRadiusLimit = 10;  // 最小距离（最近）
+camera.upperRadiusLimit = 25;  // 最大距离（最远）
 camera.lowerBetaLimit = Math.PI / 4;
 camera.upperBetaLimit = Math.PI / 2.5;
 
@@ -142,6 +147,17 @@ for (let i = 0; i < 5; i++) {
 backWallExtraMats.forEach(m => {
     fadeTargets.push({ mat: m, axis: 'z', sign: -1, near: 4, far: 1 });
 });
+
+// ========== 测试：房间中央的大立方体 + Base64 图片贴图 ==========
+const roomCube = BABYLON.MeshBuilder.CreateBox("roomCube", { width: 2, height: 2, depth: 2 }, scene);
+roomCube.position.set(0, 1, 0);
+const roomCubeMat = new BABYLON.StandardMaterial("roomCubeMat", scene);
+
+// 使用 Base64 编码的图片
+const heroBase64 = "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";
+roomCubeMat.diffuseTexture = new BABYLON.Texture("data:image/jpeg;base64," + heroBase64, scene);
+roomCubeMat.diffuseColor = new BABYLON.Color3(1, 1, 1); // 白色基础
+roomCube.material = roomCubeMat;
 
 // ===== 柜台 =====
 COUNTERS.forEach(cfg => {
@@ -276,14 +292,19 @@ function createLegoCharacter() {
     neck.position.set(0, 1.38, 0);
     neck.material = legoMat("neckMat", skin, scene); neck.parent = group;
 
+    // --- 经典乐高圆柱形头部 ---
     const head = BABYLON.MeshBuilder.CreateCylinder("head",
-        { diameter: 0.55, height: 0.6, tessellation: 16 }, scene);
+        { diameter: 0.5, height: 0.55, tessellation: 32 }, scene);
     head.position.set(0, 1.75, 0);
-    const headMat = legoMat("headMat", skin, scene);
+    head.rotation.y = Math.PI / 8; // 稍微旋转让脸部朝向相机
+    
+    // 使用经典乐高黄色皮肤
+    const headMat = legoMat("headMat", LEGO_COLORS.yellow, scene);
+    headMat.diffuseColor = new BABYLON.Color3(1.0, 0.82, 0.15); // 乐高黄色
     head.material = headMat; head.parent = group;
 
     const headStud = BABYLON.MeshBuilder.CreateCylinder("headStud",
-        { diameter: 0.3, height: 0.1, tessellation: 14 }, scene);
+        { diameter: 0.28, height: 0.1, tessellation: 16 }, scene);
     headStud.position.set(0, 2.1, 0); headStud.material = headMat; headStud.parent = group;
 
     // --- 秀发（飘逸的乐高发型，与 index.html 保持一致）---

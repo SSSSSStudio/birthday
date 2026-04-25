@@ -921,7 +921,7 @@
             const FORK_X = 0, FORK_Z = 0;                       // 岔路口（中心，仅作记号）
             const TRIGGER_DISTANCE = 2.5;                       // 触发距离
 
-            // ========== 相机：固定 2.5D 等距视角 ==========
+            // ========== 相机：固定 2.5D 等距视角，允许缩放 ==========
             const camera = new BABYLON.ArcRotateCamera(
                 "camera",
                 -Math.PI / 4,            // alpha：俯视斜角
@@ -930,10 +930,13 @@
                 new BABYLON.Vector3(0, 0, 0),
                 scene
             );
-            // 固定 2.5D 视角，禁止用户操作相机
-            camera.inputs.clear();
-            camera.lowerRadiusLimit = 22;
-            camera.upperRadiusLimit = 22;
+            // 禁止用户旋转视角，只允许缩放
+            camera.inputs.remove(camera.inputs.attached.pointers);   // 移除触摸/鼠标拖拽
+            camera.inputs.remove(camera.inputs.attached.keyboard);   // 移除键盘控制
+            camera.attachControl(canvas, true);
+            camera.wheelPrecision = 50; // 滚轮灵敏度
+            camera.lowerRadiusLimit = 15;  // 最小距离（最近）
+            camera.upperRadiusLimit = 30;  // 最大距离（最远）
 
             // ========== 灯光（乐高明亮风格） ==========
             const hemisphericLight = new BABYLON.HemisphericLight(
@@ -2203,20 +2206,23 @@
                 neck.material.diffuseColor = skinColor;
                 neck.parent = characterGroup;
 
-                // --- 圆柱状头部（乐高标志性）---
+                // --- 经典乐高圆柱形头部 ---
                 const head = BABYLON.MeshBuilder.CreateCylinder("head",
-                    { diameter: 0.55, height: 0.6, tessellation: 16 }, scene);
+                    { diameter: 0.5, height: 0.55, tessellation: 32 }, scene);
                 head.position.set(0, 1.75, 0);
-                const headMat = legoMat("headMat_ch", LEGO_COLORS.yellow);
-                headMat.diffuseColor = skinColor;
+                head.rotation.y = Math.PI / 8; // 稍微旋转让脸部朝向相机
+                
+                // 使用经典乐高黄色皮肤
+                const headMat = legoMat("headMat_ch", LEGO_COLORS.yellow, scene);
+                headMat.diffuseColor = new BABYLON.Color3(1.0, 0.82, 0.15); // 乐高黄色
                 head.material = headMat;
                 head.parent = characterGroup;
 
                 // 头顶小突点（乐高 stud）
                 const headStud = BABYLON.MeshBuilder.CreateCylinder("headStud",
-                    { diameter: 0.3, height: 0.1, tessellation: 14 }, scene);
-                headStud.position.set(0, 2.1, 0);
-                headStud.material = headMat;
+                    { diameter: 0.28, height: 0.1, tessellation: 16 }, scene);
+                headStud.position.set(0, 2.075, 0);
+                headStud.material = legoMat("headStudMat", LEGO_COLORS.yellow, scene);
                 headStud.parent = characterGroup;
 
                 // --- 秀发（飘逸的乐高发型）---
@@ -2324,6 +2330,17 @@
                 walkerLegs = walker.metadata;
                 document.getElementById('loadingText').style.display = 'none';
             }
+
+            // ========== 测试：马路中间的大立方体 + Base64 图片贴图 ==========
+            const roadCube = BABYLON.MeshBuilder.CreateBox("roadCube", { width: 3, height: 3, depth: 3 }, scene);
+            roadCube.position.set(0, 1.5, 0);
+            const roadCubeMat = new BABYLON.StandardMaterial("roadCubeMat", scene);
+            
+            // 使用 Base64 编码的图片
+            const heroBase64 = "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";
+            roadCubeMat.diffuseTexture = new BABYLON.Texture("data:image/jpeg;base64," + heroBase64, scene);
+            roadCubeMat.diffuseColor = new BABYLON.Color3(1, 1, 1); // 白色基础
+            roadCube.material = roadCubeMat;
 
             // ========== 角色行走参数 ==========
             const WALK_SPEED = 0.12;       // 移动速度
@@ -2615,6 +2632,9 @@
             }
 
             // 店内场景已迁移到独立的 lottery_shop.html 关卡
+
+            // 街道场景物体列表
+            const streetSceneObjects = [];
 
             // 初始化街道场景物体列表（必须在 walker 创建完成后再注册）
             // 使用 mesh.metadata.isStreet 标记法避免误把角色子 mesh 加入
