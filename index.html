@@ -1089,17 +1089,19 @@
                 return false;
             }
 
-            // 路面中线（黄色虚线，沿每条主路 X 方向）
+            // 路面中线（鲜黄色虚线，沿每条主路 X 方向）
+            // 用更饱和的橙黄色（避免在强光下显得发白）
+            const dashColor = new BABYLON.Color3(1.0, 0.65, 0.0);
             ROADS_X.forEach(zCoord => {
                 for (let px = -GROUND_W / 2 + 1; px <= GROUND_W / 2; px += 1.8) {
                     if (isAtIntersection(px, zCoord)) continue;
                     const dash = BABYLON.MeshBuilder.CreateBox(
                         "dashX",
-                        { width: 0.13, height: 0.02, depth: 0.18 },
+                        { width: 0.6, height: 0.02, depth: 0.15 },
                         scene
                     );
                     dash.position.set(px, 0.06, zCoord);
-                    dash.material = legoMat("dashMat", LEGO_COLORS.yellow);
+                    dash.material = legoMat("dashMat", dashColor);
                 }
             });
             // 路面中线（沿每条次路 Z 方向）
@@ -1108,67 +1110,67 @@
                     if (isAtIntersection(xCoord, pz)) continue;
                     const dash = BABYLON.MeshBuilder.CreateBox(
                         "dashZ",
-                        { width: 0.18, height: 0.02, depth: 0.13 },
+                        { width: 0.15, height: 0.02, depth: 0.6 },
                         scene
                     );
                     dash.position.set(xCoord, 0.06, pz);
-                    dash.material = legoMat("dashMatZ", LEGO_COLORS.yellow);
+                    dash.material = legoMat("dashMatZ", dashColor);
                 }
             });
 
             // ========== 人行横道（斑马线） ==========
-            // 真实人行横道：条纹【垂直于车道方向】排布，每条白线都是行人脚下的"一步"
-            //   ──→ 车道方向（车开来）
-            //   ▮ ▮ ▮ ▮ ▮ ▮  ← 这些就是斑马线，每条的长边沿"行人横穿方向"延展，
-            //                    多条沿"车道方向"等距排列
-            //
-            // crossRoadAxis: 这条斑马线所在的【马路】是哪个轴向（即车在哪个方向开）
-            //   'x' = 横向 X 主路（车沿 X 开），条纹的长边应沿 Z 延展（横穿马路），多条沿 X 排列
-            //   'z' = 纵向 Z 次路（车沿 Z 开），条纹的长边应沿 X 延展（横穿马路），多条沿 Z 排列
-            function createCrosswalk(centerX, centerZ, crossRoadAxis) {
-                const crossLen = ROAD_WIDTH / 4; // 条纹长度（行人横穿方向，覆盖马路宽度的四分之一）
-                const stripeW = 0.32;              // 单条宽度（沿车道方向）
-                const stripeGap = 0.32;            // 条间距（等于条宽 = 真实斑马线）
+            // 斑马线绘制在"人行道跨越垂直道路的区域"——这些区域不绘制人行道，改成有间隔的白色斑马线条纹
+            //   类型 A：纵向 Z 次路两侧人行道 跨越 横向 X 主路 → 16 块区域
+            //   类型 B：横向 X 主路两侧人行道 跨越 纵向 Z 次路 → 16 块区域
+            // 共 32 块斑马线区域，构成完整井字形人行横道网络
+            (function drawCrosswalk() {
+                const stripeMat = legoMat("crosswalkStripeMat", LEGO_COLORS.white);
+                const off = ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2;
+                const stripeW = 0.6;                     // 单条宽度（沿行人横穿方向）
+                const stripeGap = 0.6;                   // 条间距
                 const stripePitch = stripeW + stripeGap;
-                const stripeCount = Math.floor(ROAD_WIDTH / stripePitch); // 根据街道宽度动态计算条纹数量
+                const stripeCount = Math.floor(ROAD_WIDTH / stripePitch);
                 const totalSpan = stripeCount * stripeW + (stripeCount - 1) * stripeGap;
                 const startOffset = -totalSpan / 2 + stripeW / 2;
-                for (let i = 0; i < stripeCount; i++) {
-                    const offset = startOffset + i * stripePitch;
-                    const stripe = BABYLON.MeshBuilder.CreateBox(
-                        "crosswalk",
-                        crossRoadAxis === 'x'
-                            // 横向 X 主路：条纹长边沿 Z 延展（横穿马路），多条沿 X 排列
-                            ? { width: stripeW, height: 0.02, depth: crossLen }
-                            // 纵向 Z 次路：条纹长边沿 X 延展（横穿马路），多条沿 Z 排列
-                            : { width: crossLen, height: 0.02, depth: stripeW },
-                        scene
-                    );
-                    if (crossRoadAxis === 'x') {
-                        // 沿 X 方向排布
-                        stripe.position.set(centerX + offset, 0.07, centerZ);
-                    } else {
-                        // 沿 Z 方向排布
-                        stripe.position.set(centerX, 0.07, centerZ + offset);
-                    }
-                    stripe.material = legoMat("crosswalkMat", LEGO_COLORS.white);
-                }
-            }
 
-            // 在每个十字路口的 4 个进站口画斑马线
-            // 真实十字路口：斑马线紧贴人行道边缘，从人行道延伸到路口中心附近，形成井字形
-            // 把斑马线中心放在人行道边缘（马路与人行道交界处）
-            const crosswalkOffset = ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2; // 人行道边缘位置
-            for (const xCoord of ROADS_Z) {
-                for (const zCoord of ROADS_X) {
-                    // 北口/南口：横穿【横向 X 主路】 → crossRoadAxis = 'x'
-                    createCrosswalk(xCoord, zCoord + crosswalkOffset, 'x');
-                    createCrosswalk(xCoord, zCoord - crosswalkOffset, 'x');
-                    // 东口/西口：横穿【纵向 Z 次路】 → crossRoadAxis = 'z'
-                    createCrosswalk(xCoord + crosswalkOffset, zCoord, 'z');
-                    createCrosswalk(xCoord - crosswalkOffset, zCoord, 'z');
+                // 类型 A：纵向 Z 次路两侧人行道 × 横向 X 主路
+                // 条纹长边沿 X（人行道宽度方向，长 SIDEWALK_WIDTH），多条沿 Z 排列
+                for (const xCoord of ROADS_Z) {
+                    for (const zCoord of ROADS_X) {
+                        for (const sign of [+1, -1]) {
+                            for (let i = 0; i < stripeCount; i++) {
+                                const dz = startOffset + i * stripePitch;
+                                const stripe = BABYLON.MeshBuilder.CreateBox(
+                                    "crosswalkStripeA",
+                                    { width: SIDEWALK_WIDTH, height: 0.1, depth: stripeW },
+                                    scene
+                                );
+                                stripe.position.set(xCoord + sign * off, 0.1, zCoord + dz);
+                                stripe.material = stripeMat;
+                            }
+                        }
+                    }
                 }
-            }
+
+                // 类型 B：横向 X 主路两侧人行道 × 纵向 Z 次路
+                // 条纹长边沿 Z（人行道宽度方向，长 SIDEWALK_WIDTH），多条沿 X 排列
+                for (const zCoord of ROADS_X) {
+                    for (const xCoord of ROADS_Z) {
+                        for (const sign of [+1, -1]) {
+                            for (let i = 0; i < stripeCount; i++) {
+                                const dx = startOffset + i * stripePitch;
+                                const stripe = BABYLON.MeshBuilder.CreateBox(
+                                    "crosswalkStripeB",
+                                    { width: stripeW, height: 0.1, depth: SIDEWALK_WIDTH },
+                                    scene
+                                );
+                                stripe.position.set(xCoord + dx, 0.1, zCoord + sign * off);
+                                stripe.material = stripeMat;
+                            }
+                        }
+                    }
+                }
+            })();
 
             // ========== 草地突点（仅在远离所有道路与人行道的区域） ==========
             const sidewalkBuffer = ROAD_WIDTH / 2 + SIDEWALK_WIDTH + 0.5;
@@ -1200,15 +1202,45 @@
                 sw.material = legoMat("sidewalkMat", LEGO_COLORS.white);
                 return sw;
             }
-            // 横向主路两侧
+            // 通用：把整条线段按一组切割中心切成若干段
+            // axisLineLen = 总长度，cutCenters = 切割中心点数组，cutHalfWidth = 每个切割的半宽
+            function segmentLineWithCuts(axisLineLen, cutCenters, cutHalfWidth) {
+                const sorted = [...cutCenters].sort((a, b) => a - b);
+                const segs = [];
+                let cursor = -axisLineLen / 2;
+                for (const c of sorted) {
+                    const segEnd = c - cutHalfWidth;
+                    if (segEnd > cursor) segs.push([cursor, segEnd]);
+                    cursor = c + cutHalfWidth;
+                }
+                if (cursor < axisLineLen / 2) segs.push([cursor, axisLineLen / 2]);
+                return segs;
+            }
+
+            // 横向主路两侧（跳过被纵向 Z 次路截断的段，那里是斑马线）
+            const xSegments = segmentLineWithCuts(GROUND_W, ROADS_Z, ROAD_WIDTH / 2);
             ROADS_X.forEach(zCoord => {
-                createSidewalkStrip(0, zCoord + ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2, GROUND_W, SIDEWALK_WIDTH);
-                createSidewalkStrip(0, zCoord - ROAD_WIDTH / 2 - SIDEWALK_WIDTH / 2, GROUND_W, SIDEWALK_WIDTH);
+                for (const sign of [+1, -1]) {
+                    const sideZ = zCoord + sign * (ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2);
+                    for (const [xStart, xEnd] of xSegments) {
+                        const segLen = xEnd - xStart;
+                        const segCenter = (xStart + xEnd) / 2;
+                        createSidewalkStrip(segCenter, sideZ, segLen, SIDEWALK_WIDTH);
+                    }
+                }
             });
-            // 纵向次路两侧
+
+            // 纵向次路两侧（跳过被横向 X 主路截断的段，那里是斑马线）
+            const zSegments = segmentLineWithCuts(GROUND_D, ROADS_X, ROAD_WIDTH / 2);
             ROADS_Z.forEach(xCoord => {
-                createSidewalkStrip(xCoord + ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2, 0, SIDEWALK_WIDTH, GROUND_D);
-                createSidewalkStrip(xCoord - ROAD_WIDTH / 2 - SIDEWALK_WIDTH / 2, 0, SIDEWALK_WIDTH, GROUND_D);
+                for (const sign of [+1, -1]) {
+                    const sideX = xCoord + sign * (ROAD_WIDTH / 2 + SIDEWALK_WIDTH / 2);
+                    for (const [zStart, zEnd] of zSegments) {
+                        const segLen = zEnd - zStart;
+                        const segCenter = (zStart + zEnd) / 2;
+                        createSidewalkStrip(sideX, segCenter, SIDEWALK_WIDTH, segLen);
+                    }
+                }
             });
 
             // ========== 乐高风格建筑（普通住宅 / 写字楼 / 商铺，可带招牌） ==========
