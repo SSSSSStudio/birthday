@@ -312,13 +312,49 @@ function createLegoCharacter() {
         { diameter: 0.3, height: 0.1, tessellation: 14 }, scene);
     headStud.position.set(0, 2.1, 0); headStud.material = headMat; headStud.parent = group;
 
-    const hair = BABYLON.MeshBuilder.CreateBox("hair",
-        { width: 0.62, height: 0.22, depth: 0.62 }, scene);
-    hair.position.set(0, 2.02, 0);
-    hair.material = legoMat("hairMat", hairColor); hair.parent = group;
+    // --- 秀发（飘逸的乐高发型，与 index.html 保持一致）---
+    // 由 5 部分组成：头顶发盖 + 前额刘海 + 左右两侧鬓发 + 后脑长发 + 顶部小发束
+    const hairMat = legoMat("hairMat", hairColor);
+
+    // 1. 头顶发盖（覆盖整个头顶并把 stud 隐藏）
+    const hairTop = BABYLON.MeshBuilder.CreateBox("hairTop",
+        { width: 0.66, height: 0.32, depth: 0.66 }, scene);
+    hairTop.position.set(0, 2.10, 0);
+    hairTop.material = hairMat;
+    hairTop.parent = group;
+
+    // 2. 前额刘海（斜削的一块，靠前突出）
     const bangs = BABYLON.MeshBuilder.CreateBox("bangs",
-        { width: 0.56, height: 0.15, depth: 0.12 }, scene);
-    bangs.position.set(0, 1.95, 0.26); bangs.material = hair.material; bangs.parent = group;
+        { width: 0.62, height: 0.18, depth: 0.16 }, scene);
+    bangs.position.set(0, 1.96, 0.28);
+    bangs.rotation.x = -0.15; // 向前微倾
+    bangs.material = hairMat;
+    bangs.parent = group;
+
+    // 3. 左右两侧鬓发（顺着脸颊垂下）
+    [-1, 1].forEach(side => {
+        const sideHair = BABYLON.MeshBuilder.CreateBox("sideHair_" + side,
+            { width: 0.12, height: 0.42, depth: 0.55 }, scene);
+        sideHair.position.set(side * 0.32, 1.78, -0.02);
+        sideHair.rotation.z = side * -0.05;
+        sideHair.material = hairMat;
+        sideHair.parent = group;
+    });
+
+    // 4. 后脑长发（垂到肩膀的一块）
+    const backHair = BABYLON.MeshBuilder.CreateBox("backHair",
+        { width: 0.55, height: 0.55, depth: 0.18 }, scene);
+    backHair.position.set(0, 1.72, -0.28);
+    backHair.material = hairMat;
+    backHair.parent = group;
+
+    // 5. 顶部小发束（呆毛/挑染的一小撮，让发型更生动）
+    const tuft = BABYLON.MeshBuilder.CreateBox("hairTuft",
+        { width: 0.16, height: 0.18, depth: 0.16 }, scene);
+    tuft.position.set(-0.12, 2.32, 0.05);
+    tuft.rotation.z = 0.3;
+    tuft.material = hairMat;
+    tuft.parent = group;
 
     const eyeMat = legoMat("eyeMat", LEGO_COLORS.black);
     const eyeL = BABYLON.MeshBuilder.CreateSphere("eyeL", { diameter: 0.06 }, scene);
