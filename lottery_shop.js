@@ -28,32 +28,6 @@ ambient.groundColor = new BABYLON.Color3(0.4, 0.35, 0.3);
 const dirLight = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-0.5, -1, -0.4), scene);
 dirLight.intensity = 0.5;
 
-// ========== 乐高工具 ==========
-const LEGO_COLORS = {
-    red: new BABYLON.Color3(0.85, 0.15, 0.15),
-    blue: new BABYLON.Color3(0.15, 0.4, 0.85),
-    yellow: new BABYLON.Color3(1.0, 0.85, 0.1),
-    green: new BABYLON.Color3(0.2, 0.7, 0.25),
-    white: new BABYLON.Color3(0.95, 0.95, 0.92),
-    black: new BABYLON.Color3(0.12, 0.12, 0.12),
-    tan: new BABYLON.Color3(0.93, 0.82, 0.55),
-    darkGray: new BABYLON.Color3(0.35, 0.35, 0.38),
-    purple: new BABYLON.Color3(0.55, 0.25, 0.75),
-    orange: new BABYLON.Color3(1.0, 0.55, 0.1)
-};
-function legoMat(name, color) {
-    const m = new BABYLON.StandardMaterial(name, scene);
-    m.diffuseColor = color;
-    m.specularColor = new BABYLON.Color3(0.15, 0.15, 0.15);
-    return m;
-}
-function createStud(x, z, color, y = 0.2) {
-    const s = BABYLON.MeshBuilder.CreateCylinder("stud_" + x + "_" + z + "_" + Math.random(),
-        { diameter: 0.45, height: 0.12, tessellation: 12 }, scene);
-    s.position.set(x, y + 0.06, z);
-    s.material = legoMat("studMat_" + Math.random(), color);
-    return s;
-}
 
 // ========== 房间 + 出门点 + 柜台 ==========
 const ROOM_W = 14, ROOM_D = 18, ROOM_H = 4.5;
@@ -70,27 +44,27 @@ const COUNTERS = [
 // ===== 地板 =====
 const floor = BABYLON.MeshBuilder.CreateBox("floor", { width: ROOM_W, height: 0.2, depth: ROOM_D }, scene);
 floor.position.y = 0.1;
-floor.material = legoMat("floorMat", LEGO_COLORS.tan);
+floor.material = legoMat("floorMat", LEGO_COLORS.tan, scene);
 for (let x = -ROOM_W / 2 + 1; x < ROOM_W / 2; x += 1.3) {
     for (let z = -ROOM_D / 2 + 1; z < ROOM_D / 2; z += 1.3) {
-        createStud(x, z, LEGO_COLORS.tan, 0.2);
+        createStud(x, z, LEGO_COLORS.tan, 0.2, 0.45, 0.12, scene);
     }
 }
 
 // ===== 墙壁 =====
 // 给"会挡相机视线"的物体（前墙、门梁、左右墙）每个独立材质，便于单独调透明度
-const wallMat = legoMat("wallMat", LEGO_COLORS.white); // 后墙等不会挡视线的可共用
+const wallMat = legoMat("wallMat", LEGO_COLORS.white, scene); // 后墙等不会挡视线的可共用
 const backWall = BABYLON.MeshBuilder.CreateBox("backWall", { width: ROOM_W, height: ROOM_H, depth: 0.3 }, scene);
 backWall.position.set(0, ROOM_H / 2, -ROOM_D / 2);
 backWall.material = wallMat;
 
 // 左右墙独立材质 + 加入"近物淡出"列表（相机 alpha=-PI/4，看向 +X+Z 方向，靠近角色的右侧/下侧墙容易挡视线）
-const leftWallMat = legoMat("leftWallMat", LEGO_COLORS.white);
+const leftWallMat = legoMat("leftWallMat", LEGO_COLORS.white, scene);
 const leftWall = BABYLON.MeshBuilder.CreateBox("leftWall", { width: 0.3, height: ROOM_H, depth: ROOM_D }, scene);
 leftWall.position.set(-ROOM_W / 2, ROOM_H / 2, 0);
 leftWall.material = leftWallMat;
 
-const rightWallMat = legoMat("rightWallMat", LEGO_COLORS.white);
+const rightWallMat = legoMat("rightWallMat", LEGO_COLORS.white, scene);
 const rightWall = BABYLON.MeshBuilder.CreateBox("rightWall", { width: 0.3, height: ROOM_H, depth: ROOM_D }, scene);
 rightWall.position.set(ROOM_W / 2, ROOM_H / 2, 0);
 rightWall.material = rightWallMat;
@@ -99,17 +73,17 @@ const doorW = 2.4;
 const sideW = (ROOM_W - doorW) / 2;
 
 // 前墙左右段（最容易挡视线）
-const frontLeftMat = legoMat("frontLeftMat", LEGO_COLORS.white);
+const frontLeftMat = legoMat("frontLeftMat", LEGO_COLORS.white, scene);
 const frontLeft = BABYLON.MeshBuilder.CreateBox("frontLeft", { width: sideW, height: ROOM_H, depth: 0.3 }, scene);
 frontLeft.position.set(-(ROOM_W / 4 + doorW / 4), ROOM_H / 2, ROOM_D / 2);
 frontLeft.material = frontLeftMat;
 
-const frontRightMat = legoMat("frontRightMat", LEGO_COLORS.white);
+const frontRightMat = legoMat("frontRightMat", LEGO_COLORS.white, scene);
 const frontRight = BABYLON.MeshBuilder.CreateBox("frontRight", { width: sideW, height: ROOM_H, depth: 0.3 }, scene);
 frontRight.position.set(ROOM_W / 4 + doorW / 4, ROOM_H / 2, ROOM_D / 2);
 frontRight.material = frontRightMat;
 
-const lintelMat = legoMat("lintelMat", LEGO_COLORS.red);
+const lintelMat = legoMat("lintelMat", LEGO_COLORS.red, scene);
 const lintel = BABYLON.MeshBuilder.CreateBox("lintel", { width: doorW + 0.4, height: 0.6, depth: 0.3 }, scene);
 lintel.position.set(0, ROOM_H - 0.3, ROOM_D / 2);
 lintel.material = lintelMat;
@@ -142,14 +116,14 @@ const fadeTargets = [
 [-3, 3].forEach(wx => {
     const win = BABYLON.MeshBuilder.CreateBox("win" + wx, { width: 1.2, height: 1, depth: 0.1 }, scene);
     win.position.set(wx, 2.2, -ROOM_D / 2 + 0.2);
-    const wm = legoMat("winMat" + wx, LEGO_COLORS.blue);
+    const wm = legoMat("winMat" + wx, LEGO_COLORS.blue, scene);
     win.material = wm;
     backWallExtraMats.push(wm);
 });
 
 const sign = BABYLON.MeshBuilder.CreateBox("sign", { width: 6, height: 1.2, depth: 0.15 }, scene);
 sign.position.set(0, 3.4, -ROOM_D / 2 + 0.2);
-const signMat = legoMat("signMat", LEGO_COLORS.purple);
+const signMat = legoMat("signMat", LEGO_COLORS.purple, scene);
 signMat.emissiveColor = new BABYLON.Color3(0.3, 0.1, 0.4);
 sign.material = signMat;
 backWallExtraMats.push(signMat);
@@ -158,7 +132,7 @@ const letterColors = [LEGO_COLORS.red, LEGO_COLORS.yellow, LEGO_COLORS.green, LE
 for (let i = 0; i < 5; i++) {
     const letter = BABYLON.MeshBuilder.CreateBox("letter" + i, { width: 0.6, height: 0.6, depth: 0.1 }, scene);
     letter.position.set(-1.6 + i * 0.8, 3.4, -ROOM_D / 2 + 0.32);
-    const lm = legoMat("letterMat" + i, letterColors[i]);
+    const lm = legoMat("letterMat" + i, letterColors[i], scene);
     lm.emissiveColor = letterColors[i].scale(0.4);
     letter.material = lm;
     backWallExtraMats.push(lm);
@@ -174,36 +148,36 @@ COUNTERS.forEach(cfg => {
     const counter = BABYLON.MeshBuilder.CreateBox("counter_" + cfg.price,
         { width: 2.4, height: 1.0, depth: 1.2 }, scene);
     counter.position.set(cfg.x, 0.6, -ROOM_D / 2 + 1.5);
-    counter.material = legoMat("counterMat_" + cfg.price, LEGO_COLORS.darkGray);
+    counter.material = legoMat("counterMat_" + cfg.price, LEGO_COLORS.darkGray, scene);
 
     const top = BABYLON.MeshBuilder.CreateBox("counterTop_" + cfg.price,
         { width: 2.6, height: 0.12, depth: 1.4 }, scene);
     top.position.set(cfg.x, 1.16, -ROOM_D / 2 + 1.5);
-    top.material = legoMat("counterTopMat_" + cfg.price, cfg.color);
+    top.material = legoMat("counterTopMat_" + cfg.price, cfg.color, scene);
 
     for (let ix = -1; ix <= 1; ix += 1) {
         for (let iz = -0.3; iz <= 0.3; iz += 0.6) {
-            createStud(cfg.x + ix * 0.9, -ROOM_D / 2 + 1.5 + iz, cfg.color, 1.22);
+            createStud(cfg.x + ix * 0.9, -ROOM_D / 2 + 1.5 + iz, cfg.color, 1.22, 0.45, 0.12, scene);
         }
     }
     for (let k = 0; k < 5; k++) {
         const card = BABYLON.MeshBuilder.CreateBox("ticket_" + cfg.price + "_" + k,
             { width: 0.35, height: 0.5, depth: 0.04 }, scene);
         card.position.set(cfg.x - 0.8 + k * 0.4, 1.55, -ROOM_D / 2 + 1.5);
-        const cm = legoMat("ticketMat_" + cfg.price + "_" + k, cfg.color);
+        const cm = legoMat("ticketMat_" + cfg.price + "_" + k, cfg.color, scene);
         cm.emissiveColor = cfg.color.scale(0.3);
         card.material = cm;
     }
     const priceTag = BABYLON.MeshBuilder.CreateBox("priceTag_" + cfg.price,
         { width: 1.4, height: 0.6, depth: 0.1 }, scene);
     priceTag.position.set(cfg.x, 2.4, -ROOM_D / 2 + 0.5);
-    const pm = legoMat("priceTagMat_" + cfg.price, LEGO_COLORS.white);
+    const pm = legoMat("priceTagMat_" + cfg.price, LEGO_COLORS.white, scene);
     pm.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
     priceTag.material = pm;
     const priceBar = BABYLON.MeshBuilder.CreateBox("priceBar_" + cfg.price,
         { width: 1.2, height: 0.25, depth: 0.05 }, scene);
     priceBar.position.set(cfg.x, 2.4, -ROOM_D / 2 + 0.6);
-    const pbm = legoMat("priceBarMat_" + cfg.price, cfg.color);
+    const pbm = legoMat("priceBarMat_" + cfg.price, cfg.color, scene);
     pbm.emissiveColor = cfg.color.scale(0.5);
     priceBar.material = pbm;
 });
@@ -212,12 +186,12 @@ COUNTERS.forEach(cfg => {
 const exitTrigger = BABYLON.MeshBuilder.CreateBox("exitTrigger",
     { width: 1.0, height: 0.4, depth: 1.0 }, scene);
 exitTrigger.position.set(EXIT_X, 0.55, EXIT_Z);
-const exitMat = legoMat("exitMat", LEGO_COLORS.green);
+const exitMat = legoMat("exitMat", LEGO_COLORS.green, scene);
 exitMat.emissiveColor = new BABYLON.Color3(0.1, 0.4, 0.1);
 exitTrigger.material = exitMat;
 for (let sx = -0.25; sx <= 0.25; sx += 0.5) {
     for (let sz = -0.25; sz <= 0.25; sz += 0.5) {
-        createStud(EXIT_X + sx, EXIT_Z + sz, LEGO_COLORS.green, 0.75);
+        createStud(EXIT_X + sx, EXIT_Z + sz, LEGO_COLORS.green, 0.75, 0.45, 0.12, scene);
     }
 }
 let exitAnimT = 0;
@@ -236,7 +210,7 @@ for (let lx of [-4, 0, 4]) {
     pl.range = 10;
     const bulb = BABYLON.MeshBuilder.CreateSphere("bulb" + lx, { diameter: 0.5 }, scene);
     bulb.position.set(lx, ROOM_H - 0.3, 0);
-    const bm = legoMat("bulbMat" + lx, LEGO_COLORS.yellow);
+    const bm = legoMat("bulbMat" + lx, LEGO_COLORS.yellow, scene);
     bm.emissiveColor = new BABYLON.Color3(0.9, 0.8, 0.3);
     bulb.material = bm;
 }
@@ -248,7 +222,7 @@ function createLegoCharacter() {
     const shirt = LEGO_COLORS.red;
     const pants = LEGO_COLORS.blue;
     const hairColor = new BABYLON.Color3(0.22, 0.14, 0.08);
-    const legMat = legoMat("legMat", pants);
+    const legMat = legoMat("legMat", pants, scene);
 
     const legLG = new BABYLON.TransformNode("legLG", scene);
     legLG.parent = group; legLG.position.set(-0.13, 0.55, 0);
@@ -262,7 +236,7 @@ function createLegoCharacter() {
 
     const belt = BABYLON.MeshBuilder.CreateBox("belt", { width: 0.56, height: 0.06, depth: 0.32 }, scene);
     belt.position.set(0, 0.58, 0);
-    belt.material = legoMat("beltMat", LEGO_COLORS.black);
+    belt.material = legoMat("beltMat", LEGO_COLORS.black, scene);
     belt.parent = group;
 
     const torsoG = new BABYLON.TransformNode("torsoG", scene);
@@ -270,12 +244,12 @@ function createLegoCharacter() {
     const torso = BABYLON.MeshBuilder.CreateCylinder("torso",
         { height: 0.7, diameterTop: 0.48, diameterBottom: 0.62, tessellation: 4 }, scene);
     torso.rotation.y = Math.PI / 4; torso.position.y = 0.35; torso.scaling.z = 0.62;
-    torso.material = legoMat("torsoMat", shirt); torso.parent = torsoG;
+    torso.material = legoMat("torsoMat", shirt, scene); torso.parent = torsoG;
 
     const shoulder = BABYLON.MeshBuilder.CreateBox("shoulder",
         { width: 0.62, height: 0.12, depth: 0.36 }, scene);
     shoulder.position.y = 0.72;
-    shoulder.material = legoMat("shoulderMat", shirt);
+    shoulder.material = legoMat("shoulderMat", shirt, scene);
     shoulder.parent = torsoG;
 
     function createArm(side) {
@@ -285,12 +259,12 @@ function createLegoCharacter() {
             { diameter: 0.2, height: 0.55, tessellation: 10 }, scene);
         upper.position.set(side * 0.04, -0.28, 0.02);
         upper.rotation.z = side * 0.25; upper.rotation.x = -0.2;
-        upper.material = legoMat("armMat" + side, shirt); upper.parent = armG;
+        upper.material = legoMat("armMat" + side, shirt, scene); upper.parent = armG;
         const hand = BABYLON.MeshBuilder.CreateCylinder("hand_" + side,
             { diameter: 0.24, height: 0.18, tessellation: 10 }, scene);
         hand.position.set(side * 0.14, -0.55, 0.12);
         hand.rotation.z = side * 0.25;
-        hand.material = legoMat("handMat" + side, skin);
+        hand.material = legoMat("handMat" + side, skin, scene);
         hand.parent = armG;
         return armG;
     }
@@ -300,12 +274,12 @@ function createLegoCharacter() {
     const neck = BABYLON.MeshBuilder.CreateCylinder("neck",
         { diameter: 0.22, height: 0.12, tessellation: 10 }, scene);
     neck.position.set(0, 1.38, 0);
-    neck.material = legoMat("neckMat", skin); neck.parent = group;
+    neck.material = legoMat("neckMat", skin, scene); neck.parent = group;
 
     const head = BABYLON.MeshBuilder.CreateCylinder("head",
         { diameter: 0.55, height: 0.6, tessellation: 16 }, scene);
     head.position.set(0, 1.75, 0);
-    const headMat = legoMat("headMat", skin);
+    const headMat = legoMat("headMat", skin, scene);
     head.material = headMat; head.parent = group;
 
     const headStud = BABYLON.MeshBuilder.CreateCylinder("headStud",
@@ -314,7 +288,7 @@ function createLegoCharacter() {
 
     // --- 秀发（飘逸的乐高发型，与 index.html 保持一致）---
     // 由 5 部分组成：头顶发盖 + 前额刘海 + 左右两侧鬓发 + 后脑长发 + 顶部小发束
-    const hairMat = legoMat("hairMat", hairColor);
+    const hairMat = legoMat("hairMat", hairColor, scene);
 
     // 1. 头顶发盖（覆盖整个头顶并把 stud 隐藏）
     const hairTop = BABYLON.MeshBuilder.CreateBox("hairTop",
@@ -356,7 +330,7 @@ function createLegoCharacter() {
     tuft.material = hairMat;
     tuft.parent = group;
 
-    const eyeMat = legoMat("eyeMat", LEGO_COLORS.black);
+    const eyeMat = legoMat("eyeMat", LEGO_COLORS.black, scene);
     const eyeL = BABYLON.MeshBuilder.CreateSphere("eyeL", { diameter: 0.06 }, scene);
     eyeL.position.set(-0.1, 1.82, 0.27); eyeL.material = eyeMat; eyeL.parent = group;
     const eyeR = BABYLON.MeshBuilder.CreateSphere("eyeR", { diameter: 0.06 }, scene);
@@ -364,7 +338,7 @@ function createLegoCharacter() {
     const mouth = BABYLON.MeshBuilder.CreateBox("mouth",
         { width: 0.14, height: 0.03, depth: 0.02 }, scene);
     mouth.position.set(0, 1.7, 0.28);
-    mouth.material = legoMat("mouthMat", new BABYLON.Color3(0.5, 0.1, 0.1));
+    mouth.material = legoMat("mouthMat", new BABYLON.Color3(0.5, 0.1, 0.1), scene);
     mouth.parent = group;
 
     group.metadata = { legL: legLG, legR: legRG, armL, armR };

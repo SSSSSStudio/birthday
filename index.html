@@ -7,6 +7,7 @@
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
     <script src="config.js"></script>
+    <script src="lego_common.js"></script>
     <style>
         * {
             margin: 0;
@@ -1008,30 +1009,7 @@
                 return false;
             }
 
-            // ========== 乐高配色（饱和鲜艳） ==========
-            const LEGO_COLORS = {
-                red:    new BABYLON.Color3(0.85, 0.15, 0.15),
-                blue:   new BABYLON.Color3(0.10, 0.35, 0.75),
-                yellow: new BABYLON.Color3(1.00, 0.80, 0.05),
-                green:  new BABYLON.Color3(0.15, 0.60, 0.25),
-                white:  new BABYLON.Color3(0.95, 0.95, 0.95),
-                black:  new BABYLON.Color3(0.08, 0.08, 0.08),
-                gray:   new BABYLON.Color3(0.55, 0.55, 0.58),
-                darkGray: new BABYLON.Color3(0.30, 0.30, 0.33),
-                orange: new BABYLON.Color3(0.95, 0.50, 0.10),
-                purple: new BABYLON.Color3(0.55, 0.25, 0.70),
-                tan:    new BABYLON.Color3(0.88, 0.75, 0.55),
-                lime:   new BABYLON.Color3(0.70, 0.85, 0.20)
-            };
 
-            // 统一的乐高材质生成器（强漫反射、弱高光）
-            function legoMat(name, color) {
-                const m = new BABYLON.StandardMaterial(name, scene);
-                m.diffuseColor = color;
-                m.specularColor = new BABYLON.Color3(0.15, 0.15, 0.15);
-                m.specularPower = 32;
-                return m;
-            }
 
             // ========== 乐高底板（草地）+ 突点 ==========
             const baseplate = BABYLON.MeshBuilder.CreateBox(
@@ -1043,16 +1021,6 @@
             baseplate.material = legoMat("baseplateMat", LEGO_COLORS.green);
 
             // 底板突点（仅在草地区域）
-            function createStud(x, z, color, y = 0) {
-                const stud = BABYLON.MeshBuilder.CreateCylinder(
-                    "stud",
-                    { diameter: STUD_SIZE, height: STUD_HEIGHT, tessellation: 12 },
-                    scene
-                );
-                stud.position.set(x, y + STUD_HEIGHT / 2, z);
-                stud.material = color._studMat || (color._studMat = legoMat("studMat_" + color.toHexString(), color));
-                return stud;
-            }
 
             // ========== 道路（深灰色乐高路面，网格化路网） ==========
             // 横向主路（沿 X 延伸，宽度 = GROUND_W）
