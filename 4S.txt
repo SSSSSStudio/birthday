@@ -1,0 +1,878 @@
+mobilepostprocesssubsurface.usf
+//  Mobile PS-based 5S
+Texture2D SceneDepthTex;
+Texture2D GBufferATex;
+Texture2D GBufferBTex;
+Texture2D GBufferCTex;
+
+// @param UVSceneColor for the full res rendertarget (BufferSize) e.g. SceneColor or GBuffers
+// @return .RGB Color that should be scattared, .A:1 for subsurface scattering material, 0 for not
+float4 SetupSubsurfaceForOnePixelMobile(float2 UVSceneColor)
+{
+	float ShadingModelID = MobileDecodeId(
+		//InGBufferA.b,
+		Texture2DSampleLevel(GBufferATex, SharedSubsurfaceSampler0, UVSceneColor, 0).b,
+		true);
+	const bool bHasSSSDiffusion = UseSubsurfaceProfile(ShadingModelID);
+
+	float4 Ret = 0;
+
+	BRANCH if (bHasSSSDiffusion)
+	{
+		// '1' is lower quality but that is acceptable here
+		SDiffuseAndSpecular DiffuseAndSpecular = ReconstructLighting(UVSceneColor, 1);
+
+		Ret.rgb = DiffuseAndSpecular.Diffuse;
+
+		// it's a valid sample
+		Ret.a = 1;
+	}
+	return Ret;
+}
+
+void SetupPS(
+	in noperspective float4 UVAndScreenPos: TEXCOORD0,
+	out float4 OutColor: SV_Target0)
+{
+	float2 BufferUV = UVAndScreenPos.xy;
+
+	// Use the same SetupSubsurfaceForOnePixel as CS version, which reads from GBuffer uniform buffer
+	OutColor = SetupSubsurfaceForOnePixel(BufferUV);
+	if (OutColor.a > 0)
+	{
+		// Use CalcSceneDepth which reads from GBuffer uniform buffer, same as CS version
+		OutColor.a = CalcSceneDepth(BufferUV);
+	}
+}
+
+void MainPS(
+	noperspective float4 UVAndScreenPos: TEXCOORD0,
+	out float4 OutColor: SV_Target0)
+{
+	float2 BufferUV = UVAndScreenPos.xy;
+
+	//OutColor = Texture2DSample(SubsurfaceInput0_Texture, SharedSubsurfaceSampler0, BufferUV);
+	//return;
+
+#if SUBSURFACE_DIRECTION == 0
+	// horizontal
+	float2 ViewportDirectionUV = float2(1, 0) * SUBSURFACE_RADIUS_SCALE;
+#else //#elif SUBSURFACE_DIRECTION_VERTICAL
+	// vertical
+	float2 ViewportDirectionUV = float2(0, 1) * SUBSURFACE_RADIUS_SCALE * (SubsurfaceInput0_Extent.x * SubsurfaceInput0_ExtentInverse.y);
+#endif
+
+	ViewportDirectionUV *= (SubsurfaceInput0_ViewportSize.x * SubsurfaceInput0_ExtentInverse.x);
+
+	// [Commented out] Previously used MobileSSSSBlurPS with manual GBuffer texture sampling
+	// SSSBlurParams BlurParams;
+	// BlurParams.GBufferATex = GBufferATex;
+	// BlurParams.GBufferBTex = GBufferBTex;
+	// BlurParams.SubsurfaceSampler = SharedSubsurfaceSampler0;
+	// OutColor = MobileSSSSBlurPS(BufferUV, ViewportDirectionUV, false, BlurParams);
+
+	// Now using SSSSBlurPS which reads from GBuffer uniform buffer, same as CS version
+	uint2 BufferPos = uint2(BufferUV * SubsurfaceInput0_Extent);
+	OutColor = SSSSBlurPS(BufferPos, BufferUV, ViewportDirectionUV, false, SubsurfaceInput0_Extent);
+
+#if SUBSURFACE_DIRECTION == SUBSURFACE_DIRECTION_VERTICAL
+	// second pass prepares the setup from the recombine pass which doesn't need depth but wants to reconstruct the color
+	OutColor.a = GetMaskFromDepthInAlpha(OutColor.a);
+#endif
+
+	//OutColor = float4(1, 1, 1, 1);
+}
+
+float ComputeFullResLerp(FScreenSpaceData ScreenSpaceData, float2 UVSceneColor, float2 FullResInputSizeInverse)
+{
+	float SSSScaleX = SubsurfaceParams.x;
+
+	float scale = SSSScaleX / CalcSceneDepth(UVSceneColor);
+
+	float HorizontalScaler = SUBSURFACE_RADIUS_SCALE;
+
+	// Calculate the final step to fetch the surrounding pixels:
+	float finalStep = scale * HorizontalScaler;
+
+	// 0..255, which SubSurface profile to pick
+	uint SubsurfaceProfileInt = ExtractSubsurfaceProfileInt(ScreenSpaceData.GBuffer);
+
+	float ProfileRadiusScale = GetSubsurfaceProfileKernel(SSSS_N_KERNELWEIGHTOFFSET + SSSS_N_KERNELWEIGHTCOUNT - 1, SubsurfaceProfileInt).a;
+
+	// finalStep *= GetSubsurfaceProfileRadiusScale(ScreenSpaceData.GBuffer);
+	finalStep *= ProfileRadiusScale;
+
+	float PixelSizeRadius = finalStep / (FullResInputSizeInverse.x * 0.5f);
+
+	// tweaked for skin, a more flat kernel might need a smaller value, around 2 seems reasonable because we do half res
+	const float PixelSize = 4.0f;
+
+	float Ret = saturate(PixelSizeRadius - PixelSize);
+
+	// opacity allows to scale the radius - at some point we should fade in the full resolution, we don't have a masking other than that.
+	Ret *= saturate(ScreenSpaceData.GBuffer.CustomData.a * 10);
+
+	// todo: Subsurface has some non scatter contribution - all that should come from the Full res
+	return Ret;
+}
+
+void SubsurfaceRecombinePrevPS(
+	noperspective float4 UVAndScreenPos : TEXCOORD0,
+	float4 SvPosition : SV_POSITION,
+	out float4 OutColor : SV_Target0)
+{
+	float2 BufferUV = UVAndScreenPos.xy;
+
+	// Now using GBuffer uniform buffer via GetGBufferData, same as PC version
+	FGBufferData GBufferData = GetGBufferData(BufferUV);
+	const bool bUseSSSDiffusion = UseSubsurfaceProfile(GBufferData.ShadingModelID);
+
+	// [Commented out] Previously used manual GBuffer texture sampling
+	// float ShadingModelID = MobileDecodeId(
+	// 	Texture2DSampleLevel(GBufferATex, SharedSubsurfaceSampler0, BufferUV, 0).b, 
+	// 	true);
+
+	if (!bUseSSSDiffusion)
+	{  
+		OutColor = Texture2DSample(SubsurfaceInput0_Texture, SharedSubsurfaceSampler0, BufferUV);
+		return;
+	}
+
+	// Now using GBuffer uniform buffer for ProfileId and StoredBaseColor, same as PC version
+	const uint ProfileId = ExtractSubsurfaceProfileInt(GBufferData);
+	const float3 StoredBaseColor = GBufferData.StoredBaseColor;
+
+	// [Commented out] Previously used manual GBuffer texture sampling
+	// SSSBlurParams BlurParams;
+	// BlurParams.GBufferBTex = GBufferBTex;
+	// BlurParams.GBufferATex = GBufferATex;
+	// BlurParams.SubsurfaceSampler = SharedSubsurfaceSampler0;
+	// const uint ProfileId = ExtractSubsurfaceProfileIntMobile(BufferUV, BlurParams);
+	// const float3 StoredBaseColor = Texture2DSampleLevel(GBufferCTex, SharedSubsurfaceSampler0, BufferUV, 0).rgb;
+
+	const float3 Tint = GetSubsurfaceProfileKernel(SSSS_TINT_SCALE_OFFSET, ProfileId).rgb;
+
+	float3 SSSColor = float3(0, 0, 0);
+	float LerpFactor = 1;
+
+#if SUBSURFACE_RECOMBINE_MODE != SUBSURFACE_RECOMBINE_MODE_NO_SCATTERING
+#if SUBSURFACE_HALF_RES
+	LerpFactor = ComputeFullResLerp(ScreenSpaceData, BufferUV, SubsurfaceInput1_ExtentInverse);
+#endif // SUBSURFACE_HALF_RES
+
+	{
+		// subsurface scattering buffer has garbage data outside of viewport bilinear min/max.
+		float2 ClampedBufferUV = clamp(BufferUV, SubsurfaceInput1_UVViewportBilinearMin, SubsurfaceInput1_UVViewportBilinearMax);
+		float4 SSSColorWithAlpha = Texture2DSampleLevel(SubsurfaceInput1_Texture, SharedSubsurfaceSampler1, ClampedBufferUV, 0);
+
+		// renormalize to dilate RGB to fix half res upsampling artifacts
+		SSSColor = SSSColorWithAlpha.rgb / max(SSSColorWithAlpha.a, 0.00001f);
+	}
+#else // SUBSURFACE_RECOMBINE_MODE == SUBSURFACE_RECOMBINE_MODE_NO_SCATTERING
+	LerpFactor = 0;
+#endif // SUBSURFACE_RECOMBINE_MODE
+
+	uint ReconstructMethod = 1;
+
+	SDiffuseAndSpecular DiffuseAndSpecular = ReconstructLighting(BufferUV, ReconstructMethod);
+	
+	float3 ExtractedNonSubsurface = DiffuseAndSpecular.Specular;
+
+	float3 FadedTint = Tint * LerpFactor;
+
+	// combine potentially half res with full res
+	float3 SubsurfaceLighting = lerp(DiffuseAndSpecular.Diffuse, SSSColor, FadedTint);
+
+	OutColor = float4(SubsurfaceLighting * StoredBaseColor + ExtractedNonSubsurface, 0.0f);
+}
+
+// Mobile PS-based 5S
+float4 GatherSceneDepthMobile(float2 UV)
+{
+#if SCENE_TEXTURES_DISABLED
+	return SCENE_TEXTURES_DISABLED_SCENE_DEPTH_VALUE;
+#else
+	//return GatherDepth(SceneTexturesStruct.SceneDepthTexture, UV);
+	Texture2D Texture = MobileSceneTextures.SceneDepthTexture;
+	return GatherDepth(Texture, UV);
+#endif
+}
+
+SeparableSSS.ush
+//  Mobile PS-based 5S
+#include "DeferredShadingCommon.ush"
+
+struct SSSBlurParams{
+	Texture2D GBufferATex;
+	Texture2D GBufferBTex;
+	SamplerState SubsurfaceSampler;
+};
+
+float GetSubsurfaceStrengthMobile(float2 UV, SSSBlurParams BlurParams)
+{
+	// FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	// float ShadingModelID = DecodeShadingModelId(
+	// 	Texture2DSampleLevel(BlurParams.GBufferBTex, BlurParams.SubsurfaceSampler, UV, 0).a
+	// );
+	float ShadingModelID = MobileDecodeId(
+		//InGBufferA.b,
+		Texture2DSampleLevel(BlurParams.GBufferATex, BlurParams.SubsurfaceSampler, UV, 0).b, 
+		true);
+
+	const float Mask = UseSubsurfaceProfile(ShadingModelID) ? 1.0f : 0.0f;
+	//const float RadiusScale = Texture2DSampleLevel(BlurParams.GBufferBTex, BlurParams.SubsurfaceSampler, UV, 0).a; //GBufferB.a;
+	const float RadiusScale = MobileDecodeColorChannel(
+		Texture2DSampleLevel(BlurParams.GBufferATex, BlurParams.SubsurfaceSampler, UV, 0).b,
+		true
+	);
+	
+	return Mask * RadiusScale;
+}
+
+uint ExtractSubsurfaceProfileIntMobile(float2 UV, SSSBlurParams BlurParams)
+{
+	//float ProfileNormFloat = Texture2DSampleLevel(BlurParams.GBufferDTex, BlurParams.SubsurfaceSampler, UV, 0).r;
+	//float ProfileNormFloat = Texture2DSampleLevel(BlurParams.GBufferATex, BlurParams.SubsurfaceSampler, UV, 0).a;
+	
+	//ysy: SubsurfaceProfile param is encoded in GBufferB
+	float ProfileNormFloat = Texture2DSampleLevel(BlurParams.GBufferBTex, BlurParams.SubsurfaceSampler, UV, 0).a;
+	
+	//ysy: SHADINGMODELID_EYE encode SubsurfaceProfile param in GBufferB
+	float ShadingModelID = MobileDecodeId(Texture2DSampleLevel(BlurParams.GBufferATex, BlurParams.SubsurfaceSampler, UV, 0).b, true);
+	
+	BRANCH
+	if (ShadingModelID == SHADINGMODELID_EYE)
+	{
+		ProfileNormFloat = MobileDecodeId(Texture2DSampleLevel(BlurParams.GBufferBTex, BlurParams.SubsurfaceSampler, UV, 0).a, false);
+	}
+	
+	return uint(ProfileNormFloat * 255.0f + 0.5f);
+}
+
+uint GetSubsurfaceProfileIdMobile(float2 BufferUV, SSSBlurParams BlurParams)
+{
+	BufferUV = clamp(BufferUV, SubsurfaceInput0_UVViewportBilinearMin, SubsurfaceInput0_UVViewportBilinearMax);
+	return ExtractSubsurfaceProfileIntMobile(BufferUV, BlurParams);
+}
+
+float4 MobileSSSSBlurPS(float2 BufferUV, float2 dir, bool initStencil, SSSBlurParams BlurParams)
+{
+	// Fetch color of current pixel:
+    float4 colorM = SSSSSampleSceneColorPoint(BufferUV);
+
+	// we store the depth in alpha
+	float OutDepth = colorM.a;
+
+	colorM.a = GetMaskFromDepthInAlpha(colorM.a);
+
+	// we don't need to process pixels that are not part of the subsurafce scattering (optimization, also prevents divide by later on)
+	BRANCH if(!colorM.a)
+	{
+		// todo: need to check for proper clear
+//		discard;
+		return 0.0f;
+	}
+
+	// 0..1
+	//GetSubsurfaceStrength(BufferUV);
+	float SSSStrength = GetSubsurfaceStrengthMobile(BufferUV, BlurParams); 
+
+	// Initialize the stencil buffer in case it was not already available:
+    if (initStencil) // (Checked in compile time, it's optimized away)
+        if (SSSStrength < 1 / 256.0f) discard;
+
+	float SSSScaleX = SubsurfaceParams.x;
+
+	float scale = SSSScaleX / OutDepth;
+
+	// Calculate the final step to fetch the surrounding pixels:
+    float2 finalStep = scale * dir;
+
+	// ideally this comes from a half res buffer as well - there are some minor artifacts
+	finalStep *= SSSStrength; // Modulate it using the opacity (0..1 range)
+    
+	FSeparableFilterParameters SeparableFilterParameters;
+	// const FGBufferData GBufferData = GetGBufferData(BufferUV);
+	// // 0..255, which SubSurface profile to pick
+	// // ideally this comes from a half res buffer as well - there are some minor artifacts
+	// const uint SubsurfaceProfileInt = ExtractSubsurfaceProfileInt(GBufferData);
+	/*ExtractSubsurfaceProfileInt(BufferData.CustomData.r);*/
+	uint SubsurfaceProfileInt = ExtractSubsurfaceProfileIntMobile(BufferUV, BlurParams);
+
+	SeparableFilterParameters.SubsurfaceProfileInt = SubsurfaceProfileInt;
+
+	// Accumulate the center sample:
+    float3 colorAccum = 0;
+	// >0 to avoid division by 0, not 100% correct to not visible
+	float3 colorInvDiv = 0.00001f;
+
+	// center sample
+	half3  CentralKernelWeight = GetSubsurfaceProfileKernel(0, SeparableFilterParameters).rgb;
+	colorInvDiv += CentralKernelWeight;
+	colorAccum = colorM.rgb * CentralKernelWeight;
+	float3 BoundaryColorBleed = GetSubsurfaceProfileBoundaryColorBleed(SubsurfaceProfileInt);
+
+	// Accumulate the other samples:
+    SSSS_UNROLL
+	for (int i = 1; i < SSSS_N_KERNELWEIGHTCOUNT; i++) 
+	{
+		// Kernel.a = 0..SUBSURFACE_KERNEL_SIZE (radius)
+		half4 Kernel = GetSubsurfaceProfileKernel(i, SeparableFilterParameters);
+
+		float4 LocalAccum = 0;
+
+		float2 UVOffset = Kernel.a * finalStep;
+		// The kernel is symtrical, we want to use that property.
+		// Half the GetSubsurfaceProfileKernel() calls (more expensive if done by texture)
+		// Half the weighting computations (saves 3mul per lookup sample)
+		SSSS_UNROLL
+		for (int Side = -1; Side <= 1; Side += 2)
+		{
+			// Fetch color and depth for current sample:
+			float2 LocalUV = BufferUV + UVOffset * Side;
+			float4 color = SSSSSampleSceneColor(LocalUV);
+			//uint LocalSubsurfaceProfileInt = SSSSSampleProfileId(LocalUV);
+			uint LocalSubsurfaceProfileInt = GetSubsurfaceProfileIdMobile(LocalUV, BlurParams);
+			float3 ColorTint = LocalSubsurfaceProfileInt == SubsurfaceProfileInt ? 1.0f : BoundaryColorBleed;
+			float LocalDepth = color.a;
+			color.a = GetMaskFromDepthInAlpha(color.a);
+
+#if SSSS_FOLLOW_SURFACE == 1
+			// If the difference in depth is huge, we weight the sample less or not at all
+			float s = saturate(12000.0f / 400000 * SubsurfaceParams.y *
+	//        float s = saturate(300.0f/400000 * SubsurfaceParams.y *
+				abs(OutDepth - LocalDepth));
+
+			color.a *= 1 - s;
+#endif
+			// approximation, ideally we would reconstruct the mask with GetMaskFromDepthInAlpha() and do manual bilinear filter
+			// needed?
+			color.rgb *= color.a * ColorTint;
+
+			// Accumulate left and right 
+			LocalAccum += color;
+		}
+		
+		// Accumulate to final value (left and right sample with the same weight)
+		colorAccum += Kernel.rgb * LocalAccum.rgb;
+		colorInvDiv += Kernel.rgb * LocalAccum.a;
+	}
+
+	// normalize (some samples are rejected because of depth or the other material is no SSS, compensate for that)
+	// done for each color channel to avoid color shift
+	float3 OutColor = colorAccum / colorInvDiv; 
+
+	// alpha stored the SceneDepth (0 if there is no subsurface scattering)
+    return float4(OutColor, OutDepth);
+}
+
+mobilepostprocesssubsurface.cpp 
+
+//Mobile PS-based 5S
+class FSubsurfaceSetupPS : public FMobileSubsurfaceShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FSubsurfaceSetupPS);
+	SHADER_USE_PARAMETER_STRUCT(FSubsurfaceSetupPS, FMobileSubsurfaceShader)
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER_STRUCT_INCLUDE(FSubsurfaceParameters, Subsurface)
+		SHADER_PARAMETER_STRUCT(FSubsurfaceInput, SubsurfaceInput0)
+		SHADER_PARAMETER_SAMPLER(SamplerState, SubsurfaceSampler0)
+		// [Commented out] Now using GBuffer uniform buffer via FSubsurfaceParameters::SceneTextures
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneDepthTex)
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferATex)
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferBTex)
+		RENDER_TARGET_BINDING_SLOTS()
+	END_SHADER_PARAMETER_STRUCT()
+
+	class FDimensionHalfRes : SHADER_PERMUTATION_BOOL("SUBSURFACE_HALF_RES");
+	class FDimensionCheckerboard : SHADER_PERMUTATION_BOOL("SUBSURFACE_PROFILE_CHECKERBOARD");
+	using FPermutationDomain = TShaderPermutationDomain<FDimensionHalfRes, FDimensionCheckerboard>;
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return IsMobilePlatform(Parameters.Platform);
+	}
+};
+
+IMPLEMENT_GLOBAL_SHADER(FSubsurfaceSetupPS, "/Engine/Private/MobilePostProcessSubsurface.usf", "SetupPS", SF_Pixel);
+
+
+// Shader for the SSS separable blur.
+class FSubsurfacePS : public FMobileSubsurfaceShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FSubsurfacePS);
+	SHADER_USE_PARAMETER_STRUCT(FSubsurfacePS, FMobileSubsurfaceShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER_STRUCT_INCLUDE(FSubsurfaceParameters, Subsurface)
+		SHADER_PARAMETER_STRUCT(FSubsurfaceInput, SubsurfaceInput0)
+		SHADER_PARAMETER_SAMPLER(SamplerState, SubsurfaceSampler0)
+		// [Commented out] Now using GBuffer uniform buffer via FSubsurfaceParameters::SceneTextures
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferATex)
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferBTex)
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferDTex)
+		RENDER_TARGET_BINDING_SLOTS()
+	END_SHADER_PARAMETER_STRUCT()
+
+	// Direction of the 1D separable filter.
+	enum class EDirection : uint32
+	{
+		Horizontal,
+		Vertical,
+		MAX
+	};
+
+	// Controls the quality (number of samples) of the blur kernel.
+	enum class EQuality : uint32
+	{
+		Low, 
+		Medium,
+		High,
+		MAX
+	};
+
+	class FDimensionDirection : SHADER_PERMUTATION_ENUM_CLASS("SUBSURFACE_DIRECTION", EDirection);
+	class FDimensionQuality : SHADER_PERMUTATION_ENUM_CLASS("SUBSURFACE_QUALITY", EQuality);
+	using FPermutationDomain = TShaderPermutationDomain<FDimensionDirection, FDimensionQuality>;
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return IsMobilePlatform(Parameters.Platform);
+	}
+
+	static const TCHAR* GetEventName(EQuality Quality)
+	{
+		static const TCHAR* const kEventNames[] = {
+			TEXT("Low"),
+			TEXT("Medium"),
+			TEXT("High"),
+		};
+		static_assert(UE_ARRAY_COUNT(kEventNames) == int32(EQuality::MAX), "Fix me");
+		return kEventNames[int32(Quality)];
+	}
+
+	static const TCHAR* GetEventName(EDirection Direction)
+	{
+		static const TCHAR* const kEventNames[] = {
+			TEXT("Horizontal"),
+			TEXT("Vertical"),
+		};
+		static_assert(UE_ARRAY_COUNT(kEventNames) == int32(EDirection::MAX), "Fix me");
+		return kEventNames[int32(Direction)];
+	}
+
+	static EQuality GetQuality()
+	{
+		return static_cast<FSubsurfacePS::EQuality>(
+			FMath::Clamp(
+				GetMobileSSSSampleSet(),
+				static_cast<int32>(FSubsurfacePS::EQuality::Low),
+				static_cast<int32>(FSubsurfacePS::EQuality::High)));
+	}
+
+	// Returns the sampler state based on the requested SSS filter CVar setting.
+	static FRHISamplerState* GetSamplerState()
+	{
+		if (CVarMobileSSSFilter.GetValueOnRenderThread())
+		{
+			return TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Border>::GetRHI();
+		}
+		else
+		{
+			return TStaticSamplerState<SF_Point, AM_Border, AM_Border, AM_Border>::GetRHI();
+		}
+	}
+};
+
+IMPLEMENT_GLOBAL_SHADER(FSubsurfacePS, "/Engine/Private/MobilePostProcessSubsurface.usf", "MainPS", SF_Pixel);
+
+
+// Encapsulates the post processing subsurface recombine pixel shader.
+class FMobileSubsurfaceRecombinePrevPS : public FMobileSubsurfaceShader
+{
+	DECLARE_GLOBAL_SHADER(FMobileSubsurfaceRecombinePrevPS);
+	SHADER_USE_PARAMETER_STRUCT(FMobileSubsurfaceRecombinePrevPS, FMobileSubsurfaceShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER_STRUCT_INCLUDE(FSubsurfaceParameters, Subsurface)
+		SHADER_PARAMETER_STRUCT(FSubsurfaceInput, SubsurfaceInput0)
+		SHADER_PARAMETER_STRUCT(FSubsurfaceInput, SubsurfaceInput1)
+		SHADER_PARAMETER_SAMPLER(SamplerState, SubsurfaceSampler0)
+		SHADER_PARAMETER_SAMPLER(SamplerState, SubsurfaceSampler1)
+		// [Commented out] Now using GBuffer uniform buffer via FSubsurfaceParameters::SceneTextures
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferATex)
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferBTex)
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferCTex)
+		//SHADER_PARAMETER_RDG_TEXTURE(Texture2D, GBufferDTex)
+		RENDER_TARGET_BINDING_SLOTS()
+	END_SHADER_PARAMETER_STRUCT();
+
+	// Controls the quality of lighting reconstruction.
+	enum class EQuality : uint32
+	{
+		Low,
+		High,
+		MAX
+	};
+
+	class FDimensionMode : SHADER_PERMUTATION_ENUM_CLASS("SUBSURFACE_RECOMBINE_MODE", EMobileSubsurfaceMode);
+	class FDimensionQuality : SHADER_PERMUTATION_ENUM_CLASS("SUBSURFACE_RECOMBINE_QUALITY", EQuality);
+	class FDimensionCheckerboard : SHADER_PERMUTATION_BOOL("SUBSURFACE_PROFILE_CHECKERBOARD");
+	using FPermutationDomain = TShaderPermutationDomain<FDimensionMode, FDimensionQuality, FDimensionCheckerboard>;
+
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return IsMobilePlatform(Parameters.Platform);
+	}
+
+	// Returns the Recombine quality level requested by the SSS Quality CVar setting.
+	static EQuality GetQuality(const FViewInfo& View)
+	{
+		const uint32 QualityCVar = GetMobileSSSQuality();
+
+		// Quality is forced to high when the CVar is set to 'auto' and TAA is NOT enabled.
+		// TAA improves quality through temporal filtering, making it less necessary to use
+		// high quality mode.
+		const bool bUseHighQuality = (QualityCVar == -1 && View.AntiAliasingMethod != AAM_TemporalAA);
+
+		if (QualityCVar == 1 || bUseHighQuality)
+		{
+			return EQuality::High;
+		}
+		else
+		{
+			return EQuality::Low;
+		}
+	}
+};
+
+IMPLEMENT_GLOBAL_SHADER(FMobileSubsurfaceRecombinePrevPS, "/Engine/Private/MobilePostProcessSubsurface.usf", "SubsurfaceRecombinePrevPS", SF_Pixel);
+
+FRDGTextureRef AddMobileSubsurfacePassPS(
+	FRDGBuilder& GraphBuilder,
+	TArrayView<const FViewInfo> Views,
+	const uint32 ViewMask,
+	const FSceneTextures& SceneTextures,
+	FSubsurfaceInputs& Inputs,
+	FRDGTextureRef SceneColorTextureOutput
+)
+{
+	const uint32 ViewCount = Views.Num();
+	const uint32 ViewMaskAll = (1 << ViewCount) - 1;
+	check(ViewMask);
+
+
+	FRDGTextureRef SceneTexture = SceneTextures.Color.Target;
+
+	//ERenderTargetLoadAction SceneColorTextureLoadAction = ERenderTargetLoadAction::ELoad;
+
+	for (uint32 ViewIndex = 0; ViewIndex < ViewCount; ++ViewIndex)
+	{
+		const uint32 ViewBit = 1 << ViewIndex;
+
+		const bool bIsSubsurfaceView = (ViewMask & ViewBit) != 0;
+
+		if (bIsSubsurfaceView)
+		{
+			RDG_EVENT_SCOPE(GraphBuilder, "PixelShader-based Separable SSS(ViewId=%d)", ViewIndex);
+
+			FRDGTextureRef SceneColorTexture = SceneTextures.Color.Target;
+			const FScreenPassTextureViewport SceneViewport(SceneColorTexture, Views[ViewIndex].ViewRect);
+			
+			check(SceneColorTextureOutput);
+
+			//AddSubsurfaceViewPass(GraphBuilder, View, SceneTextures, SceneColorTextureOutput, SceneColorTextureLoadAction);
+
+			const FViewInfo& View = Views[ViewIndex];
+
+			const FSceneViewFamily* ViewFamily = View.Family;
+
+			const FRDGTextureDesc& SceneTextureDesc = SceneTexture->Desc;
+
+			const EMobileSubsurfaceMode SubsurfaceMode = GetMobileSubsurfaceModeForView(View);
+
+			const bool bHalfRes = false;
+			const FRDGTextureDesc& SceneColorTextureDesc = SceneColorTexture->Desc;
+			const bool bCheckerboard = IsMobileSubsurfaceCheckerboardFormat(SceneColorTextureDesc.Format, View);
+
+			const uint32 ScaleFactor = bHalfRes ? 2 : 1;
+
+			// const FScreenPassTextureViewport SceneViewport(SceneTexture, View.ViewRect);
+
+			const FScreenPassTextureViewport SubsurfaceViewport = GetDownscaledViewport(SceneViewport, ScaleFactor);
+
+			const FRDGTextureDesc SubsurfaceTextureDescriptor = FRDGTextureDesc::Create2D(
+				SubsurfaceViewport.Extent,
+				PF_FloatRGBA,
+				FClearValueBinding(),
+				TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_UAV);
+
+			const FSubsurfaceParameters SubsurfaceCommonParameters = GetMobileSubsurfaceCommonParameters(GraphBuilder, View, Inputs.MobileSceneTextures);
+			const FScreenPassTextureViewportParameters SubsurfaceViewportParameters = GetScreenPassTextureViewportParameters(SubsurfaceViewport);
+			const FScreenPassTextureViewportParameters SceneViewportParameters = GetScreenPassTextureViewportParameters(SceneViewport);
+
+			FRDGTextureRef SetupTexture = SceneTexture;
+			FRDGTextureRef SubsurfaceTextureX = nullptr;
+			FRDGTextureRef SubsurfaceTextureY = nullptr;
+
+			FScreenPassTexture SceneDepth((*Inputs.MobileSceneTextures)->SceneDepthTexture, SceneViewport.Rect);
+			FScreenPassTexture GBufferA((*Inputs.MobileSceneTextures)->GBufferATexture, SceneViewport.Rect);
+			FScreenPassTexture GBufferB((*Inputs.MobileSceneTextures)->GBufferBTexture, SceneViewport.Rect);
+			FScreenPassTexture GBufferC((*Inputs.MobileSceneTextures)->GBufferCTexture, SceneViewport.Rect);
+			//FScreenPassTexture GBufferD((*Inputs.MobileSceneTextures)->GBufferDTexture, SceneViewport.Rect);
+			
+			FRHISamplerState* PointClampSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+			FRHISamplerState* BilinearBorderSampler = TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Border>::GetRHI();
+
+			/**
+			 * When in bypass mode, the setup and convolution passes are skipped, but lighting
+			 * reconstruction is still performed in the recombine pass.
+			 */
+			if (SubsurfaceMode != EMobileSubsurfaceMode::Bypass)
+			{
+
+				// 1. Setup Pass
+				SetupTexture = GraphBuilder.CreateTexture(SubsurfaceTextureDescriptor, TEXT("SubsurfaceSetupTexture"));
+				// Setup pass outputs the diffuse scene color and depth in preparation for the scatter passes.
+				{
+					FSubsurfaceSetupPS::FParameters* PassParameters = GraphBuilder.AllocParameters<FSubsurfaceSetupPS::FParameters>();
+					PassParameters->Subsurface = SubsurfaceCommonParameters;
+					PassParameters->RenderTargets[0] = FRenderTargetBinding(SetupTexture, ERenderTargetLoadAction::ELoad);
+					PassParameters->SubsurfaceInput0 = GetMobileSubsurfaceInput(SceneTexture, SceneViewportParameters);
+					PassParameters->SubsurfaceSampler0 = PointClampSampler;
+					// [Commented out] Now using GBuffer uniform buffer via FSubsurfaceParameters::SceneTextures
+					//PassParameters->SceneDepthTex = SceneDepth.Texture;
+					//PassParameters->GBufferATex = GBufferA.Texture;
+					//PassParameters->GBufferBTex = GBufferB.Texture;
+
+
+					FSubsurfaceSetupPS::FPermutationDomain PixelShaderPermutationVector;
+					PixelShaderPermutationVector.Set<FSubsurfaceSetupPS::FDimensionHalfRes>(bHalfRes);
+					PixelShaderPermutationVector.Set<FSubsurfaceSetupPS::FDimensionCheckerboard>(bCheckerboard);
+					TShaderMapRef<FSubsurfaceSetupPS> PixelShader(View.ShaderMap, PixelShaderPermutationVector);
+
+
+					TShaderMapRef<FScreenPassVS> VertexShader(View.ShaderMap);
+					FRHIBlendState* BlendState = FScreenPassPipelineState::FDefaultBlendState::GetRHI();
+					FRHIDepthStencilState* DepthStencilState = FScreenPassPipelineState::FDefaultDepthStencilState::GetRHI();
+					const FScreenPassPipelineState PipelineState(VertexShader, PixelShader, BlendState, DepthStencilState);
+					GraphBuilder.AddPass(
+						RDG_EVENT_NAME("SubsurfaceSetup (PixelShader)"),
+						PassParameters,
+						ERDGPassFlags::Raster | ERDGPassFlags::NeverCull,
+						[&View, SceneTextures, SubsurfaceViewport, SceneViewport, PipelineState, PixelShader, PassParameters](FRHICommandList& RHICmdList)
+						{
+							DrawScreenPass(
+								RHICmdList, 
+								View, 
+								SubsurfaceViewport, 
+								SceneViewport,
+								PipelineState, 
+								EScreenPassDrawFlags::None, 
+								[&](FRHICommandList&)
+								{
+									SetShaderParameters(RHICmdList, PixelShader, PixelShader.GetPixelShader(), *PassParameters);
+								}
+							);
+						}
+					);
+
+
+
+				}
+
+
+				// 2. Separable SSS Pass
+				SubsurfaceTextureX = GraphBuilder.CreateTexture(SubsurfaceTextureDescriptor, TEXT("SubsurfaceTextureX"));
+				SubsurfaceTextureY = GraphBuilder.CreateTexture(SubsurfaceTextureDescriptor, TEXT("SubsurfaceTextureY"));
+
+				FRHISamplerState* SubsurfaceSamplerState = FSubsurfacePS::GetSamplerState();
+				const FSubsurfacePS::EQuality SubsurfaceQuality = FSubsurfacePS::GetQuality();
+
+				struct FSubsurfacePassInfo
+				{
+					FSubsurfacePassInfo(const TCHAR* InName, FRDGTextureRef InInput, FRDGTextureRef InOutput)
+						: Name(InName)
+						, Input(InInput)
+						, Output(InOutput)
+					{}
+
+					const TCHAR* Name;
+					FRDGTextureRef Input;
+					FRDGTextureRef Output;
+				};
+
+				const FSubsurfacePassInfo SubsurfacePassInfoByDirection[] =
+				{
+					{ TEXT("SubsurfaceX (PixelShader)"), SetupTexture, SubsurfaceTextureX },
+					{ TEXT("SubsurfaceY (PixelShader)"), SubsurfaceTextureX, SubsurfaceTextureY },
+				};
+
+				// Horizontal / Vertical scattering passes using a separable filter.
+				for (uint32 DirectionIndex = 0; DirectionIndex < static_cast<uint32>(FSubsurfacePS::EDirection::MAX); ++DirectionIndex)
+				{
+					const auto Direction = static_cast<FSubsurfacePS::EDirection>(DirectionIndex);
+					const FSubsurfacePassInfo& PassInfo = SubsurfacePassInfoByDirection[DirectionIndex];
+					FRDGTextureRef TextureInput = PassInfo.Input;
+					FRDGTextureRef TextureOutput = PassInfo.Output;
+
+					FSubsurfacePS::FParameters* PassParameters = GraphBuilder.AllocParameters<FSubsurfacePS::FParameters>();
+					PassParameters->Subsurface = SubsurfaceCommonParameters;
+					PassParameters->RenderTargets[0] = FRenderTargetBinding(TextureOutput, ERenderTargetLoadAction::ELoad);
+					PassParameters->SubsurfaceInput0 = GetMobileSubsurfaceInput(TextureInput, SubsurfaceViewportParameters);
+					PassParameters->SubsurfaceSampler0 = SubsurfaceSamplerState;
+					// [Commented out] Now using GBuffer uniform buffer via FSubsurfaceParameters::SceneTextures
+					//PassParameters->GBufferATex = GBufferA.Texture;
+					//PassParameters->GBufferBTex = GBufferB.Texture;
+					//PassParameters->GBufferDTex = GBufferD.Texture;
+
+					FSubsurfacePS::FPermutationDomain PixelShaderPermutationVector;
+					PixelShaderPermutationVector.Set<FSubsurfacePS::FDimensionDirection>(Direction);
+					PixelShaderPermutationVector.Set<FSubsurfacePS::FDimensionQuality>(SubsurfaceQuality);
+					TShaderMapRef<FSubsurfacePS> PixelShader(View.ShaderMap, PixelShaderPermutationVector);
+
+					//AddDrawScreenPass(
+					//	GraphBuilder, 
+					//	FRDGEventName(PassInfo.Name),
+					//	View,
+					//	SubsurfaceViewport,
+					//	SubsurfaceViewport, // To-Check: Replace By SceneViewport?
+					//	PixelShader,
+					//	PassParameters
+					//);
+
+					TShaderMapRef<FScreenPassVS> VertexShader(View.ShaderMap);
+					FRHIBlendState* BlendState = FScreenPassPipelineState::FDefaultBlendState::GetRHI();
+					FRHIDepthStencilState* DepthStencilState = FScreenPassPipelineState::FDefaultDepthStencilState::GetRHI();
+					const FScreenPassPipelineState PipelineState(VertexShader, PixelShader, BlendState, DepthStencilState);
+					GraphBuilder.AddPass(
+						FRDGEventName(PassInfo.Name),
+						PassParameters,
+						ERDGPassFlags::Raster | ERDGPassFlags::NeverCull,
+						[&View, SubsurfaceViewport, PipelineState, PixelShader, PassParameters](FRHICommandList& RHICmdList)
+						{
+							DrawScreenPass(
+								RHICmdList,
+								View,
+								SubsurfaceViewport,
+								SubsurfaceViewport,
+								PipelineState,
+								EScreenPassDrawFlags::None,
+								[&](FRHICommandList&)
+								{
+									SetShaderParameters(RHICmdList, PixelShader, PixelShader.GetPixelShader(), *PassParameters);
+								}
+							);
+						}
+					);
+
+
+
+				}
+			}
+			// 3. Recombination Pass
+			// Recombines scattering result with scene color, output to a temporary RT.
+			FRDGTextureRef RecombineIntermediateTexture = GraphBuilder.CreateTexture(
+				FRDGTextureDesc::Create2D(SceneViewport.Extent, PF_FloatRGBA, FClearValueBinding(), TexCreate_RenderTargetable | TexCreate_ShaderResource),
+				TEXT("SubsurfaceRecombineIntermediate"));
+			{
+				FMobileSubsurfaceRecombinePrevPS::FParameters* PassParameters = GraphBuilder.AllocParameters<FMobileSubsurfaceRecombinePrevPS::FParameters>();
+				PassParameters->Subsurface = SubsurfaceCommonParameters;
+				PassParameters->RenderTargets[0] = FRenderTargetBinding(RecombineIntermediateTexture, ERenderTargetLoadAction::ELoad);
+				PassParameters->SubsurfaceInput0 = GetMobileSubsurfaceInput(SceneTexture, SceneViewportParameters);
+				PassParameters->SubsurfaceSampler0 = BilinearBorderSampler;
+
+				// Scattering output Targeting is only used when scattering is enabled.
+				if (SubsurfaceMode != EMobileSubsurfaceMode::Bypass)
+				{
+					PassParameters->SubsurfaceInput1 = GetMobileSubsurfaceInput(SubsurfaceTextureY, SubsurfaceViewportParameters);
+					PassParameters->SubsurfaceSampler1 = BilinearBorderSampler;
+				}
+
+				// [Commented out] Now using GBuffer uniform buffer via FSubsurfaceParameters::SceneTextures
+				//PassParameters->GBufferATex = GBufferA.Texture;
+				//PassParameters->GBufferBTex = GBufferB.Texture;
+				//PassParameters->GBufferCTex = GBufferC.Texture;
+
+				const FMobileSubsurfaceRecombinePrevPS::EQuality RecombineQuality = FMobileSubsurfaceRecombinePrevPS::GetQuality(View);
+				FMobileSubsurfaceRecombinePrevPS::FPermutationDomain PixelShaderPermutationVector;
+				PixelShaderPermutationVector.Set<FMobileSubsurfaceRecombinePrevPS::FDimensionMode>(SubsurfaceMode);
+				PixelShaderPermutationVector.Set<FMobileSubsurfaceRecombinePrevPS::FDimensionQuality>(RecombineQuality);
+				PixelShaderPermutationVector.Set<FMobileSubsurfaceRecombinePrevPS::FDimensionCheckerboard>(bCheckerboard);
+				TShaderMapRef<FMobileSubsurfaceRecombinePrevPS> PixelShader(View.ShaderMap, PixelShaderPermutationVector);
+
+				AddDrawScreenPass(
+					GraphBuilder,
+					RDG_EVENT_NAME("SubsurfaceRecombinePrev (PixelShader)"),
+					View,
+					SceneViewport,
+					SubsurfaceViewport,
+					PixelShader,
+					PassParameters
+				);
+			}
+			// 4. Copy recombine result back to SceneColor
+			{
+				FMobileSubsurfaceRecombineCopyPS::FParameters* PassParameters = GraphBuilder.AllocParameters<FMobileSubsurfaceRecombineCopyPS::FParameters>();
+				PassParameters->Subsurface = SubsurfaceCommonParameters;
+				PassParameters->RenderTargets[0] = FRenderTargetBinding(SceneColorTextureOutput, ERenderTargetLoadAction::ELoad);
+				PassParameters->SubsurfaceInput0 = GetMobileSubsurfaceInput(RecombineIntermediateTexture, SceneViewportParameters);
+				PassParameters->SubsurfaceSampler0 = PointClampSampler;
+				PassParameters->Substrate = Substrate::BindSubstrateGlobalUniformParameters(View);
+
+				TShaderMapRef<FMobileSubsurfaceRecombineCopyPS> PixelShader(View.ShaderMap);
+
+				AddDrawScreenPass(
+					GraphBuilder,
+					RDG_EVENT_NAME("CopyToSceneColor (PixelShader)"),
+					View,
+					SceneViewport,
+					SceneViewport,
+					PixelShader,
+					PassParameters
+				);
+			}
+	
+		}
+	}
+
+	return SceneColorTextureOutput;
+}
+
+void AddMobileSubsurfacePassPS(
+	FRDGBuilder& GraphBuilder,
+	FSceneTextures& SceneTextures,
+	FSubsurfaceInputs& Inputs,
+	TArrayView<const FViewInfo> Views)
+{
+	const uint32 ViewMask = GetMobileSubsurfaceRequiredViewMask(Views);
+
+	if (!ViewMask)
+	{
+		return;
+	}
+
+	checkf(!SceneTextures.Color.IsSeparate(), TEXT("Subsurface rendering requires the deferred renderer."));
+
+	AddMobileSubsurfacePassPS(GraphBuilder, Views, ViewMask, SceneTextures, Inputs, SceneTextures.Color.Target);
+
+	SceneTextures.Color.Resolve = SceneTextures.Color.Target;
+}
+
+mobilepostprocesssubsurface.h
+
+struct FSubsurfaceInputs {
+	//TRDGUniformBufferRef<FMobileSceneTextureUniformParameters> SceneTextures = nullptr;
+	TRDGUniformBufferRef<FMobileSceneTextureUniformParameters> MobileSceneTextures = nullptr;
+	TRDGUniformBufferRef<FSceneTextureUniformParameters> SceneTextures = nullptr;
+};
+
+void AddMobileSubsurfacePassPS(
+	FRDGBuilder& GraphBuilder,
+	FSceneTextures& SceneTextures,
+	FSubsurfaceInputs &Inputs,
+	TArrayView<const FViewInfo> Views
+);
